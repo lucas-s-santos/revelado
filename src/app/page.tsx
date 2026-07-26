@@ -1,74 +1,75 @@
-import { OCCASIONS } from "@/lib/occasions";
-import { PLANS } from "@/lib/plans";
-import { formatBRL } from "@/lib/utils";
+import { Footer } from "@/components/chrome/footer";
+import { Nav } from "@/components/chrome/nav";
+import { PromoBar } from "@/components/chrome/promo-bar";
+import { ScrollProgress } from "@/components/chrome/scroll-progress";
+import { Faq } from "@/components/marketing/faq";
+import { FinalCta } from "@/components/marketing/final-cta";
+import { Hero } from "@/components/marketing/hero";
+import { HowItWorks } from "@/components/marketing/how-it-works";
+import { OccasionsGrid } from "@/components/marketing/occasions-grid";
+import { OccasionsMarquee } from "@/components/marketing/occasions-marquee";
+import { Pricing } from "@/components/marketing/pricing";
+import { Revelation } from "@/components/marketing/revelation";
+import { Testimonials } from "@/components/marketing/testimonials";
+import { Safelight } from "@/components/motion/safelight";
+import { TrackView } from "@/components/track-view";
+import { formatCelebrationDate, nextCelebration } from "@/lib/promo";
 
 /**
- * Placeholder da Fase 0. Existe só para provar que os tokens da seção 4 do SPEC
- * estão aplicados (cor, tipografia, vidro, grid, accent por ocasião).
- * A landing de verdade é a Fase 2 (SPEC 8.1) e substitui este arquivo inteiro.
+ * Landing — SPEC 8.1, as 12 seções na ordem.
+ *
+ * Server Component. As datas são resolvidas aqui e descem como props: o
+ * servidor e o cliente calculam o mesmo primeiro valor, sem número piscando na
+ * hidratação (SPEC 8.1: sem CLS).
+ *
+ * Efeitos ambientais: a safelight vale para a página, e o cone do Spotlight
+ * fica só no hero — teto de dois por dobra (SPEC 6.1).
  */
+
+// ISR de 1 hora: a contagem regressiva é do cliente, o HTML pode ser cacheado.
+export const revalidate = 3600;
+
 export default function Home() {
+  const now = Date.now();
+  const celebration = nextCelebration(new Date(now));
+
+  // Contador de demonstração do mockup: uma data redonda e verossímil.
+  const counterSince = new Date(
+    Date.UTC(new Date(now).getUTCFullYear() - 4, 5, 12, 24 - 3),
+  ).toISOString();
+
   return (
-    <main className="relative min-h-screen overflow-hidden">
-      <div
-        aria-hidden
-        className="bg-grid pointer-events-none absolute inset-0"
+    <>
+      <TrackView event="landing_view" />
+      <ScrollProgress />
+      <Safelight />
+
+      <PromoBar
+        deadline={celebration.date.toISOString()}
+        label={celebration.label}
+        dateLabel={formatCelebrationDate(celebration.date)}
+        now={now}
       />
+      <Nav />
 
-      <div className="container-page relative flex min-h-screen flex-col justify-center gap-14 py-24">
-        <header className="flex flex-col gap-5">
-          <p className="eyebrow">Fase 0 · fundação</p>
-          <h1 className="text-[clamp(2.75rem,9vw,5.5rem)]">
-            Revelado, <span className="display-italic">em breve</span>
-          </h1>
-          <p className="max-w-[46ch] text-[rgb(var(--color-muted))]">
-            Tokens da Câmara Escura aplicados. Nenhuma tela construída ainda — a
-            landing é a Fase 2.
-          </p>
-        </header>
+      <main id="conteudo">
+        <Hero pagesCreated={1482} counterSince={counterSince} now={now} />
+        <OccasionsMarquee />
+        <HowItWorks />
+        <OccasionsGrid />
+        <Revelation />
+        <Pricing />
+        <Testimonials />
+        <Faq />
+        <FinalCta
+          deadline={celebration.date.toISOString()}
+          label={celebration.label}
+          dateLabel={formatCelebrationDate(celebration.date)}
+          now={now}
+        />
+      </main>
 
-        <section className="flex flex-col gap-4">
-          <h2 className="eyebrow">Accent por ocasião</h2>
-          <ul className="flex flex-wrap gap-2">
-            {OCCASIONS.map((occasion) => (
-              <li
-                key={occasion.id}
-                data-occasion={occasion.id}
-                className="glass flex items-center gap-2.5 px-3.5 py-2 text-sm"
-              >
-                <span
-                  aria-hidden
-                  className="size-3 rounded-full"
-                  style={{ background: "rgb(var(--color-accent))" }}
-                />
-                {occasion.name}
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="flex flex-col gap-4">
-          <h2 className="eyebrow">Planos (centavos, inteiros)</h2>
-          <ul className="grid gap-3 sm:grid-cols-3">
-            {PLANS.map((plan) => (
-              <li key={plan.id} className="glass flex flex-col gap-1 p-5">
-                <span className="text-sm text-[rgb(var(--color-muted))]">
-                  {plan.name}
-                </span>
-                <span data-numeric className="text-2xl">
-                  {formatBRL(plan.priceCents)}
-                </span>
-                <span
-                  data-numeric
-                  className="text-xs text-[rgb(var(--color-muted))] line-through"
-                >
-                  {formatBRL(plan.listCents)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      </div>
-    </main>
+      <Footer />
+    </>
   );
 }

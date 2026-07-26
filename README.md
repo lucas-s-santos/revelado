@@ -38,6 +38,18 @@ consulta o banco. Sentry e PostHog ficam inertes sem as chaves.
 
 ## Estado atual
 
+**Fase 2 — Landing completa: concluída e verificada.** As 12 seções da 8.1, de
+`/` ao rodapé, responsivas até 360px. Textos todos em
+[`lib/copy.ts`](src/lib/copy.ts) (SPEC 12), evento `landing_view` no PostHog.
+
+A contagem regressiva é **real**: [`lib/promo.ts`](src/lib/promo.ts) calcula a
+próxima comemoração de verdade (datas móveis incluídas — 2º domingo de maio e de
+agosto) e a barra diz qual é. Nada de contador que reinicia sozinho para fabricar
+urgência. Cinco testes cobrem as datas, porque errar ali é errar em público.
+
+O preço da vitrine e o do checkout saem da mesma `orderTotalCents`, para nunca
+divergirem quando a Fase 5 chegar.
+
 **Fase 1 — Camada de motion: concluída e verificada.** Sete hooks, sete
 componentes próprios e os componentes de biblioteca instalados e retematizados.
 Demonstração viva em **`/dev/motion`** (não indexada).
@@ -70,8 +82,11 @@ landing de verdade é a Fase 2.
 
 | Rota                      | Atual         | Limite (SPEC 10)  |
 | ------------------------- | ------------- | ----------------- |
-| `/` (placeholder)         | 101,3 KB gzip | 220 KB            |
-| `/dev/motion` (só em dev) | 176 KB        | fora do orçamento |
+| `/` (landing completa)    | 176,8 KB gzip | 220 KB            |
+| `/dev/motion` (só em dev) | 178 KB        | fora do orçamento |
+
+Sobra de 43 KB na landing. O FAQ usa `<details>` nativo em vez do acordeão do
+Radix: semântica e teclado já vêm do navegador, e não custa JavaScript nenhum.
 
 O SDK do Sentry no browser sozinho custava 127 KB gzip — mais do que o orçamento
 inteiro da página publicada. Por isso ele entra por **import dinâmico** em
@@ -90,10 +105,27 @@ pnpm db:migrate                                     # ou aplica do zero
 pnpm db:seed
 ```
 
-Próxima: **Fase 2 — landing completa** (as 12 seções da 8.1). Ela consome a camada
-da Fase 1 inteira. `docs/MOTION-REFS.md` continua vazio: a Fase 1 seguiu a seção
-6.3 do SPEC ao pé da letra, sem referência visual externa. Se você colar os links
-lá, dá para refinar os efeitos antes de a landing fixar o visual.
+### A logo
+
+`public/logo.png` é o original entregue (800×800, 803 KB, fundo branco opaco).
+`scripts/prepare-logo.mjs` gera dele `logo-mark.png`, `logo-mark-128.png` e
+`src/app/icon.png`, recortando o fundo por flood fill a partir das bordas — o
+original, sozinho, estouraria o limite de 250 KB por imagem e apareceria como um
+adesivo branco sobre o noir.
+
+Duas ressalvas: a paleta da logo (petróleo, creme, coral) é outro sistema visual
+que a Câmara Escura (âmbar e magenta sobre noir), então ela não acompanha o accent
+da ocasião como o resto da interface; e a ilustração é detalhada demais para os
+34px da nav, onde perde definição. Uma versão vetorial ou monocromática entra em
+[`components/chrome/logo.tsx`](src/components/chrome/logo.tsx), que é o único
+arquivo que referencia o asset.
+
+Próxima: **Fase 3 — motor de blocos** (`lib/blocks/schema.ts`, `registry.ts`,
+`BlockRenderer`, `PhoneFrame`). É onde nasce a arquitetura de blocos em JSON, a
+regra número 1 do projeto.
+
+`docs/MOTION-REFS.md` continua vazio — as Fases 1 e 2 seguiram a seção 6.3 do SPEC
+ao pé da letra, sem referência visual externa.
 
 ## Regras que valem para todo commit
 
