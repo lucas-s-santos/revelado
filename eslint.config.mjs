@@ -25,7 +25,12 @@ const eslintConfig = [
       ],
       "@typescript-eslint/no-unused-vars": [
         "error",
-        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          // Descartar props com destructuring + rest é padrão em componente.
+          ignoreRestSiblings: true,
+        },
       ],
       // SPEC 6.4 / anti-padrão 5 — scroll e pointermove só nos drivers singleton.
       "no-restricted-syntax": [

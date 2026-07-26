@@ -38,6 +38,23 @@ consulta o banco. Sentry e PostHog ficam inertes sem as chaves.
 
 ## Estado atual
 
+**Fase 1 — Camada de motion: concluída e verificada.** Sete hooks, sete
+componentes próprios e os componentes de biblioteca instalados e retematizados.
+Demonstração viva em **`/dev/motion`** (não indexada).
+
+Regra central da fase, da seção 6.4 do SPEC: **um** listener de `scroll` e **um**
+de `pointermove` na aplicação inteira, throttled por rAF, escrevendo CSS custom
+properties. Quem precisa da posição assina os drivers em
+[`use-scroll-driver`](src/hooks/use-scroll-driver.ts) e
+[`use-pointer`](src/hooks/use-pointer.ts) — os dois únicos arquivos onde o ESLint
+permite registrar esses eventos. Três testes em
+[`use-scroll-driver.test.ts`](src/hooks/use-scroll-driver.test.ts) travam a
+invariante: 3 assinantes, 1 listener.
+
+Efeitos que resolvem em CSS puro, com zero JavaScript por frame: safelight,
+barra de progresso, trilho dos três atos e a "revelação" (fotos saindo de
+`saturate(.06) blur(5px)` para nítidas conforme o scroll).
+
 **Fase 0 — Fundação: concluída e verificada.** Next.js 15 + TS strict + Tailwind v4,
 tokens da Câmara Escura em `src/styles/theme.css`, três fontes via `next/font`,
 Prisma com o schema da seção 7.1, migration inicial e seed, Sentry + PostHog atrás
@@ -51,9 +68,10 @@ landing de verdade é a Fase 2.
 
 ### Orçamento de JS hoje
 
-| Rota              | Atual         | Limite (SPEC 10) |
-| ----------------- | ------------- | ---------------- |
-| `/` (placeholder) | 101,3 KB gzip | 220 KB           |
+| Rota                      | Atual         | Limite (SPEC 10)  |
+| ------------------------- | ------------- | ----------------- |
+| `/` (placeholder)         | 101,3 KB gzip | 220 KB            |
+| `/dev/motion` (só em dev) | 176 KB        | fora do orçamento |
 
 O SDK do Sentry no browser sozinho custava 127 KB gzip — mais do que o orçamento
 inteiro da página publicada. Por isso ele entra por **import dinâmico** em
@@ -72,9 +90,10 @@ pnpm db:migrate                                     # ou aplica do zero
 pnpm db:seed
 ```
 
-Próxima: **Fase 1 — camada de motion e primitivos** (seção 13 do SPEC). Antes de
-começar, preencher `docs/MOTION-REFS.md` (seção 6.5) — sem isso a Fase 1 improvisa
-os efeitos.
+Próxima: **Fase 2 — landing completa** (as 12 seções da 8.1). Ela consome a camada
+da Fase 1 inteira. `docs/MOTION-REFS.md` continua vazio: a Fase 1 seguiu a seção
+6.3 do SPEC ao pé da letra, sem referência visual externa. Se você colar os links
+lá, dá para refinar os efeitos antes de a landing fixar o visual.
 
 ## Regras que valem para todo commit
 

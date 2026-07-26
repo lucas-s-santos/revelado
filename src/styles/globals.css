@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "./theme.css";
 
+@custom-variant dark (&:is(.dark *));
+
 @layer base {
   *,
   *::before,
@@ -165,6 +167,218 @@
   }
 }
 
+@layer components {
+  /* --- Safelight (SPEC 6.3) -------------------------------------------
+   * Consome --mx/--my escritos pelo driver de ponteiro. Um listener para a
+   * página toda; aqui é CSS puro, zero JS por frame. */
+  .safelight {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    background: radial-gradient(
+      340px circle at var(--mx, 50vw) var(--my, 40vh),
+      rgb(var(--color-accent) / 0.1),
+      rgb(var(--color-accent) / 0.04) 40%,
+      transparent 70%
+    );
+  }
+
+  /* --- SpotlightCard (SPEC 5.3) ---------------------------------------- */
+  .spotlight-card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+
+  .spotlight-card[data-lift][data-spotlight="on"] {
+    transform: translateY(-3px);
+  }
+
+  .spotlight-card__halo,
+  .spotlight-card__ring {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+
+  .spotlight-card[data-spotlight="on"] .spotlight-card__halo,
+  .spotlight-card[data-spotlight="on"] .spotlight-card__ring {
+    opacity: 1;
+  }
+
+  .spotlight-card__halo {
+    background: radial-gradient(
+      var(--spot-radius) circle at var(--sx, 50%) var(--sy, 50%),
+      rgb(var(--spot-accent) / 0.14),
+      transparent 70%
+    );
+  }
+
+  /* O anel: borda de 1px iluminada só no trecho perto do ponteiro. */
+  .spotlight-card__ring {
+    padding: 1px;
+    background: radial-gradient(
+      calc(var(--spot-radius) * 0.7) circle at var(--sx, 50%) var(--sy, 50%),
+      rgb(var(--spot-accent) / 0.6),
+      transparent 70%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  /* --- ScrollProgress (SPEC 6.3) --------------------------------------
+   * scaleX(var(--scroll)) — o driver escreve, o CSS desenha. */
+  .scroll-progress {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 60;
+    height: 2px;
+    pointer-events: none;
+  }
+
+  .scroll-progress__fill {
+    display: block;
+    height: 100%;
+    transform-origin: 0 50%;
+    transform: scaleX(var(--scroll, 0));
+    background: linear-gradient(
+      90deg,
+      rgb(var(--color-accent)),
+      rgb(var(--color-magenta))
+    );
+  }
+
+  /* --- StickyActs (SPEC 6.3 / 8.1) ------------------------------------- */
+  .sticky-acts {
+    position: relative;
+    display: grid;
+    grid-template-columns: 2px 1fr;
+    gap: 2.5rem;
+  }
+
+  .sticky-acts__rail {
+    position: relative;
+    background: rgb(var(--color-paper) / 0.08);
+    border-radius: var(--radius-pill);
+  }
+
+  .sticky-acts__rail-fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 0;
+    transform: scaleY(var(--p, 0));
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-accent)),
+      rgb(var(--color-magenta))
+    );
+    border-radius: inherit;
+  }
+
+  .sticky-acts__list {
+    display: flex;
+    flex-direction: column;
+    gap: 6rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Cada ato acende quando --p cruza a faixa dele. Sem JS, sem classe. */
+  .sticky-acts__act {
+    opacity: calc(
+      0.3 + 0.7 *
+        clamp(
+          0,
+          (var(--p, 0) - var(--from)) / (var(--to) - var(--from)) + 0.35,
+          1
+        )
+    );
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+
+  .sticky-acts__title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.5rem, 3.5vw, 2.25rem);
+    letter-spacing: -0.02em;
+    margin: 0.35rem 0 0.6rem;
+  }
+
+  /* --- Revelação (SPEC 6.3, "assinatura") ------------------------------
+   * As fotos saem de saturate(.06) blur(5px) para nítidas conforme o scroll,
+   * com stagger. --p vem do use-section-progress; --i é o índice da foto.
+   * O filtro inteiro resolve em CSS: zero JS por frame. */
+  .developing {
+    --d: clamp(0, (var(--p, 0) - var(--i, 0) * 0.08) * 2.2, 1);
+    filter: saturate(calc(0.06 + 0.94 * var(--d)))
+      blur(calc((1 - var(--d)) * 5px));
+    opacity: calc(0.45 + 0.55 * var(--d));
+    transform: scale(calc(1.04 - 0.04 * var(--d)));
+  }
+
+  /* --- Frame (SPEC 5.4) ------------------------------------------------ */
+  .frame {
+    position: relative;
+    overflow: hidden;
+    margin: 0;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-noir-2));
+  }
+
+  .frame__img {
+    object-fit: cover;
+  }
+
+  .frame__empty {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      145deg,
+      rgb(var(--color-noir-3)),
+      rgb(var(--color-noir-2))
+    );
+  }
+
+  .frame__vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 90px 24px rgb(0 0 0 / var(--vignette, 0.55));
+  }
+
+  .frame__grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  .frame__cap {
+    position: absolute;
+    inset: auto 0 0 0;
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    background: linear-gradient(
+      to top,
+      rgb(var(--color-noir) / 0.85),
+      transparent
+    );
+  }
+}
+
 /* SPEC 6.1 regra 5 / SPEC 11 — não é opcional */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -174,5 +388,38 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@theme inline {
+  --animate-shine: shine var(--duration) infinite linear;
+  @keyframes shine {
+    0% {
+      background-position: 0% 0%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    to {
+      background-position: 0% 0%;
+    }
+  }
+  --animate-marquee: marquee var(--duration) infinite linear;
+  --animate-marquee-vertical: marquee-vertical var(--duration) linear infinite;
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(calc(-100% - var(--gap)));
+    }
+  }
+  @keyframes marquee-vertical {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(calc(-100% - var(--gap)));
+    }
   }
 }
