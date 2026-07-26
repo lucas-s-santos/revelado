@@ -1,0 +1,195 @@
+// Modelo de dados — SPEC seção 7.1.
+// Regras não negociáveis: soft delete via deletedAt em Site; slug imutável após
+// PUBLISHED; nenhuma query no app sem filtrar deletedAt: null.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  phone     String?
+  role      Role     @default(USER)
+  sites     Site[]
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Site {
+  id            String     @id @default(cuid())
+  userId        String?
+  anonId        String? // cookie do rascunho pré-login
+  slug          String     @unique
+  occasionId    String
+  templateId    String?
+  content       Json // SiteContent — ver SPEC 7.2
+  schemaVersion Int        @default(1)
+  status        SiteStatus @default(DRAFT)
+  passwordHash  String?
+  indexable     Boolean    @default(false)
+  publishedAt   DateTime?
+  expiresAt     DateTime? // null = vitalício
+  viewsCount    Int        @default(0)
+  firstViewedAt DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  user      User?            @relation(fields: [userId], references: [id])
+  occasion  Occasion         @relation(fields: [occasionId], references: [id])
+  media     Media[]
+  guestbook GuestbookEntry[]
+  orders    Order[]
+  views     SiteView[]
+
+  @@index([userId])
+  @@index([anonId])
+  @@index([status, expiresAt])
+}
+
+enum SiteStatus {
+  DRAFT
+  PENDING_PAYMENT
+  PUBLISHED
+  EXPIRED
+}
+
+model Media {
+  id          String    @id @default(cuid())
+  siteId      String
+  key         String // chave no R2
+  mime        String
+  width       Int
+  height      Int
+  bytes       Int
+  blurhash    String?
+  position    Int       @default(0)
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, position])
+}
+
+model Occasion {
+  id            String  @id
+  slug          String  @unique
+  name          String
+  accent        String // "224 80 143"
+  icon          String
+  defaultBlocks Json
+  seo           Json
+  active        Boolean @default(true)
+  order         Int
+
+  templates Template[]
+  sites     Site[]
+}
+
+model Template {
+  id           String  @id @default(cuid())
+  occasionId   String
+  name         String
+  previewUrl   String
+  preset       Json // SiteContent parcial
+  planRequired String?
+
+  occasion Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
+
+  @@index([occasionId])
+}
+
+model Plan {
+  id           String  @id
+  name         String
+  priceCents   Int
+  listCents    Int // preço "de", riscado
+  durationDays Int? // null = vitalício
+  maxPhotos    Int
+  features     Json
+  active       Boolean @default(true)
+
+  orders Order[]
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  userId      String
+  siteId      String
+  planId      String
+  bumpForever Boolean     @default(false)
+  amountCents Int
+  couponId    String?
+  status      OrderStatus @default(PENDING)
+  provider    String      @default("mercadopago")
+  providerRef String?     @unique
+  paidAt      DateTime?
+  createdAt   DateTime    @default(now())
+
+  user   User    @relation(fields: [userId], references: [id])
+  site   Site    @relation(fields: [siteId], references: [id])
+  plan   Plan    @relation(fields: [planId], references: [id])
+  coupon Coupon? @relation(fields: [couponId], references: [id])
+
+  @@index([status, createdAt])
+  @@index([siteId])
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  REFUNDED
+  FAILED
+  EXPIRED
+}
+
+model Coupon {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  type       String // "percent" | "fixed"
+  value      Int
+  validUntil DateTime?
+  maxUses    Int?
+  uses       Int       @default(0)
+
+  orders Order[]
+}
+
+model GuestbookEntry {
+  id        String   @id @default(cuid())
+  siteId    String
+  name      String
+  message   String
+  approved  Boolean  @default(false)
+  ipHash    String // LGPD: nunca guardar IP cru
+  createdAt DateTime @default(now())
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@index([siteId, approved])
+}
+
+model SiteView {
+  id     String   @id @default(cuid())
+  siteId String
+  day    DateTime @db.Date
+  count  Int      @default(0)
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, day]) // agregado por dia, nunca log cru
+}
