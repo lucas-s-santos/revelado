@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Build não conecta no banco, mas o Prisma exige a var para gerar o client.
+  DATABASE_URL: postgresql://user:pass@localhost:5432/revelado
+  DIRECT_DATABASE_URL: postgresql://user:pass@localhost:5432/revelado
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Prisma generate
+        run: pnpm db:generate
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Test
+        run: pnpm test --run
+
+      - name: Build
+        run: pnpm build
+
+      # SPEC 10 — PR que estourar o orçamento não passa.
+      - name: Orçamento de bundle
+        run: pnpm budget
+
+      - name: Bundle analyzer
+        run: pnpm analyze
+        env:
+          ANALYZE: "true"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bundle-analysis
+          path: .next/analyze
+          if-no-files-found: ignore
+          retention-days: 7

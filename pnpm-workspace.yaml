@@ -1,0 +1,11 @@
+# pnpm 11 lê as configurações daqui, não mais do campo "pnpm" do package.json.
+# Quais dependências podem rodar script de build/postinstall.
+allowBuilds:
+  "@prisma/client": true
+  "@prisma/engines": true
+  "@sentry/cli": true
+  core-js: false # só imprime banner de doação
+  esbuild: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true

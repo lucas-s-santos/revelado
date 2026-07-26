@@ -1,0 +1,85 @@
+/* Design system "Câmara Escura" — SPEC seção 4.
+ * Fonte única de verdade dos tokens. Nenhuma cor hardcoded no resto do código.
+ * Cores em RGB sem vírgula para permitir rgb(var(--color-x) / .5). */
+
+@theme {
+  /* 4.1 — superfícies e texto */
+  --color-noir: 10 7 17; /* #0A0711 fundo */
+  --color-noir-2: 18 12 28; /* #120C1C superfície */
+  --color-noir-3: 26 18 40; /* #1A1228 superfície elevada */
+  --color-paper: 246 239 230; /* #F6EFE6 texto — nunca #FFF */
+  --color-muted: 155 144 170; /* #9B90AA texto secundário */
+
+  /* 4.1 — acentos */
+  --color-safelight: 242 180 87; /* #F2B457 acento primário */
+  --color-magenta: 224 80 143; /* #E0508F acento secundário */
+  --color-cyan: 88 214 208; /* #58D6D0 estados vivos */
+
+  --color-danger: 232 90 90;
+  --color-success: 111 207 140;
+
+  /* dinâmico: sobrescrito em runtime pela ocasião em foco.
+   * Toda a UI consome accent, nunca safelight diretamente. */
+  --color-accent: 242 180 87;
+
+  /* 4.2 — famílias tipográficas (valores injetados por next/font no layout) */
+  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* 4.3 — raios */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+
+  /* 4.3 — easings e durações */
+  --ease-out: cubic-bezier(0.16, 0.84, 0.44, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 180ms;
+  --dur-base: 320ms;
+  --dur-slow: 620ms;
+
+  /* 4.3 — layout e sombras */
+  --maxw: 1200px;
+  --shadow-card: 0 26px 60px -30px rgb(0 0 0 / 0.8);
+  --shadow-glow: 0 14px 40px -14px rgb(var(--color-accent) / 0.8);
+}
+
+/* Paleta por ocasião (SPEC 4.1). Aplicada via
+ * document.documentElement.dataset.occasion ou data-occasion no contêiner. */
+:root {
+  --accent-namorados: 224 80 143;
+  --accent-aniversario: 242 180 87;
+  --accent-maes: 197 139 232;
+  --accent-pais: 90 169 230;
+  --accent-casamento: 230 216 184;
+  --accent-bebe: 127 212 224;
+  --accent-natal: 111 207 140;
+  --accent-memorial: 168 165 184;
+}
+
+[data-occasion="namorados"] {
+  --color-accent: var(--accent-namorados);
+}
+[data-occasion="aniversario"] {
+  --color-accent: var(--accent-aniversario);
+}
+[data-occasion="maes"] {
+  --color-accent: var(--accent-maes);
+}
+[data-occasion="pais"] {
+  --color-accent: var(--accent-pais);
+}
+[data-occasion="casamento"] {
+  --color-accent: var(--accent-casamento);
+}
+[data-occasion="bebe"] {
+  --color-accent: var(--accent-bebe);
+}
+[data-occasion="natal"] {
+  --color-accent: var(--accent-natal);
+}
+[data-occasion="memorial"] {
+  --color-accent: var(--accent-memorial);
+}
