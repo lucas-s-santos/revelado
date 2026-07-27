@@ -24,7 +24,7 @@ export interface PhoneFrameProps {
   /** permite rolar dentro do mockup */
   interactive?: boolean;
   now?: number;
-  mediaSrc?: (mediaId: string) => string | undefined;
+  media?: Record<string, string>;
   className?: string;
 }
 
@@ -33,7 +33,7 @@ export function PhoneFrame({
   scale,
   interactive = true,
   now,
-  mediaSrc,
+  media,
   className,
 }: PhoneFrameProps) {
   return (
@@ -56,7 +56,7 @@ export function PhoneFrame({
             content={content}
             mode="preview"
             {...(now !== undefined ? { now } : {})}
-            {...(mediaSrc ? { mediaSrc } : {})}
+            {...(media ? { media } : {})}
           />
         </div>
       </div>

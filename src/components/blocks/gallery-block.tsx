@@ -11,11 +11,11 @@ import { cn } from "@/lib/utils";
  */
 export function GalleryBlock({
   props,
-  mediaSrc,
+  media,
 }: {
   props: PropsOf<"gallery">;
-  /** resolve mediaId → URL. Sem resolução, mostra moldura vazia. */
-  mediaSrc?: (mediaId: string) => string | undefined;
+  /** mapa mediaId → URL. Sem entrada, mostra moldura vazia. */
+  media?: Record<string, string>;
 }) {
   const items = props.mediaIds.length > 0 ? props.mediaIds : [];
 
@@ -26,7 +26,7 @@ export function GalleryBlock({
     <section className={cn("block-gallery", `is-${props.layout}`)}>
       <ul className="block-gallery__list">
         {slots.map((mediaId, index) => {
-          const src = mediaId ? mediaSrc?.(mediaId) : undefined;
+          const src = mediaId ? media?.[mediaId] : undefined;
           const caption = mediaId ? props.captions?.[mediaId] : undefined;
 
           return (

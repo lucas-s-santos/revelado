@@ -205,6 +205,34 @@ export async function saveDraftContent(
   };
 }
 
+/**
+ * Busca por slug — o que a página publicada precisa.
+ *
+ * No backend de arquivo não existe índice: varre o diretório. Custa pouco com
+ * dezenas de rascunhos locais e nunca roda em produção, onde o Postgres tem
+ * `@unique` no slug.
+ */
+export async function findDraftBySlug(slug: string): Promise<Draft | null> {
+  if (!hasDatabase) {
+    try {
+      const files = await readdir(DEV_DIR);
+
+      for (const file of files) {
+        if (!file.endsWith(".json")) continue;
+
+        const record = await devRead(file.replace(/\.json$/, ""));
+        if (record?.slug === slug) return devToDraft(record);
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  const site = await db.site.findFirst({ where: { slug, ...notDeleted } });
+  return site ? getDraft(site.id) : null;
+}
+
 /** Rascunhos de um visitante anônimo, para a recuperação ao voltar. */
 export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
   if (!hasDatabase) {

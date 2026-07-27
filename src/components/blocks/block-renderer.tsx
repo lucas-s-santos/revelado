@@ -22,8 +22,14 @@ export interface BlockRendererProps {
   mode: "preview" | "published";
   /** Date.now() do servidor: mantém contador igual no HTML e na hidratação */
   now?: number;
-  /** resolve mediaId → URL do R2 (Fase 4) */
-  mediaSrc?: (mediaId: string) => string | undefined;
+  /**
+   * Mapa `mediaId → URL`, montado por `mediaMapFor`.
+   *
+   * Mapa e não função: em `/p/[slug]` este renderer roda no servidor e entrega
+   * props para blocos que são Client Components (contador, música). Função não
+   * atravessa essa fronteira — o React derruba o render inteiro.
+   */
+  media?: Record<string, string>;
   className?: string;
 }
 
@@ -31,7 +37,7 @@ export function BlockRenderer({
   content,
   mode,
   now,
-  mediaSrc,
+  media,
   className,
 }: BlockRendererProps) {
   return (
@@ -53,7 +59,7 @@ export function BlockRenderer({
           <Component
             props={block.props}
             {...(now !== undefined ? { now } : {})}
-            {...(mediaSrc ? { mediaSrc } : {})}
+            {...(media ? { media } : {})}
           />
         );
 

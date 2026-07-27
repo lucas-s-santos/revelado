@@ -38,6 +38,29 @@ consulta o banco. Sentry e PostHog ficam inertes sem as chaves.
 
 ## Estado atual
 
+**Fase 5 — Checkout e publicação: concluída e verificada.** O funil fecha:
+`/criar` → `/editor` → `/checkout` → Pix → webhook → página no ar → QR para
+imprimir. Testado de ponta a ponta no Chrome, com foto real e cupom aplicado.
+
+A regra que organiza a fase inteira: **o webhook é a única fonte de verdade do
+pagamento** (anti-padrão 6). Nenhum caminho do código publica página sem passar
+por uma transição para `PAID`, e a transição é idempotente — o Mercado Pago
+reenvia notificação, e reenviar não pode publicar duas vezes nem mandar dois
+e-mails. Onze testes cobrem isso, incluindo os quatro estados que o aceite pede
+(pago, pendente, expirado, reembolsado), a notificação fora de ordem e o
+"pagamento que confirma 2 dias depois publica normalmente".
+
+QR Code em nível de correção **H**, com PNG 2048px, SVG vetorial e cartão A6 em
+PDF. O teste decodifica o PNG gerado de volta com um leitor de verdade (`jsqr`) —
+inclusive com 22% da área apagada, simulando dobra e borrão de impressão.
+**O teste físico continua sendo seu**: imprimir em papel comum e escanear em três
+aparelhos é a parte do aceite que nenhum teste automatizado faz.
+
+Sem `MERCADOPAGO_ACCESS_TOKEN`, o checkout usa um **simulador** que dispara o
+webhook de verdade com o mesmo corpo que o Mercado Pago mandaria — é o que
+permite exercitar os quatro estados sem conta no provedor. Sem `RESEND_API_KEY`,
+os e-mails saem no log do servidor.
+
 **Fase 4 — Editor: concluída e verificada.** `/criar` → `/editor/[draftId]`, modo
 simples em cinco passos (Quem · Quando · Fotos · Mensagem · Estilo), preview ao
 vivo, autosave, undo/redo e upload de fotos com progresso e retry.
@@ -123,7 +146,8 @@ landing de verdade é a Fase 2.
 | ----------------------- | ------------- | ----------------- |
 | `/` (landing completa)  | 176,7 KB gzip | 220 KB            |
 | `/p/[slug]` (publicada) | 115,4 KB gzip | 120 KB            |
-| `/editor/[draftId]`     | 172,0 KB gzip | 300 KB            |
+| `/editor/[draftId]`     | 172,2 KB gzip | 300 KB            |
+| `/checkout/[draftId]`   | 174 KB        | 300 KB            |
 | `/dev/*` (só em dev)    | ~172 KB       | fora do orçamento |
 
 A página publicada é o caso apertado: só o piso de React + Next já são 98,7 KB
@@ -188,15 +212,26 @@ arquivo que referencia o asset.
   que quebra o requisito mais importante do editor (SPEC 8.4). A exigência de ter
   foto mudou de lugar, não sumiu: vale na publicação, em `validateForPublish`.
 
-Próxima: **Fase 5 — checkout e publicação** (SPEC 8.5): Mercado Pago com Pix e
-cartão, webhook idempotente como única fonte de verdade do pagamento, geração de
-QR Code em PNG/SVG/PDF, e-mail transacional e o `/painel` básico.
+Próxima: **Fase 6 — página publicada em produção** (SPEC 8.8): revalidação por
+tag ao editar, `opengraph-image` (o card do WhatsApp é marketing gratuito), senha
+na página, contagem de visitas agregada e a notificação de primeira visita — que
+o SPEC chama de maior gatilho emocional do produto.
 
-Do que ficou pendente do editor, tudo anotado no lugar certo do código: o modo
-avançado com blocos arrastáveis é Fase 8 no SPEC, `/criar/[occasion]` (escolha de
-template, SPEC 8.3) ainda não existe — o editor entra direto com o preset da
-ocasião — e o botão "ver no meu celular" com QR temporário depende da geração de
-QR da Fase 5.
+### Pendências conhecidas
+
+Cada uma está anotada também no lugar certo do código:
+
+- **Cartão de crédito** não existe: só Pix. O SPEC pede os dois; o Pix é 70% do
+  volume esperado (seção 14) e o cartão precisa do Checkout Transparente, que é
+  um trabalho próprio.
+- **Filas Inngest** não estão montadas. `site.publish` roda inline dentro do
+  webhook; `order.abandoned`, `site.expiring` e `site.purge` (SPEC 9.2) ainda não
+  existem — o template do e-mail de abandono já está pronto em `lib/email.ts`.
+- **Login por magic link** não existe. O `/painel` lista pelo mesmo cookie
+  anônimo que segura os rascunhos, então trocar de aparelho perde o acesso.
+- `/criar/[occasion]` (escolha de template, SPEC 8.3) não existe — o editor entra
+  direto com o preset da ocasião.
+- Modo avançado do editor é Fase 8 no próprio SPEC.
 
 `docs/MOTION-REFS.md` continua vazio — as Fases 1 e 2 seguiram a seção 6.3 do SPEC
 ao pé da letra, sem referência visual externa.

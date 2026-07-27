@@ -12,17 +12,16 @@ import { cn } from "@/lib/utils";
  */
 export function HeroBlock({
   props,
-  mediaSrc,
+  media,
 }: {
   props: PropsOf<"hero">;
   /**
-   * Resolve `mediaId` → URL. Mesma assinatura em todos os blocos: o
-   * `BlockRenderer` passa uma função, não uma string já resolvida — só o bloco
-   * sabe qual dos seus ids precisa virar URL.
+   * Mapa `mediaId → URL`. Mapa e não função: o renderer atravessa a fronteira
+   * server→client e função não é serializável (ver lib/media.ts).
    */
-  mediaSrc?: (mediaId: string) => string | undefined;
+  media?: Record<string, string>;
 }) {
-  const src = props.mediaId ? mediaSrc?.(props.mediaId) : undefined;
+  const src = props.mediaId ? media?.[props.mediaId] : undefined;
 
   return (
     <section
