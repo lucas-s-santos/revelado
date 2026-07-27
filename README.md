@@ -38,6 +38,22 @@ consulta o banco. Sentry e PostHog ficam inertes sem as chaves.
 
 ## Estado atual
 
+**Fase 3 — Motor de blocos: concluída e verificada.** A página é uma lista
+ordenada de blocos em JSON ([`lib/blocks/schema.ts`](src/lib/blocks/schema.ts)),
+e o **mesmo** [`BlockRenderer`](src/components/blocks/block-renderer.tsx) desenha
+o preview do editor e a página publicada. Prova visual em **`/dev/blocos`**,
+prova automatizada em `block-renderer.test.tsx`, que renderiza os dois modos e
+compara o HTML — se alguém duplicar o renderer, o teste quebra.
+
+Sete blocos prontos (capa, contador, carta, galeria, música, linha do tempo,
+rodapé) e seis já no schema esperando a Fase 7. Página publicada de exemplo:
+[`/p/exemplo-namorados`](src/lib/blocks/fixtures.ts).
+
+Truque que sustenta tudo: os blocos apresentacionais **não** têm `"use client"`.
+Assim rodam como Server Component em `/p/[slug]` — zero JavaScript — e são
+compilados como client quando o editor importa o mesmo módulo. Só contador e
+música, que precisam mesmo de interação, viram JS no cliente.
+
 **Fase 2 — Landing completa: concluída e verificada.** As 12 seções da 8.1, de
 `/` ao rodapé, responsivas até 360px. Textos todos em
 [`lib/copy.ts`](src/lib/copy.ts) (SPEC 12), evento `landing_view` no PostHog.
@@ -80,13 +96,28 @@ landing de verdade é a Fase 2.
 
 ### Orçamento de JS hoje
 
-| Rota                      | Atual         | Limite (SPEC 10)  |
-| ------------------------- | ------------- | ----------------- |
-| `/` (landing completa)    | 176,8 KB gzip | 220 KB            |
-| `/dev/motion` (só em dev) | 178 KB        | fora do orçamento |
+| Rota                    | Atual         | Limite (SPEC 10)  |
+| ----------------------- | ------------- | ----------------- |
+| `/` (landing completa)  | 176,4 KB gzip | 220 KB            |
+| `/p/[slug]` (publicada) | 115,3 KB gzip | 120 KB            |
+| `/dev/*` (só em dev)    | ~172 KB       | fora do orçamento |
 
-Sobra de 43 KB na landing. O FAQ usa `<details>` nativo em vez do acordeão do
-Radix: semântica e teclado já vêm do navegador, e não custa JavaScript nenhum.
+A página publicada é o caso apertado: só o piso de React + Next já são 98,7 KB
+dos 120 permitidos, sobrando ~16 KB para o produto inteiro. Três decisões
+compram esse espaço, todas anotadas no código:
+
+- **`Reveal` em CSS**, não no Motion — o efeito é só `opacity` e `translateY`,
+  e o Motion custaria ~40 KB;
+- **`Frame` com `<img>` + `srcSet`**, não `next/image`, cujo runtime custa
+  13,7 KB. As variantes AVIF/WebP vêm do R2 pela fila `media.process`, não do
+  otimizador do Next — então quase nada se perdeu;
+- **`lib/units.ts` separado do `lib/copy.ts`**: o contador precisa só dos
+  rótulos de tempo, e importar de `copy` arrastava preços, FAQ e depoimentos
+  para o bundle da página publicada. Chunk é granular por módulo, não por
+  export — tree-shaking sozinho não resolvia.
+
+Na landing, o FAQ usa `<details>` nativo em vez do acordeão do Radix: semântica
+e teclado já vêm do navegador, e não custa JavaScript nenhum.
 
 O SDK do Sentry no browser sozinho custava 127 KB gzip — mais do que o orçamento
 inteiro da página publicada. Por isso ele entra por **import dinâmico** em
@@ -120,9 +151,21 @@ da ocasião como o resto da interface; e a ilustração é detalhada demais para
 [`components/chrome/logo.tsx`](src/components/chrome/logo.tsx), que é o único
 arquivo que referencia o asset.
 
-Próxima: **Fase 3 — motor de blocos** (`lib/blocks/schema.ts`, `registry.ts`,
-`BlockRenderer`, `PhoneFrame`). É onde nasce a arquitetura de blocos em JSON, a
-regra número 1 do projeto.
+### Pendências deixadas para as fases certas
+
+- **Fotos de exemplo.** O `/p/exemplo-namorados` mostra molduras vazias: não há
+  imagem nenhuma em `public/`. Basta colocar quatro fotos e apontar os `mediaId`
+  do fixture para elas.
+- **Da Fase 6, na página publicada**: senha, `opengraph-image`, contagem de
+  visita agregada e revalidação por tag ao editar. Expirada já tem tratamento
+  (mostra CTA de renovação, nunca 404).
+- **Divergência do SPEC 7.2, consciente**: `gallery.mediaIds` não tem `.min(1)`.
+  Rascunho nasce sem foto, e com `.min(1)` no schema todo autosave falharia — o
+  que quebra o requisito mais importante do editor (SPEC 8.4). A exigência de ter
+  foto mudou de lugar, não sumiu: vale na publicação, em `validateForPublish`.
+
+Próxima: **Fase 4 — editor** (SPEC 8.4). A tela mais difícil do produto, com um
+requisito acima de todos: nunca perder o trabalho de quem está montando.
 
 `docs/MOTION-REFS.md` continua vazio — as Fases 1 e 2 seguiram a seção 6.3 do SPEC
 ao pé da letra, sem referência visual externa.
