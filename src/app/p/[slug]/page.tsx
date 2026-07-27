@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BlockRenderer } from "@/components/blocks/block-renderer";
+import { mediaResolver } from "@/lib/media";
 import { getPublishedSite, isExpired } from "@/lib/sites";
 
 /**
@@ -83,6 +84,7 @@ export default async function PublishedPage({ params }: { params: Params }) {
           content={site.content}
           mode="published"
           now={Date.now()}
+          mediaSrc={mediaResolver(site.id)}
         />
       )}
     </main>
