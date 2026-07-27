@@ -2,6 +2,7 @@ import { migrate } from "@/lib/blocks/migrate";
 import { DEMO_SLUG, demoContent } from "@/lib/blocks/fixtures";
 import type { SiteContent } from "@/lib/blocks/schema";
 import { db, notDeleted } from "@/lib/db";
+import { findDraftBySlug } from "@/lib/drafts";
 
 /**
  * Leitura de páginas publicadas.
@@ -30,7 +31,21 @@ export async function getPublishedSite(
   slug: string,
 ): Promise<PublishedSite | null> {
   if (!hasDatabase) {
-    return slug === DEMO_SLUG ? demoSite() : null;
+    if (slug === DEMO_SLUG) return demoSite();
+
+    // Modo local: a página publicada mora no mesmo arquivo do rascunho.
+    const draft = await findDraftBySlug(slug);
+    if (!draft || draft.status !== "PUBLISHED") return null;
+
+    return {
+      id: draft.id,
+      slug: draft.slug,
+      content: draft.content,
+      occasionId: draft.occasionId,
+      hasPassword: false,
+      indexable: false,
+      expiresAt: null,
+    };
   }
 
   const site = await db.site.findFirst({

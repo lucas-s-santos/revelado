@@ -21,10 +21,53 @@ export function publicUrlFor(draftId: string, mediaId: string): string {
 }
 
 /**
- * Resolvedor pronto para o `BlockRenderer`, que recebe `mediaSrc(mediaId)`.
- * Quando a fila `media.process` da Fase 5 gerar as variantes 400/800/1600,
- * é aqui que o `srcSet` nasce.
+ * Mapa `mediaId → URL` para o `BlockRenderer`.
+ *
+ * **Mapa, não função**, e isso é o ponto: o renderer roda no servidor em
+ * `/p/[slug]` e entrega props para blocos que são Client Components (contador,
+ * música). Função não atravessa essa fronteira — o React derruba o render com
+ * "Functions cannot be passed directly to Client Components". Um objeto simples
+ * atravessa, e ainda fica visível no payload para depurar.
+ *
+ * Quando a fila `media.process` gerar as variantes 400/800/1600, é aqui que o
+ * `srcSet` nasce.
  */
-export function mediaResolver(draftId: string) {
-  return (mediaId: string) => publicUrlFor(draftId, mediaId);
+export function mediaMapFor(
+  draftId: string,
+  mediaIds: Iterable<string>,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const mediaId of mediaIds) map[mediaId] = publicUrlFor(draftId, mediaId);
+  return map;
+}
+
+/** Todos os mediaIds citados por um conteúdo, de qualquer bloco. */
+export function collectMediaIds(content: {
+  blocks: readonly { type: string; props: Record<string, unknown> }[];
+}): string[] {
+  const ids = new Set<string>();
+
+  for (const block of content.blocks) {
+    const { mediaId, mediaIds, items } = block.props as {
+      mediaId?: unknown;
+      mediaIds?: unknown;
+      items?: unknown;
+    };
+
+    if (typeof mediaId === "string") ids.add(mediaId);
+
+    if (Array.isArray(mediaIds)) {
+      for (const id of mediaIds) if (typeof id === "string") ids.add(id);
+    }
+
+    // A linha do tempo guarda um mediaId por item.
+    if (Array.isArray(items)) {
+      for (const item of items) {
+        const itemMediaId = (item as { mediaId?: unknown })?.mediaId;
+        if (typeof itemMediaId === "string") ids.add(itemMediaId);
+      }
+    }
+  }
+
+  return [...ids];
 }

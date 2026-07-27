@@ -4,10 +4,10 @@ import type { PropsOf } from "@/lib/blocks/schema";
 /** Linha do tempo — SPEC 7.2. Sem `"use client"`: é lista. */
 export function TimelineBlock({
   props,
-  mediaSrc,
+  media,
 }: {
   props: PropsOf<"timeline">;
-  mediaSrc?: (mediaId: string) => string | undefined;
+  media?: Record<string, string>;
 }) {
   if (props.items.length === 0) {
     // Tela vazia é convite, não recado triste (SPEC 11).
@@ -24,7 +24,7 @@ export function TimelineBlock({
     <section className="block-timeline">
       <ol className="block-timeline__list">
         {props.items.map((item, index) => {
-          const src = item.mediaId ? mediaSrc?.(item.mediaId) : undefined;
+          const src = item.mediaId ? media?.[item.mediaId] : undefined;
 
           return (
             <li key={`${item.date}-${index}`} className="block-timeline__item">

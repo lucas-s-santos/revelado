@@ -14,7 +14,7 @@ import { PhoneFrame } from "@/components/preview/phone-frame";
 import { useAutosave } from "@/hooks/use-autosave";
 import { track } from "@/lib/analytics";
 import type { SiteContent } from "@/lib/blocks/schema";
-import { mediaResolver } from "@/lib/media";
+import { collectMediaIds, mediaMapFor } from "@/lib/media";
 import { useEditorStore } from "@/stores/editor-store";
 
 /**
@@ -97,7 +97,7 @@ export function EditorShell({
           <PhoneFrame
             content={previewContent}
             interactive
-            mediaSrc={mediaResolver(draftId)}
+            media={mediaMapFor(draftId, collectMediaIds(previewContent))}
             className="editor__phone"
           />
         </section>
