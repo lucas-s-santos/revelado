@@ -33,6 +33,14 @@ export interface Draft {
   status: "DRAFT" | "PENDING_PAYMENT" | "PUBLISHED" | "EXPIRED";
   anonId: string | null;
   updatedAt: Date;
+
+  // --- estado da página publicada (SPEC 8.8)
+  /** senha opcional, guardada como hash (SPEC 9.4) */
+  passwordHash: string | null;
+  /** aparece no Google? `false` por padrão (SPEC 9.4) */
+  indexable: boolean;
+  /** null = vitalícia */
+  expiresAt: Date | null;
 }
 
 export interface CreateDraftInput {
@@ -44,8 +52,9 @@ export interface CreateDraftInput {
 
 // --- backend de arquivo (dev) --------------------------------------------
 
-interface DevRecord extends Omit<Draft, "updatedAt"> {
+interface DevRecord extends Omit<Draft, "updatedAt" | "expiresAt"> {
   updatedAt: string;
+  expiresAt: string | null;
 }
 
 async function devWrite(record: DevRecord): Promise<void> {
@@ -67,7 +76,14 @@ async function devRead(id: string): Promise<DevRecord | null> {
 }
 
 function devToDraft(record: DevRecord): Draft {
-  return { ...record, updatedAt: new Date(record.updatedAt) };
+  return {
+    ...record,
+    updatedAt: new Date(record.updatedAt),
+    expiresAt: record.expiresAt ? new Date(record.expiresAt) : null,
+    // Rascunhos criados antes destes campos existirem não têm as chaves.
+    passwordHash: record.passwordHash ?? null,
+    indexable: record.indexable ?? false,
+  };
 }
 
 // --- API pública ----------------------------------------------------------
@@ -84,6 +100,9 @@ export async function createDraft(input: CreateDraftInput): Promise<Draft> {
       content: input.content,
       status: "DRAFT",
       anonId: input.anonId,
+      passwordHash: null,
+      indexable: false,
+      expiresAt: null,
       updatedAt: new Date().toISOString(),
     };
     await devWrite(record);
@@ -108,6 +127,9 @@ export async function createDraft(input: CreateDraftInput): Promise<Draft> {
     content: input.content,
     status: site.status,
     anonId: site.anonId,
+    passwordHash: site.passwordHash,
+    indexable: site.indexable,
+    expiresAt: site.expiresAt,
     updatedAt: site.updatedAt,
   };
 }
@@ -132,6 +154,9 @@ export async function getDraft(id: string): Promise<Draft | null> {
     content: result.content,
     status: site.status,
     anonId: site.anonId,
+    passwordHash: site.passwordHash,
+    indexable: site.indexable,
+    expiresAt: site.expiresAt,
     updatedAt: site.updatedAt,
   };
 }
@@ -200,6 +225,9 @@ export async function saveDraftContent(
       content,
       status: updated.status,
       anonId: updated.anonId,
+      passwordHash: updated.passwordHash,
+      indexable: updated.indexable,
+      expiresAt: updated.expiresAt,
       updatedAt: updated.updatedAt,
     },
   };
@@ -271,6 +299,9 @@ export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
         content: result.content,
         status: site.status,
         anonId: site.anonId,
+        passwordHash: site.passwordHash,
+        indexable: site.indexable,
+        expiresAt: site.expiresAt,
         updatedAt: site.updatedAt,
       },
     ];

@@ -1,6 +1,9 @@
+import { unstable_cache } from "next/cache";
+
 import { migrate } from "@/lib/blocks/migrate";
 import { DEMO_SLUG, demoContent } from "@/lib/blocks/fixtures";
 import type { SiteContent } from "@/lib/blocks/schema";
+import { siteTag } from "@/lib/cache";
 import { db, notDeleted } from "@/lib/db";
 import { findDraftBySlug } from "@/lib/drafts";
 
@@ -27,7 +30,31 @@ export interface PublishedSite {
 /** O banco está configurado? Sem Neon, o slug de exemplo ainda funciona. */
 const hasDatabase = Boolean(process.env.DATABASE_URL);
 
+/**
+ * Leitura cacheada por tag — SPEC 8.8.
+ *
+ * A tag é por slug (`site:abc`), então editar uma página derruba o cache **dela**
+ * e não o do site inteiro. Com pico sazonal de 50x, invalidar tudo junto seria o
+ * mesmo que não ter cache.
+ *
+ * Sem banco, o cache fica de fora: em desenvolvimento o arquivo muda a cada
+ * salvamento e cache aqui só atrapalharia.
+ */
 export async function getPublishedSite(
+  slug: string,
+): Promise<PublishedSite | null> {
+  if (!hasDatabase) return readPublishedSite(slug);
+
+  const cached = unstable_cache(
+    () => readPublishedSite(slug),
+    ["published-site", slug],
+    { tags: [siteTag(slug)], revalidate: 3600 },
+  );
+
+  return cached();
+}
+
+async function readPublishedSite(
   slug: string,
 ): Promise<PublishedSite | null> {
   if (!hasDatabase) {
@@ -42,9 +69,9 @@ export async function getPublishedSite(
       slug: draft.slug,
       content: draft.content,
       occasionId: draft.occasionId,
-      hasPassword: false,
-      indexable: false,
-      expiresAt: null,
+      hasPassword: Boolean(draft.passwordHash),
+      indexable: draft.indexable ?? false,
+      expiresAt: draft.expiresAt ?? null,
     };
   }
 
