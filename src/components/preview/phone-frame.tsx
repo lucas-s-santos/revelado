@@ -12,7 +12,14 @@ import { cn } from "@/lib/utils";
  */
 export interface PhoneFrameProps {
   content: SiteContent;
-  /** escala do mockup, 1 = tamanho real de 390px */
+  /**
+   * Escala do mockup, 1 = tamanho real de 390px.
+   *
+   * Sem valor, **não escreve nada inline** — quem manda é o CSS. No editor a
+   * escala muda por breakpoint (0.42 no celular, 0.78 no desktop) e um estilo
+   * inline aqui venceria a media query, deixando o mockup estourado na tela
+   * pequena.
+   */
   scale?: number;
   /** permite rolar dentro do mockup */
   interactive?: boolean;
@@ -23,7 +30,7 @@ export interface PhoneFrameProps {
 
 export function PhoneFrame({
   content,
-  scale = 1,
+  scale,
   interactive = true,
   now,
   mediaSrc,
@@ -32,7 +39,11 @@ export function PhoneFrame({
   return (
     <div
       className={cn("phone-frame", className)}
-      style={{ "--phone-scale": scale } as React.CSSProperties}
+      style={
+        scale !== undefined
+          ? ({ "--phone-scale": scale } as React.CSSProperties)
+          : undefined
+      }
     >
       <div className="phone-frame__device">
         <span aria-hidden className="phone-frame__notch" />

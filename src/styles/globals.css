@@ -1427,6 +1427,606 @@
     color: rgb(var(--color-muted));
   }
 
+  /* ===================================================================
+   * EDITOR (SPEC 8.4). Nada de motion ambiental aqui — quem usa todo dia
+   * odeia interface que se mexe (SPEC 6.1 regra 2).
+   * =================================================================== */
+
+  /* --- /criar ---------------------------------------------------------- */
+  .create-page {
+    max-width: var(--maxw);
+    margin-inline: auto;
+    padding: 2rem 1.25rem 4rem;
+  }
+
+  .create-page__head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .create-page__title {
+    font-size: clamp(2rem, 6vw, 3.2rem);
+  }
+
+  .create-page__lede {
+    max-width: 52ch;
+    color: rgb(var(--color-muted));
+  }
+
+  .create-page__error {
+    margin-bottom: 1rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-danger) / 0.12);
+    border: 1px solid rgb(var(--color-danger) / 0.35);
+    font-size: 0.9rem;
+  }
+
+  .create-page__grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+
+  /* No /criar o CTA fica sempre visível: em celular não existe hover. */
+  .occasion-card__cta[data-always] {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* --- shell ----------------------------------------------------------- */
+  .editor {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+  }
+
+  .editor__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid rgb(var(--color-paper) / 0.08);
+    background: rgb(var(--color-noir-2));
+  }
+
+  .editor__crumb {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .editor__locked {
+    padding: 0.85rem 1.25rem;
+    background: rgb(var(--color-safelight) / 0.12);
+    border-bottom: 1px solid rgb(var(--color-safelight) / 0.3);
+    font-size: 0.88rem;
+  }
+
+  /* Mobile: preview fixo no topo, controles embaixo (SPEC 8.4). */
+  .editor__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .editor__preview {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    height: 40vh;
+    padding: 0.75rem;
+    background: rgb(var(--color-noir));
+    border-bottom: 1px solid rgb(var(--color-paper) / 0.08);
+    overflow: hidden;
+  }
+
+  /* O mockup inteiro cabe na faixa de 40vh. */
+  .editor__phone {
+    --phone-scale: 0.42;
+  }
+
+  .editor__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.25rem 1.25rem 2rem;
+  }
+
+  @media (min-width: 1000px) {
+    .editor__body {
+      flex-direction: row-reverse; /* preview à direita (SPEC 8.4) */
+      align-items: flex-start;
+    }
+
+    .editor__preview {
+      position: sticky;
+      top: 3.5rem;
+      flex: 1;
+      height: calc(100dvh - 3.5rem);
+      border-bottom: 0;
+      border-left: 1px solid rgb(var(--color-paper) / 0.08);
+    }
+
+    .editor__phone {
+      --phone-scale: 0.78;
+    }
+
+    .editor__panel {
+      width: 420px;
+      flex-shrink: 0;
+      min-height: calc(100dvh - 3.5rem);
+      padding: 1.75rem 1.5rem 2.5rem;
+    }
+  }
+
+  /* --- passos ---------------------------------------------------------- */
+  /* Quebra em duas linhas em vez de esconder passos atrás de scroll — o 5º
+   * passo sumindo da vista é passo que ninguém acha. */
+  .editor__steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+
+  .editor__step {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.8rem;
+    white-space: nowrap;
+    color: rgb(var(--color-muted));
+    cursor: pointer;
+  }
+
+  .editor__step span {
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-paper) / 0.1);
+    font-size: 0.65rem;
+  }
+
+  .editor__step[data-done] span {
+    background: rgb(var(--color-accent) / 0.3);
+    color: rgb(var(--color-paper));
+  }
+
+  .editor__step[data-current] {
+    background: rgb(var(--color-accent) / 0.12);
+    color: rgb(var(--color-paper));
+  }
+
+  .editor__step[data-current] span {
+    background: rgb(var(--color-accent));
+    color: rgb(var(--color-noir));
+  }
+
+  .editor__progress {
+    height: 2px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-paper) / 0.08);
+    overflow: hidden;
+  }
+
+  .editor__progress span {
+    display: block;
+    height: 100%;
+    transform-origin: 0 50%;
+    background: rgb(var(--color-accent));
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+
+  .editor__step-body {
+    flex: 1;
+  }
+
+  .editor__loading {
+    color: rgb(var(--color-muted));
+  }
+
+  .editor__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgb(var(--color-paper) / 0.08);
+  }
+
+  /* --- indicador de salvamento ------------------------------------------ */
+  .save-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    color: rgb(var(--color-muted));
+  }
+
+  .save-indicator__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-muted));
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .save-indicator[data-state="saved"] .save-indicator__dot,
+  .save-indicator[data-state="idle"] .save-indicator__dot {
+    background: rgb(var(--color-success));
+  }
+
+  .save-indicator[data-state="saving"] .save-indicator__dot,
+  .save-indicator[data-state="dirty"] .save-indicator__dot {
+    background: rgb(var(--color-safelight));
+  }
+
+  .save-indicator.is-error {
+    max-width: 44ch;
+    color: rgb(var(--color-danger));
+    text-align: right;
+    letter-spacing: 0;
+    font-family: var(--font-sans);
+    font-size: 0.76rem;
+  }
+
+  /* --- campos ---------------------------------------------------------- */
+  .step {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .step__head {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .step__title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.6rem;
+    letter-spacing: -0.01em;
+  }
+
+  .step__lede {
+    font-size: 0.9rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .field__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .field__label {
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .field__count {
+    font-size: 0.7rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .field__hint {
+    font-size: 0.78rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .field__error {
+    font-size: 0.78rem;
+    color: rgb(var(--color-danger));
+  }
+
+  .input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-noir-2));
+    border: 1px solid rgb(var(--color-paper) / 0.12);
+    color: rgb(var(--color-paper));
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .input::placeholder {
+    color: rgb(var(--color-muted) / 0.7);
+  }
+
+  .input:focus {
+    border-color: rgb(var(--color-accent) / 0.6);
+    outline: none;
+  }
+
+  .input--area {
+    resize: vertical;
+    min-height: 9rem;
+    line-height: 1.55;
+  }
+
+  .fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  .swatches {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-pill);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .swatch[aria-pressed="true"] {
+    border-color: rgb(var(--color-paper));
+    transform: scale(1.12);
+  }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .chip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgb(var(--color-paper) / 0.12);
+    background: rgb(var(--color-noir-2));
+    font-size: 0.85rem;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .chip small {
+    font-size: 0.68rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .chip[aria-pressed="true"] {
+    border-color: rgb(var(--color-accent) / 0.6);
+    background: rgb(var(--color-accent) / 0.1);
+  }
+
+  /* --- upload ---------------------------------------------------------- */
+  .uploader {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 1.5rem 1.25rem;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgb(var(--color-paper) / 0.18);
+    background: rgb(var(--color-noir-2) / 0.6);
+    text-align: center;
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .uploader[data-dragover] {
+    border-color: rgb(var(--color-accent));
+    background: rgb(var(--color-accent) / 0.07);
+  }
+
+  .uploader__button {
+    padding: 0.65rem 1.35rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgb(var(--color-accent) / 0.45);
+    color: rgb(var(--color-accent));
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .uploader__button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .uploader__hint {
+    font-size: 0.78rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .uploader__upsell {
+    font-size: 0.78rem;
+    color: rgb(var(--color-safelight));
+  }
+
+  .uploads {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .uploads__item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.78rem;
+  }
+
+  .uploads__name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgb(var(--color-muted));
+  }
+
+  .uploads__bar {
+    width: 90px;
+    height: 3px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-paper) / 0.1);
+    overflow: hidden;
+  }
+
+  .uploads__bar span {
+    display: block;
+    height: 100%;
+    transform-origin: 0 50%;
+    background: rgb(var(--color-accent));
+    transition: transform 120ms linear;
+  }
+
+  .uploads__pct {
+    width: 3rem;
+    text-align: right;
+    color: rgb(var(--color-muted));
+  }
+
+  .uploads__item.is-error .uploads__error {
+    flex: 1;
+    color: rgb(var(--color-danger));
+  }
+
+  /* --- grade de fotos (FocusGrid, SPEC 5.3) ---------------------------- */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .photo-grid__empty {
+    padding: 1.25rem;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgb(var(--color-paper) / 0.12);
+    text-align: center;
+    font-size: 0.85rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .photo-grid__item {
+    position: relative;
+    touch-action: none; /* dnd-kit no celular */
+  }
+
+  .photo-grid__item[data-dragging] {
+    z-index: 2;
+    opacity: 0.9;
+  }
+
+  .photo-grid__handle {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1/1;
+    overflow: hidden;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-noir-3));
+    cursor: grab;
+  }
+
+  .photo-grid__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .photo-grid__badge {
+    position: absolute;
+    left: 0.3rem;
+    bottom: 0.3rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-noir) / 0.8);
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .photo-grid__remove {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-noir-3));
+    border: 1px solid rgb(var(--color-paper) / 0.15);
+    color: rgb(var(--color-muted));
+    font-size: 0.9rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .photo-grid__remove:hover {
+    color: rgb(var(--color-danger));
+    border-color: rgb(var(--color-danger) / 0.5);
+  }
+
+  /* Focus Cards: as irmãs desfocam no hover. Só em ponteiro fino — em touch
+   * não existe hover e o filtro só custaria bateria (SPEC 6.4). */
+  @media (hover: hover) and (pointer: fine) {
+    .photo-grid:has(.photo-grid__item:hover)
+      .photo-grid__item:not(:hover)
+      .photo-grid__img {
+      filter: blur(2px) saturate(0.7);
+      opacity: 0.6;
+    }
+
+    .photo-grid__img {
+      transition:
+        filter var(--dur-base) var(--ease-out),
+        opacity var(--dur-base) var(--ease-out);
+    }
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
   /* --- Frame (SPEC 5.4) ------------------------------------------------ */
   .frame {
     position: relative;

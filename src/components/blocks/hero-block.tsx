@@ -15,9 +15,15 @@ export function HeroBlock({
   mediaSrc,
 }: {
   props: PropsOf<"hero">;
-  /** URL resolvida do `mediaId`; ausente = moldura vazia */
-  mediaSrc?: string;
+  /**
+   * Resolve `mediaId` → URL. Mesma assinatura em todos os blocos: o
+   * `BlockRenderer` passa uma função, não uma string já resolvida — só o bloco
+   * sabe qual dos seus ids precisa virar URL.
+   */
+  mediaSrc?: (mediaId: string) => string | undefined;
 }) {
+  const src = props.mediaId ? mediaSrc?.(props.mediaId) : undefined;
+
   return (
     <section
       className={cn("block-hero", props.align === "left" && "is-left")}
@@ -25,7 +31,7 @@ export function HeroBlock({
     >
       <div className="block-hero__media">
         <Frame
-          {...(mediaSrc ? { src: mediaSrc } : {})}
+          {...(src ? { src } : {})}
           alt={props.title}
           ratio="3/4"
           vignette={0.45}

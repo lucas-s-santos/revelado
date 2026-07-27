@@ -38,6 +38,29 @@ consulta o banco. Sentry e PostHog ficam inertes sem as chaves.
 
 ## Estado atual
 
+**Fase 4 — Editor: concluída e verificada.** `/criar` → `/editor/[draftId]`, modo
+simples em cinco passos (Quem · Quando · Fotos · Mensagem · Estilo), preview ao
+vivo, autosave, undo/redo e upload de fotos com progresso e retry.
+
+O aceite da fase foi conferido no navegador de verdade, não presumido: montei uma
+página, **fechei a aba**, voltei pela mesma URL e o título e a mensagem estavam
+lá. O que sustenta isso:
+
+- **o servidor é a fonte de verdade** (anti-padrão 10) — o editor hidrata do
+  servidor, não do `localStorage`;
+- autosave com debounce de 800ms e **retry com espera crescente**: 4G cai, e cair
+  não pode significar perder;
+- **`sendBeacon` no `pagehide`**, para o último trecho digitado ir junto quando a
+  aba fecha;
+- `sessionStorage` como rede de segurança, nunca como fonte.
+
+Sem `DATABASE_URL` e sem chaves do R2, o projeto roda inteiro em modo local:
+rascunhos viram JSON em `.drafts/` e as fotos vão para `.drafts/media/`. Os dois
+sobrevivem a reiniciar o servidor — é o que torna o aceite testável hoje. Nada
+disso liga na Vercel (ver `LOCAL_MEDIA_ENABLED` em
+[`lib/r2.ts`](src/lib/r2.ts)), onde o disco é efêmero e gravar nele significaria
+perder as fotos no próximo deploy.
+
 **Fase 3 — Motor de blocos: concluída e verificada.** A página é uma lista
 ordenada de blocos em JSON ([`lib/blocks/schema.ts`](src/lib/blocks/schema.ts)),
 e o **mesmo** [`BlockRenderer`](src/components/blocks/block-renderer.tsx) desenha
@@ -98,8 +121,9 @@ landing de verdade é a Fase 2.
 
 | Rota                    | Atual         | Limite (SPEC 10)  |
 | ----------------------- | ------------- | ----------------- |
-| `/` (landing completa)  | 176,4 KB gzip | 220 KB            |
-| `/p/[slug]` (publicada) | 115,3 KB gzip | 120 KB            |
+| `/` (landing completa)  | 176,7 KB gzip | 220 KB            |
+| `/p/[slug]` (publicada) | 115,4 KB gzip | 120 KB            |
+| `/editor/[draftId]`     | 172,0 KB gzip | 300 KB            |
 | `/dev/*` (só em dev)    | ~172 KB       | fora do orçamento |
 
 A página publicada é o caso apertado: só o piso de React + Next já são 98,7 KB
@@ -164,8 +188,15 @@ arquivo que referencia o asset.
   que quebra o requisito mais importante do editor (SPEC 8.4). A exigência de ter
   foto mudou de lugar, não sumiu: vale na publicação, em `validateForPublish`.
 
-Próxima: **Fase 4 — editor** (SPEC 8.4). A tela mais difícil do produto, com um
-requisito acima de todos: nunca perder o trabalho de quem está montando.
+Próxima: **Fase 5 — checkout e publicação** (SPEC 8.5): Mercado Pago com Pix e
+cartão, webhook idempotente como única fonte de verdade do pagamento, geração de
+QR Code em PNG/SVG/PDF, e-mail transacional e o `/painel` básico.
+
+Do que ficou pendente do editor, tudo anotado no lugar certo do código: o modo
+avançado com blocos arrastáveis é Fase 8 no SPEC, `/criar/[occasion]` (escolha de
+template, SPEC 8.3) ainda não existe — o editor entra direto com o preset da
+ocasião — e o botão "ver no meu celular" com QR temporário depende da geração de
+QR da Fase 5.
 
 `docs/MOTION-REFS.md` continua vazio — as Fases 1 e 2 seguiram a seção 6.3 do SPEC
 ao pé da letra, sem referência visual externa.

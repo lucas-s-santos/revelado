@@ -11,6 +11,8 @@ import { db, notDeleted } from "@/lib/db";
  */
 
 export interface PublishedSite {
+  /** id do Site — é o prefixo das chaves de mídia no R2 (ver lib/media.ts). */
+  id: string;
   slug: string;
   content: SiteContent;
   occasionId: string;
@@ -34,6 +36,7 @@ export async function getPublishedSite(
   const site = await db.site.findFirst({
     where: { slug, ...notDeleted, status: { in: ["PUBLISHED", "EXPIRED"] } },
     select: {
+      id: true,
       slug: true,
       content: true,
       occasionId: true,
@@ -57,6 +60,7 @@ export async function getPublishedSite(
   }
 
   return {
+    id: site.id,
     slug: site.slug,
     content: result.content,
     occasionId: site.occasionId,
@@ -68,6 +72,7 @@ export async function getPublishedSite(
 
 function demoSite(): PublishedSite {
   return {
+    id: DEMO_SLUG,
     slug: DEMO_SLUG,
     content: demoContent,
     occasionId: demoContent.occasion,

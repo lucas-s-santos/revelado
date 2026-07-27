@@ -50,3 +50,6 @@ next-env.d.ts
 # sentry
 .sentryclirc
 .env.sentry-build-plugin
+
+# rascunhos e mídias do modo local de desenvolvimento (ver lib/drafts.ts)
+/.drafts/
