@@ -1006,16 +1006,446 @@
     background: rgb(var(--color-noir-2) / 0.5);
   }
 
+  /* ===================================================================
+   * BLOCOS (SPEC 7.2 / 8.8). O mesmo CSS serve o preview e a publicada —
+   * é o que garante o "resultado idêntico" do aceite da Fase 3.
+   * =================================================================== */
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(var(--reveal-y, 22px));
+    transition:
+      opacity var(--dur-slow) var(--ease-out) var(--reveal-delay, 0ms),
+      transform var(--dur-slow) var(--ease-out) var(--reveal-delay, 0ms);
+  }
+
+  .reveal[data-visible] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .published {
+    min-height: 100vh;
+    background: rgb(var(--color-noir));
+  }
+
+  /* Caixa da /dev/blocos: a publicada dentro de uma moldura, para comparar. */
+  .published--boxed {
+    min-height: 0;
+    border-radius: var(--radius-md);
+    border: 1px solid rgb(var(--color-paper) / 0.08);
+    overflow: hidden;
+  }
+
+  .published__expired {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    min-height: 100vh;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .blocks {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    max-width: 640px;
+    margin-inline: auto;
+  }
+
+  .blocks[data-font="serif"] {
+    --block-body-font: var(--font-display);
+  }
+
+  .blocks[data-font="sans"] {
+    --block-body-font: var(--font-sans);
+  }
+
+  /* --- hero ------------------------------------------------------------ */
+  .block-hero {
+    position: relative;
+  }
+
+  .block-hero__media {
+    position: relative;
+  }
+
+  /* A página publicada é pensada para 390px de largura, mas abre em desktop
+   * também. Sem teto, a capa em 3/4 viraria uma caixa de 850px de altura. */
+  .block-hero__media .frame {
+    max-height: 80vh;
+    border-radius: 0;
+  }
+
+  .block-hero__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to top,
+      rgb(var(--color-noir)) 2%,
+      rgb(var(--color-noir) / var(--overlay, 0.45)) 55%,
+      transparent
+    );
+  }
+
+  .block-hero__text {
+    position: absolute;
+    inset: auto 0 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .block-hero.is-left .block-hero__text {
+    text-align: left;
+  }
+
+  .block-hero__title {
+    font-size: clamp(1.9rem, 8vw, 2.9rem);
+  }
+
+  .block-hero__subtitle {
+    color: rgb(var(--color-muted));
+    font-size: 0.95rem;
+  }
+
+  /* --- counter --------------------------------------------------------- */
+  .block-counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 2.5rem 1.25rem;
+  }
+
+  .block-counter__grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0;
+  }
+
+  .block-counter__cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    min-width: 3.6rem;
+    padding: 0.7rem 0.5rem;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-accent) / 0.07);
+    border: 1px solid rgb(var(--color-accent) / 0.16);
+  }
+
+  .block-counter__value {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: rgb(var(--color-accent));
+  }
+
+  .block-counter__unit {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(var(--color-muted));
+  }
+
+  /* --- letter ---------------------------------------------------------- */
+  .block-letter {
+    padding: 1.5rem 1.5rem 2.5rem;
+  }
+
+  .block-letter__body {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    font-family: var(--block-body-font, var(--font-display));
+    font-size: 1.15rem;
+    line-height: 1.55;
+    color: rgb(var(--color-paper) / 0.92);
+  }
+
+  .block-letter__signature {
+    margin-top: 1.25rem;
+    font-family: var(--font-display);
+    font-style: italic;
+    color: rgb(var(--color-accent));
+  }
+
+  /* --- gallery --------------------------------------------------------- */
+  .block-gallery {
+    padding: 1rem 0 2.5rem;
+  }
+
+  .block-gallery__list {
+    display: grid;
+    gap: 0.6rem;
+    margin: 0;
+    padding: 0 1.25rem;
+    list-style: none;
+  }
+
+  /* Carrossel sem JavaScript: scroll-snap do CSS. */
+  .block-gallery.is-carousel .block-gallery__list {
+    grid-auto-flow: column;
+    grid-auto-columns: 72%;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding-bottom: 0.5rem;
+  }
+
+  .block-gallery.is-carousel .block-gallery__list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .block-gallery.is-carousel .block-gallery__item {
+    scroll-snap-align: center;
+  }
+
+  .block-gallery.is-grid .block-gallery__list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .block-gallery.is-polaroid .block-gallery__list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .block-gallery.is-polaroid .block-gallery__item {
+    padding: 0.5rem 0.5rem 1.75rem;
+    background: rgb(var(--color-paper));
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-card);
+  }
+
+  .block-gallery.is-polaroid .block-gallery__item:nth-child(odd) {
+    transform: rotate(-1.5deg);
+  }
+
+  .block-gallery.is-polaroid .block-gallery__item:nth-child(even) {
+    transform: rotate(1.5deg);
+  }
+
+  .block-gallery.is-stack .block-gallery__list {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- music ----------------------------------------------------------- */
+  .block-music {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem 2.5rem;
+  }
+
+  .block-music__play {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.7rem 1.3rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgb(var(--color-accent) / 0.4);
+    color: rgb(var(--color-accent));
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .block-music__hint {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-muted));
+  }
+
+  .block-music__frame {
+    width: 100%;
+    height: 152px;
+    border: 0;
+    border-radius: var(--radius-md);
+  }
+
+  /* --- timeline -------------------------------------------------------- */
+  .block-timeline {
+    padding: 1rem 1.25rem 2.5rem;
+  }
+
+  .block-timeline__list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+    margin: 0;
+    padding: 0 0 0 1.15rem;
+    list-style: none;
+    border-left: 1px solid rgb(var(--color-accent) / 0.25);
+  }
+
+  .block-timeline__item {
+    position: relative;
+  }
+
+  .block-timeline__dot {
+    position: absolute;
+    left: calc(-1.15rem - 4px);
+    top: 0.45rem;
+    width: 7px;
+    height: 7px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-accent));
+  }
+
+  .block-timeline__date {
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgb(var(--color-muted));
+  }
+
+  .block-timeline__title {
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: 1.2rem;
+    margin: 0.15rem 0 0.3rem;
+  }
+
+  .block-timeline__text {
+    font-size: 0.92rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .block-timeline__empty {
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgb(var(--color-paper) / 0.14);
+    text-align: center;
+    color: rgb(var(--color-muted));
+    font-size: 0.9rem;
+  }
+
+  /* --- footer ---------------------------------------------------------- */
+  .block-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2rem 1.25rem 3rem;
+    border-top: 1px solid rgb(var(--color-paper) / 0.07);
+    text-align: center;
+  }
+
+  .block-footer__text {
+    font-family: var(--font-display);
+    font-style: italic;
+    color: rgb(var(--color-paper) / 0.85);
+  }
+
+  .block-footer__brand {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-muted));
+  }
+
+  /* --- PhoneFrame (SPEC 5.3 / 8.4) ------------------------------------- */
+  .phone-frame {
+    width: calc(390px * var(--phone-scale, 1));
+    max-width: 100%;
+  }
+
+  .phone-frame__device {
+    position: relative;
+    padding: 10px;
+    border-radius: 42px;
+    background: linear-gradient(
+      165deg,
+      rgb(var(--color-noir-3)),
+      rgb(var(--color-noir-2))
+    );
+    border: 1px solid rgb(var(--color-paper) / 0.1);
+    box-shadow: var(--shadow-card);
+  }
+
+  .phone-frame__notch {
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 78px;
+    height: 22px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-noir));
+    z-index: 2;
+  }
+
+  .phone-frame__screen {
+    height: calc(720px * var(--phone-scale, 1));
+    overflow: hidden;
+    border-radius: 34px;
+    background: rgb(var(--color-noir));
+  }
+
+  .phone-frame__screen[data-interactive] {
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .phone-frame__screen[data-interactive]::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* --- tabela das páginas /dev ----------------------------------------- */
+  .dev-table {
+    width: 100%;
+    max-width: 620px;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .dev-table th,
+  .dev-table td {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid rgb(var(--color-paper) / 0.08);
+  }
+
+  .dev-table th {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgb(var(--color-muted));
+  }
+
   /* --- Frame (SPEC 5.4) ------------------------------------------------ */
   .frame {
     position: relative;
     overflow: hidden;
     margin: 0;
     border-radius: var(--radius-md);
-    background: rgb(var(--color-noir-2));
+    background-color: rgb(var(--color-noir-2));
+    /* placeholder do blurhash, quando vier */
+    background-size: cover;
+    background-position: center;
   }
 
+  /* `<img>` puro no lugar do next/image: o posicionamento que o componente
+   * fazia por JS agora é este CSS (ver a nota em frame.tsx). */
   .frame__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
   }
 

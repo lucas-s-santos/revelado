@@ -6,7 +6,16 @@
  * o que houve e o que fazer. Tela vazia é convite, não recado triste.
  */
 
+// Os rótulos de unidade moram em `lib/units.ts`, num módulo próprio: a página
+// publicada importa só eles, sem arrastar os textos da landing (ver o comentário
+// lá). Aqui ficam reexportados para a centralização da SPEC 12 continuar valendo.
+import { units } from "@/lib/units";
+
+export { units };
+
 export const copy = {
+  units,
+
   brand: {
     name: "Revelado",
     tagline: "Páginas comemorativas com QR Code",
@@ -197,20 +206,5 @@ export const copy = {
       },
     ],
     rights: "Todos os direitos reservados.",
-  },
-
-  units: {
-    years: "anos",
-    months: "meses",
-    days: "dias",
-    hours: "horas",
-    minutes: "min",
-    seconds: "seg",
-    yearsShort: "a",
-    monthsShort: "m",
-    daysShort: "d",
-    hoursShort: "h",
-    minutesShort: "min",
-    secondsShort: "s",
   },
 } as const;
