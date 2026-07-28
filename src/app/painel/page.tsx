@@ -65,7 +65,9 @@ export default async function PanelPage() {
             return (
               <li key={draft.id} className="panel__item">
                 <div className="panel__item-main">
-                  <p className="panel__item-title">{title}</p>
+                  <p className="panel__item-title">
+                    <Link href={`/painel/${draft.id}`}>{title}</Link>
+                  </p>
                   <p className="panel__item-meta">
                     <span data-status={draft.status}>
                       {published ? "no ar" : "rascunho"}
@@ -81,12 +83,12 @@ export default async function PanelPage() {
                       <Link href={`/p/${draft.slug}`} className="btn-quiet">
                         Ver
                       </Link>
-                      <a
-                        href={`/api/qr/${draft.slug}?formato=pdf`}
+                      <Link
+                        href={`/painel/${draft.id}`}
                         className="btn-quiet"
                       >
-                        Baixar QR
-                      </a>
+                        Gerenciar
+                      </Link>
                     </>
                   ) : (
                     <Link href={`/checkout/${draft.id}`} className="btn-quiet">

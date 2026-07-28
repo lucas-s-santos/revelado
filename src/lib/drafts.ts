@@ -234,6 +234,61 @@ export async function saveDraftContent(
 }
 
 /**
+ * Privacidade da página publicada — SPEC 8.7 ("trocar senha") e 9.4.
+ *
+ * Separado de `saveDraftContent` de propósito: aquele recusa mexer em página
+ * publicada, porque o QR já está impresso. Senha e indexação são justamente o
+ * que **precisa** poder mudar depois de publicar, e nenhum dos dois toca o
+ * conteúdo que o QR aponta.
+ */
+export interface PrivacyPatch {
+  /** `null` remove a senha; `undefined` não mexe nela */
+  passwordHash?: string | null;
+  indexable?: boolean;
+}
+
+export async function updateSitePrivacy(
+  id: string,
+  patch: PrivacyPatch,
+): Promise<Draft | null> {
+  if (!hasDatabase) {
+    const record = await devRead(id);
+    if (!record) return null;
+
+    const updated: DevRecord = {
+      ...record,
+      passwordHash:
+        patch.passwordHash === undefined
+          ? record.passwordHash
+          : patch.passwordHash,
+      indexable: patch.indexable ?? record.indexable,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await devWrite(updated);
+    return devToDraft(updated);
+  }
+
+  const site = await db.site.findFirst({
+    where: { id, ...notDeleted },
+    select: { id: true },
+  });
+  if (!site) return null;
+
+  await db.site.update({
+    where: { id },
+    data: {
+      ...(patch.passwordHash === undefined
+        ? {}
+        : { passwordHash: patch.passwordHash }),
+      ...(patch.indexable === undefined ? {} : { indexable: patch.indexable }),
+    },
+  });
+
+  return getDraft(id);
+}
+
+/**
  * Busca por slug — o que a página publicada precisa.
  *
  * No backend de arquivo não existe índice: varre o diretório. Custa pouco com

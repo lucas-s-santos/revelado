@@ -38,6 +38,42 @@ consulta o banco. Sentry e PostHog ficam inertes sem as chaves.
 
 ## Estado atual
 
+**Fase 6 — Página publicada em produção: concluída, com um aceite ainda por
+medir.** A página publicada deixou de ser só um renderer bonito e virou um
+produto entregue.
+
+O que a fase fechou:
+
+- **Senha de verdade.** O commit anterior tinha a tela `/p/[slug]/senha` e o
+  `lib/site-password.ts`, mas ninguém chamava: a página protegida abria direto
+  para quem tivesse o link. Agora o gate está em `/p/[slug]`, e o cookie de
+  destravamento é derivado do hash — trocar a senha expulsa os cookies antigos
+  sem precisar de lista de revogação. Sete testes cobrem isso.
+- **O ISR sobreviveu ao gate.** O `cookies()` só é lido quando a página **tem**
+  senha, então página protegida sai do cache de rota (o correto: a resposta
+  depende de quem pede) e todas as outras continuam estáticas. O build confirma:
+  `/p/[slug]` ainda aparece como `●` SSG.
+- **Contagem de visitas** agregada por dia, disparada por `sendBeacon` depois do
+  paint — nunca no render, que custaria uma ida ao banco por abertura e mataria
+  o cache da tela mais importante do sistema. A primeira visita dispara o e-mail
+  "sua página foi aberta", que o SPEC 8.7 chama de maior gatilho emocional do
+  produto.
+- **`opengraph-image`** por página, na Câmara Escura, com o accent da ocasião. É
+  a primeira coisa que a pessoa presenteada vê no WhatsApp, antes de tocar no
+  link. Página com senha não entrega título nem foto na prévia — adiantar os
+  nomes no card desfaria a senha pela metade.
+- **Revalidação por tag** ao publicar e ao mexer na privacidade. Sem ela, quem
+  abrisse o link antes de o pagamento confirmar continuaria vendo "página não
+  encontrada" pela hora inteira do ISR — justamente no dia da entrega.
+- **`/painel/[siteId]`**: visitas, validade, senha, indexação e QR num lugar só.
+  Sóbrio, sem nenhum efeito ambiental (regra inviolável 11).
+
+**O que falta medir:** LCP < 1,5s em 4G real e o card do WhatsApp renderizando
+num aparelho — os dois aceites da fase que nenhum teste automatizado faz. O card
+já foi conferido em runtime (o Satori gera o PNG), mas não colado numa conversa.
+A foto só entra no card quando `NEXT_PUBLIC_R2_PUBLIC_HOST` estiver configurado:
+o Satori busca a imagem por URL absoluta e não enxerga o caminho local.
+
 **Fase 5 — Checkout e publicação: concluída e verificada.** O funil fecha:
 `/criar` → `/editor` → `/checkout` → Pix → webhook → página no ar → QR para
 imprimir. Testado de ponta a ponta no Chrome, com foto real e cupom aplicado.
@@ -204,18 +240,19 @@ arquivo que referencia o asset.
 - **Fotos de exemplo.** O `/p/exemplo-namorados` mostra molduras vazias: não há
   imagem nenhuma em `public/`. Basta colocar quatro fotos e apontar os `mediaId`
   do fixture para elas.
-- **Da Fase 6, na página publicada**: senha, `opengraph-image`, contagem de
-  visita agregada e revalidação por tag ao editar. Expirada já tem tratamento
-  (mostra CTA de renovação, nunca 404).
+- **Tipografia do `opengraph-image`.** O card sai na fonte padrão do Satori, não
+  em Instrument Serif: `next/font` entrega a fonte ao navegador, não um arquivo
+  que o gerador de imagem consiga ler. Para usar a fonte da marca é preciso um
+  `.ttf` em `public/` e passar os bytes em `fonts` para o `ImageResponse`.
 - **Divergência do SPEC 7.2, consciente**: `gallery.mediaIds` não tem `.min(1)`.
   Rascunho nasce sem foto, e com `.min(1)` no schema todo autosave falharia — o
   que quebra o requisito mais importante do editor (SPEC 8.4). A exigência de ter
   foto mudou de lugar, não sumiu: vale na publicação, em `validateForPublish`.
 
-Próxima: **Fase 6 — página publicada em produção** (SPEC 8.8): revalidação por
-tag ao editar, `opengraph-image` (o card do WhatsApp é marketing gratuito), senha
-na página, contagem de visitas agregada e a notificação de primeira visita — que
-o SPEC chama de maior gatilho emocional do produto.
+Próxima: **Fase 7 — crescimento** (SPEC 13): blocos V2 (mural, vídeo, mapa,
+cápsula, motivos, stats — os seis já estão no schema), mais quatro ocasiões,
+estatísticas no painel, SEO programático (`/ocasioes`, `/exemplos`,
+`/mensagens`), admin completo, moderação, cupons e afiliados.
 
 ### Pendências conhecidas
 
@@ -228,7 +265,15 @@ Cada uma está anotada também no lugar certo do código:
   webhook; `order.abandoned`, `site.expiring` e `site.purge` (SPEC 9.2) ainda não
   existem — o template do e-mail de abandono já está pronto em `lib/email.ts`.
 - **Login por magic link** não existe. O `/painel` lista pelo mesmo cookie
-  anônimo que segura os rascunhos, então trocar de aparelho perde o acesso.
+  anônimo que segura os rascunhos, então trocar de aparelho perde o acesso — e
+  é o mesmo cookie que autoriza trocar a senha em `/painel/[siteId]`.
+- **Renovar, trocar de plano e excluir** ainda não estão em `/painel/[siteId]`:
+  os três dependem de uma tela de cobrança para página já publicada, que é
+  assunto próprio. A página expirada já tem o CTA de renovação apontando para o
+  painel.
+- **Sem limite de tentativas na senha da página.** O slug tem sufixo aleatório
+  (SPEC 9.4), então não há lista de páginas para varrer, e o `scrypt` já é lento
+  de propósito. Se a senha virar barreira séria, entra um contador por IP.
 - `/criar/[occasion]` (escolha de template, SPEC 8.3) não existe — o editor entra
   direto com o preset da ocasião.
 - Modo avançado do editor é Fase 8 no próprio SPEC.

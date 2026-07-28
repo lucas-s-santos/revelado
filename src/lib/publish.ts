@@ -1,3 +1,4 @@
+import { revalidateSite } from "@/lib/cache";
 import { getDraft } from "@/lib/drafts";
 import { db } from "@/lib/db";
 import { sendPublishedEmail } from "@/lib/email";
@@ -42,6 +43,11 @@ export async function publishSite(order: Order): Promise<PublishResult | null> {
       data: { status: "PUBLISHED", publishedAt: new Date(), expiresAt },
     });
   }
+
+  // Derruba o cache do slug (SPEC 8.8). Sem isto, quem tiver aberto o link
+  // antes do pagamento confirmar continuaria vendo "página não encontrada" pela
+  // duração inteira do ISR — no dia em que o presente ia ser entregue.
+  revalidateSite(draft.slug);
 
   // O e-mail é o comprovante da compra: falhar aqui não pode desfazer a
   // publicação, que é o que a pessoa pagou. Erro vai para o log e para o Sentry.

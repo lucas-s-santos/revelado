@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { BlockRenderer } from "@/components/blocks/block-renderer";
+import { ViewBeacon } from "@/components/published/view-beacon";
 import { collectMediaIds, mediaMapFor } from "@/lib/media";
-import { getPublishedSite, isExpired } from "@/lib/sites";
+import { unlockCookie, unlockToken } from "@/lib/site-password";
+import { getPublishedSite, isExpired, sitePasswordHash } from "@/lib/sites";
 
 /**
  * A página publicada — SPEC 8.8. **A tela mais importante do sistema**: é o
  * produto entregue.
  *
- * Server Component, estática com ISR. Uma página viralizada não pode custar nem
- * cair. A revalidação por tag ao editar entra na Fase 6.
- *
- * O que ainda é da Fase 6 e está anotado como pendência no README: senha,
- * página própria de expirada, contagem de visita agregada e `opengraph-image`.
+ * Server Component, estática com ISR e revalidação por tag ao editar (ver
+ * `lib/cache.ts`). Uma página viralizada não pode custar nem cair.
  */
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -35,6 +35,16 @@ export async function generateMetadata({
   const site = await getPublishedSite(slug);
 
   if (!site) return { title: "Página não encontrada" };
+
+  // Página com senha não conta o que tem dentro na prévia do link (SPEC 9.4):
+  // adiantar os nomes no card do WhatsApp desfaria a senha pela metade.
+  if (site.hasPassword) {
+    return {
+      title: "Uma página privada",
+      description: "Peça a senha para quem te enviou o link.",
+      robots: { index: false, follow: false },
+    };
+  }
 
   const hero = site.content.blocks.find((block) => block.type === "hero");
   const title =
@@ -59,6 +69,24 @@ export default async function PublishedPage({ params }: { params: Params }) {
 
   if (!site) notFound();
 
+  // SPEC 8.8: com senha, ninguém vê o conteúdo antes de destravar.
+  //
+  // `cookies()` só é lido quando a página **tem** senha, e é essa condição que
+  // preserva o ISR: ler cookie marca o render como dinâmico, então uma página
+  // protegida sai do cache de rota (que é o correto — a resposta depende de quem
+  // pede) enquanto todas as outras continuam estáticas e baratas.
+  if (site.hasPassword) {
+    const stored = await sitePasswordHash(slug);
+    const store = await cookies();
+
+    if (
+      !stored ||
+      store.get(unlockCookie(slug))?.value !== unlockToken(stored)
+    ) {
+      redirect(`/p/${slug}/senha`);
+    }
+  }
+
   const expired = isExpired(site);
 
   return (
@@ -80,12 +108,16 @@ export default async function PublishedPage({ params }: { params: Params }) {
           </Link>
         </section>
       ) : (
-        <BlockRenderer
-          content={site.content}
-          mode="published"
-          now={Date.now()}
-          media={mediaMapFor(site.id, collectMediaIds(site.content))}
-        />
+        <>
+          <BlockRenderer
+            content={site.content}
+            mode="published"
+            now={Date.now()}
+            media={mediaMapFor(site.id, collectMediaIds(site.content))}
+          />
+          {/* O exemplo é conteúdo de marketing: não entra na conta de ninguém. */}
+          {site.isDemo ? null : <ViewBeacon siteId={site.id} />}
+        </>
       )}
     </main>
   );
