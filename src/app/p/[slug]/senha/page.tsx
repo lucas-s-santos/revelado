@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
 import { verifyPassword, unlockCookie, unlockToken } from "@/lib/site-password";
-import { getPublishedSite } from "@/lib/sites";
+import { getPublishedSite, sitePasswordHash } from "@/lib/sites";
 
 export const metadata: Metadata = {
   title: "Esta página tem senha",
@@ -48,7 +48,7 @@ export default async function PasswordPage({
     const target = await getPublishedSite(slug);
     if (!target?.hasPassword) redirect(`/p/${slug}`);
 
-    const stored = await storedHashFor(slug);
+    const stored = await sitePasswordHash(slug);
     if (!stored || !(await verifyPassword(password, stored))) {
       redirect(`/p/${slug}/senha?erro=1`);
     }
@@ -100,14 +100,4 @@ export default async function PasswordPage({
       </form>
     </main>
   );
-}
-
-/**
- * O hash não sai de `getPublishedSite` de propósito — aquele objeto vai para o
- * cliente. Aqui a leitura é direta e fica no servidor.
- */
-async function storedHashFor(slug: string): Promise<string | null> {
-  const { findDraftBySlug } = await import("@/lib/drafts");
-  const draft = await findDraftBySlug(slug);
-  return draft?.passwordHash ?? null;
 }

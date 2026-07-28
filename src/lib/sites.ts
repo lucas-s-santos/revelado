@@ -128,3 +128,16 @@ function demoSite(): PublishedSite {
 export function isExpired(site: PublishedSite, at = new Date()): boolean {
   return site.expiresAt !== null && site.expiresAt.getTime() <= at.getTime();
 }
+
+/**
+ * O hash da senha, só para o servidor.
+ *
+ * Fica fora de `PublishedSite` de propósito: aquele objeto atravessa a fronteira
+ * para os blocos que são Client Components, e hash de senha não viaja no payload
+ * do RSC. Também fica fora do cache por tag — é leitura de credencial, não de
+ * conteúdo.
+ */
+export async function sitePasswordHash(slug: string): Promise<string | null> {
+  const draft = await findDraftBySlug(slug);
+  return draft?.passwordHash ?? null;
+}

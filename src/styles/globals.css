@@ -2420,6 +2420,128 @@
     gap: 0.25rem;
   }
 
+  /* --- painel: detalhe da página (SPEC 8.7) ---------------------------- */
+  .detail__link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.6rem 0.6rem 0.6rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-noir-2));
+    border: 1px solid rgb(var(--color-paper) / 0.08);
+  }
+
+  .detail__link code {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    overflow-wrap: anywhere;
+  }
+
+  .detail__stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .detail__stat {
+    flex: 1 1 10rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 1rem 1.15rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-noir-2));
+    border: 1px solid rgb(var(--color-paper) / 0.08);
+  }
+
+  .detail__stat strong {
+    /* SPEC 4.2: contadores e números sempre em mono com tabular-nums */
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.5rem;
+    font-weight: 500;
+  }
+
+  .detail__stat span {
+    font-size: 0.76rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .detail__hint {
+    margin-bottom: 1rem;
+    font-size: 0.82rem;
+    color: rgb(var(--color-muted));
+  }
+
+  .detail__card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.25rem;
+    margin-bottom: 0.75rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-noir-2));
+    border: 1px solid rgb(var(--color-paper) / 0.08);
+  }
+
+  .detail__card-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+
+  .detail__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .detail__form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .detail__form-row .input {
+    flex: 1 1 12rem;
+  }
+
+  .detail__foot {
+    margin-top: 1.5rem;
+  }
+
+  /* --- portão da senha (SPEC 8.8) -------------------------------------- */
+  .gate {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+  }
+
+  .gate__card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    width: min(26rem, 100%);
+    padding: 2rem 1.75rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .gate__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.7rem, 5vw, 2.2rem);
+    line-height: 1.1;
+  }
+
+  .gate__lede {
+    margin-bottom: 0.6rem;
+    font-size: 0.9rem;
+    color: rgb(var(--color-muted));
+  }
+
   /* --- Frame (SPEC 5.4) ------------------------------------------------ */
   .frame {
     position: relative;
