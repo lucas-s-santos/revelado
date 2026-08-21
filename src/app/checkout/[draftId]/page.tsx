@@ -39,7 +39,7 @@ export default async function CheckoutPage({ params }: { params: Params }) {
     <CheckoutForm
       draftId={draft.id}
       slug={draft.slug}
-      occasionId={draft.occasionId}
+      palette={draft.content.theme.palette}
       title={hero?.type === "hero" ? hero.props.title : "Sua página"}
       subtitle={hero?.type === "hero" ? (hero.props.subtitle ?? null) : null}
       photoCount={draft.content.blocks.reduce(

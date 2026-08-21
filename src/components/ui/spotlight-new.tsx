@@ -16,7 +16,7 @@ type SpotlightProps = {
 
 export const Spotlight = ({
   // Retematizado (SPEC Fase 1): o cone de luz é a safelight do laboratório,
-  // não o azul genérico do original. Acompanha o accent da ocasião.
+  // não o azul genérico do original. Acompanha o --color-accent que estiver valendo.
   gradientFirst = "radial-gradient(68.54% 68.72% at 55.02% 31.46%, rgb(var(--color-accent) / .10) 0, rgb(var(--color-accent) / .03) 50%, rgb(var(--color-accent) / 0) 80%)",
   gradientSecond = "radial-gradient(50% 50% at 50% 50%, rgb(var(--color-accent) / .07) 0, rgb(var(--color-magenta) / .025) 80%, transparent 100%)",
   gradientThird = "radial-gradient(50% 50% at 50% 50%, rgb(var(--color-accent) / .05) 0, rgb(var(--color-magenta) / .02) 80%, transparent 100%)",

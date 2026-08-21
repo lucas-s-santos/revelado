@@ -11,8 +11,16 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
  *    e chegar de novo não pode publicar duas vezes nem mandar dois e-mails.
  *
  * Sem `MERCADOPAGO_ACCESS_TOKEN`, entra um **simulador local** que devolve uma
- * cobrança Pix falsa e aceita confirmação manual. É o que permite rodar o e2e do
+ * cobrança falsa e aceita confirmação manual. É o que permite rodar o e2e do
  * funil — pago, pendente, expirado, reembolsado — sem conta no Mercado Pago.
+ *
+ * Dois meios, dois formatos de cobrança:
+ *  - **Pix** cria um `Payment` direto, e a gente já sai sabendo o id dele;
+ *  - **cartão** cria uma `Preference` e manda a pessoa para o Checkout Pro.
+ *    Nenhum dado de cartão passa pelo nosso servidor — é o que nos mantém fora
+ *    do escopo de PCI. O preço disso é que o id do pagamento **só existe depois**
+ *    que a pessoa paga, então o webhook precisa saber resolver o pedido pelo
+ *    `external_reference` além do `providerRef` (ver a rota do webhook).
  */
 
 export const MP_CONFIGURED = Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN);
@@ -83,6 +91,81 @@ export async function createPixCharge(
   };
 }
 
+export interface CardCheckout {
+  /** id da preferência — vira o providerRef até o pagamento existir */
+  providerRef: string;
+  /** para onde mandar a pessoa */
+  url: string;
+  simulated: boolean;
+}
+
+export interface CreateCardCheckoutInput extends CreateChargeInput {
+  /** parcelas máximas já calculadas por `maxInstallments` */
+  installments: number;
+}
+
+/**
+ * Checkout Pro para cartão, parcelado.
+ *
+ * `external_reference` é o que amarra a preferência ao pedido: é por ele que o
+ * webhook encontra o pedido quando o pagamento nasce, já que o id do pagamento
+ * não existe neste momento.
+ */
+export async function createCardCheckout(
+  input: CreateCardCheckoutInput,
+): Promise<CardCheckout> {
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  if (!MP_CONFIGURED) {
+    return {
+      providerRef: `simpref_${input.orderId}`,
+      // O simulador não sai do site: cai na mesma tela de sucesso, que já sabe
+      // esperar o pedido virar PAID.
+      url: `/sucesso/${input.orderId}?simulado=cartao`,
+      simulated: true,
+    };
+  }
+
+  const { MercadoPagoConfig, Preference } = await import("mercadopago");
+
+  const client = new MercadoPagoConfig({
+    accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN ?? "",
+  });
+
+  const preference = await new Preference(client).create({
+    body: {
+      items: [
+        {
+          id: input.orderId,
+          title: input.description,
+          quantity: 1,
+          unit_price: input.amountCents / 100,
+          currency_id: "BRL",
+        },
+      ],
+      payer: { email: input.email },
+      external_reference: input.orderId,
+      notification_url: `${site}/api/webhooks/mercadopago`,
+      back_urls: {
+        success: `${site}/sucesso/${input.orderId}`,
+        pending: `${site}/sucesso/${input.orderId}`,
+        failure: `${site}/checkout/${input.orderId}`,
+      },
+      auto_return: "approved",
+      payment_methods: {
+        installments: input.installments,
+        // Pix tem fluxo próprio nesta aplicação; aqui é a via do cartão.
+        excluded_payment_types: [{ id: "bank_transfer" }, { id: "ticket" }],
+      },
+    },
+    requestOptions: { idempotencyKey: `pref-${input.orderId}` },
+  });
+
+  const url = preference.init_point ?? preference.sandbox_init_point ?? "";
+
+  return { providerRef: String(preference.id), url, simulated: false };
+}
+
 /**
  * Código Pix falso, no formato EMV do de verdade, para o simulador ter algo
  * copiável na tela. **Não é cobrável** — o prefixo diz isso em letras.
@@ -123,10 +206,21 @@ export function mapPaymentStatus(status: string): NotificationStatus {
   }
 }
 
-/** Consulta o pagamento no provedor — o webhook só traz o id, não o estado. */
-export async function fetchPaymentStatus(
+export interface FetchedPayment {
+  status: NotificationStatus;
+  /** o id do nosso pedido, que viajou na cobrança */
+  externalReference: string | null;
+}
+
+/**
+ * Consulta o pagamento no provedor — o webhook só traz o id, não o estado.
+ *
+ * Devolve também o `external_reference` porque no cartão ele é a única ponte
+ * de volta até o pedido: a preferência foi criada antes de o pagamento existir.
+ */
+export async function fetchPayment(
   paymentId: string,
-): Promise<NotificationStatus | null> {
+): Promise<FetchedPayment | null> {
   if (!MP_CONFIGURED) return null;
 
   const { MercadoPagoConfig, Payment } = await import("mercadopago");
@@ -136,10 +230,22 @@ export async function fetchPaymentStatus(
 
   try {
     const payment = await new Payment(client).get({ id: paymentId });
-    return payment.status ? mapPaymentStatus(payment.status) : null;
+    if (!payment.status) return null;
+
+    return {
+      status: mapPaymentStatus(payment.status),
+      externalReference: payment.external_reference ?? null,
+    };
   } catch {
     return null;
   }
+}
+
+/** Só o estado, para quem não precisa da referência. */
+export async function fetchPaymentStatus(
+  paymentId: string,
+): Promise<NotificationStatus | null> {
+  return (await fetchPayment(paymentId))?.status ?? null;
 }
 
 /**

@@ -31,12 +31,12 @@ export default function BlocksLabPage() {
         <h1 className="text-[clamp(1.9rem,5vw,3rem)]">
           O mesmo renderer, <span className="display-italic">dois lugares</span>
         </h1>
-        <p className="max-w-[62ch] text-[rgb(var(--color-muted))]">
+        <p className="max-w-[62ch] text-[rgb(var(--color-ink-muted))]">
           Um único <code>SiteContent</code> em JSON, renderizado pelo mesmo{" "}
           <code>BlockRenderer</code> no preview do editor e na página publicada.
           Se os dois lados divergirem, é bug.
         </p>
-        <p className="text-sm text-[rgb(var(--color-muted))]">
+        <p className="text-sm text-[rgb(var(--color-ink-muted))]">
           A página publicada de verdade:{" "}
           <a href={`/p/${DEMO_SLUG}`} className="underline">
             /p/{DEMO_SLUG}
@@ -83,7 +83,7 @@ export default function BlocksLabPage() {
                     className={
                       definition.ready
                         ? "text-[rgb(var(--color-cyan))]"
-                        : "text-[rgb(var(--color-muted))]"
+                        : "text-[rgb(var(--color-ink-muted))]"
                     }
                   >
                     {definition.ready ? "pronto" : "Fase 7"}

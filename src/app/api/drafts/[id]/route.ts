@@ -38,7 +38,7 @@ export async function GET(_request: Request, { params }: { params: Params }) {
   return NextResponse.json({
     id: draft.id,
     slug: draft.slug,
-    occasion: draft.occasionId,
+    template: draft.templateId,
     status: draft.status,
     content: draft.content,
     updatedAt: draft.updatedAt.toISOString(),

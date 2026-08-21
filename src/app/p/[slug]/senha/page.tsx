@@ -66,7 +66,11 @@ export default async function PasswordPage({
   }
 
   return (
-    <main className="gate" data-occasion={site.occasionId}>
+    <main
+      className="gate"
+      data-skin={site.content.theme.skin}
+      data-palette={site.content.theme.palette}
+    >
       <form action={unlock} className="gate__card glass">
         <p className="eyebrow">esta página é privada</p>
         <h1 className="gate__title">Tem uma senha aqui</h1>

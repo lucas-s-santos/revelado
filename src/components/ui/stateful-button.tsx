@@ -85,9 +85,9 @@ export const Button = ({ className, children, ...props }: ButtonProps) => {
       layoutId="button"
       ref={scope}
       className={cn(
-        // Retematizado (SPEC Fase 1): accent da ocasião sobre noir, raio pill
+        // Retematizado (SPEC Fase 1): accent da paleta sobre noir, raio pill
         // e foco do token. Sem cor hardcoded.
-        "flex min-w-[120px] cursor-pointer items-center justify-center gap-2 rounded-pill bg-[rgb(var(--color-accent))] px-5 py-2.5 font-medium text-[rgb(var(--color-noir))] transition duration-200 hover:shadow-(--shadow-glow)",
+        "flex min-w-[120px] cursor-pointer items-center justify-center gap-2 rounded-pill bg-[rgb(var(--color-accent))] px-5 py-2.5 font-medium text-[rgb(var(--color-bg))] transition duration-200 hover:shadow-(--shadow-glow)",
         className,
       )}
       {...buttonProps}
@@ -131,7 +131,7 @@ const Loader = () => {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="loader text-[rgb(var(--color-noir))]"
+      className="loader text-[rgb(var(--color-bg))]"
     >
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <path d="M12 3a9 9 0 1 0 9 9" />
@@ -160,7 +160,7 @@ const CheckIcon = () => {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="check text-[rgb(var(--color-noir))]"
+      className="check text-[rgb(var(--color-bg))]"
     >
       <path stroke="none" d="M0 0h24v24H0z" fill="none" />
       <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" />

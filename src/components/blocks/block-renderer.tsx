@@ -44,7 +44,8 @@ export function BlockRenderer({
     <div
       className={cn("blocks", className)}
       data-mode={mode}
-      data-occasion={content.theme.palette}
+      data-skin={content.theme.skin}
+      data-palette={content.theme.palette}
       data-font={content.theme.font}
     >
       {content.blocks.map((block, index) => {

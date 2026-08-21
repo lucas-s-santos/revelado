@@ -11,6 +11,7 @@ import { NumberTicker } from "@/components/ui/number-ticker";
 import { track } from "@/lib/analytics";
 import type { PublishIssue } from "@/lib/blocks/schema";
 import {
+  bestInstallment,
   FOREVER_BUMP_CENTS,
   orderTotalCents,
   PLANS,
@@ -31,12 +32,15 @@ import { cn, formatBRL } from "@/lib/utils";
 interface CheckoutFormProps {
   draftId: string;
   slug: string;
-  occasionId: string;
+  /** paleta do conteúdo — tinge o accent desta tela junto com a página */
+  palette: string;
   title: string;
   subtitle: string | null;
   photoCount: number;
   issues: PublishIssue[];
 }
+
+type Method = "pix" | "card";
 
 interface PixState {
   orderId: string;
@@ -49,7 +53,7 @@ interface PixState {
 export function CheckoutForm({
   draftId,
   slug,
-  occasionId,
+  palette,
   title,
   subtitle,
   photoCount,
@@ -58,6 +62,7 @@ export function CheckoutForm({
   const router = useRouter();
 
   const [planId, setPlanId] = useState<PlanId>("especial");
+  const [method, setMethod] = useState<Method>("pix");
   const [bump, setBump] = useState(false);
   const [email, setEmail] = useState("");
   const [coupon, setCoupon] = useState("");
@@ -69,6 +74,7 @@ export function CheckoutForm({
   const isForever = plan?.durationDays === null;
   const bumpApplies = bump && !isForever;
   const totalCents = orderTotalCents({ planId, bumpForever: bumpApplies });
+  const installment = bestInstallment(totalCents);
 
   const blocked = issues.length > 0;
 
@@ -78,7 +84,7 @@ export function CheckoutForm({
 
     setSubmitting(true);
     setError(null);
-    void track("payment_started", { plan: planId, bump: bumpApplies });
+    void track("payment_started", { plan: planId, bump: bumpApplies, method });
 
     try {
       const response = await fetch("/api/checkout", {
@@ -89,6 +95,7 @@ export function CheckoutForm({
           planId,
           bumpForever: bumpApplies,
           email,
+          method,
           ...(coupon.trim() ? { coupon: coupon.trim() } : {}),
         }),
       });
@@ -98,10 +105,24 @@ export function CheckoutForm({
         orderId?: string;
         amountCents?: number;
         pix?: { code: string; expiresAt: string; simulated: boolean };
+        card?: { url: string; installments: number; simulated: boolean };
       };
 
-      if (!response.ok || !body.orderId || !body.pix) {
+      if (!response.ok || !body.orderId) {
         setError(body.error ?? "Não deu para gerar a cobrança. Tente de novo.");
+        return;
+      }
+
+      if (body.card) {
+        // O cartão é preenchido no Checkout Pro: nenhum dado dele passa por
+        // aqui. `location.assign` e não `router.push` porque o destino é outro
+        // domínio quando o Mercado Pago está configurado.
+        window.location.assign(body.card.url);
+        return;
+      }
+
+      if (!body.pix) {
+        setError("Não deu para gerar a cobrança. Tente de novo.");
         return;
       }
 
@@ -133,7 +154,7 @@ export function CheckoutForm({
   }
 
   return (
-    <main className="checkout" data-occasion={occasionId}>
+    <main className="checkout" data-palette={palette}>
       <header className="checkout__bar">
         <Logo size={26} />
         <Link href={`/editor/${draftId}`} className="btn-quiet">
@@ -231,7 +252,7 @@ export function CheckoutForm({
               />
               <span>
                 <span className="block">Deixar no ar para sempre</span>
-                <span className="block text-xs text-[rgb(var(--color-muted))]">
+                <span className="block text-xs text-[rgb(var(--color-ink-muted))]">
                   sem renovação, sem prazo
                 </span>
               </span>
@@ -277,6 +298,65 @@ export function CheckoutForm({
             />
           </div>
 
+          {/* Meio de pagamento. O Pix vem marcado porque cai na hora e a
+              página publica em segundos; o cartão existe para quem prefere
+              diluir, que no impulso de presente é o que destrava a compra. */}
+          <fieldset className="fieldset" disabled={blocked}>
+            <legend className="field__label">Como você quer pagar</legend>
+
+            <div className="checkout__methods">
+              <label
+                className={cn(
+                  "checkout__method",
+                  method === "pix" && "is-active",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="meio"
+                  value="pix"
+                  checked={method === "pix"}
+                  onChange={() => setMethod("pix")}
+                  className="sr-only"
+                />
+                <span className="checkout__method-name">Pix</span>
+                <span data-numeric className="checkout__method-price">
+                  {formatBRL(totalCents)}
+                </span>
+                <span className="checkout__method-hint">
+                  cai na hora · sua página publica em segundos
+                </span>
+              </label>
+
+              <label
+                className={cn(
+                  "checkout__method",
+                  method === "card" && "is-active",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="meio"
+                  value="card"
+                  checked={method === "card"}
+                  onChange={() => setMethod("card")}
+                  className="sr-only"
+                />
+                <span className="checkout__method-name">Cartão</span>
+                <span data-numeric className="checkout__method-price">
+                  {installment.count > 1
+                    ? `${installment.count}x ${formatBRL(installment.cents)}`
+                    : formatBRL(totalCents)}
+                </span>
+                <span className="checkout__method-hint">
+                  {installment.count > 1
+                    ? "sem juros · ou à vista"
+                    : "à vista no cartão"}
+                </span>
+              </label>
+            </div>
+          </fieldset>
+
           <div className="checkout__total">
             <span className="eyebrow">total</span>
             <p className="pricing__total-value">
@@ -285,7 +365,7 @@ export function CheckoutForm({
                 key={`${planId}-${bumpApplies}`}
                 value={totalCents / 100}
                 decimalPlaces={2}
-                className="text-[rgb(var(--color-paper))]"
+                className="text-[rgb(var(--color-ink))]"
               />
             </p>
           </div>
@@ -301,10 +381,16 @@ export function CheckoutForm({
             disabled={submitting || blocked}
             className="btn-primary btn-primary--lg w-full justify-center"
           >
-            {submitting ? "Gerando o Pix…" : "Pagar com Pix"}
+            {submitting
+              ? method === "pix"
+                ? "Gerando o Pix…"
+                : "Abrindo o pagamento…"
+              : method === "pix"
+                ? "Pagar com Pix"
+                : "Pagar com cartão"}
           </button>
 
-          <p className="text-center text-xs text-[rgb(var(--color-muted))]">
+          <p className="text-center text-xs text-[rgb(var(--color-ink-muted))]">
             Pagamento único. 7 dias de garantia.
           </p>
         </form>

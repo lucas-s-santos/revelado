@@ -1,5 +1,6 @@
 import { rm } from "node:fs/promises";
-import { join } from "node:path";
+
+import { devDir } from "@/lib/dev-store";
 
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -28,12 +29,11 @@ import { getPublishedSite } from "@/lib/sites";
  *     reenvia webhook, e reenviar não pode publicar duas vezes.
  */
 
-const DEV_DIR = join(process.cwd(), ".drafts");
+const DEV_DIR = devDir();
 
 async function novaCompra() {
   const draft = await createDraft({
-    occasionId: "namorados",
-    content: defaultContent("namorados"),
+    content: defaultContent(),
     anonId: "teste",
   });
 

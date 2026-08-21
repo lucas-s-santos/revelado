@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  bestInstallment,
   FOREVER_BUMP_CENTS,
   getPlan,
+  MAX_INSTALLMENTS,
+  maxInstallments,
+  MIN_INSTALLMENT_CENTS,
   orderTotalCents,
   PLANS,
 } from "@/lib/plans";
@@ -46,5 +50,50 @@ describe("plans", () => {
         coupon: { type: "fixed", value: 999_999 },
       }),
     ).toBe(0);
+  });
+});
+
+/**
+ * Parcela é o número mais visível da vitrine — e o que a pessoa confere na
+ * fatura. Errar aqui é errar em dinheiro, na frente do cliente.
+ */
+describe("parcelamento", () => {
+  it("respeita o teto de 12x", () => {
+    expect(maxInstallments(1_000_00)).toBe(MAX_INSTALLMENTS);
+  });
+
+  it("nunca deixa a parcela cair abaixo do piso", () => {
+    for (const plan of PLANS) {
+      const { count, cents } = bestInstallment(plan.priceCents);
+      expect(
+        cents,
+        `${plan.id}: ${count}x de ${cents} fura o piso`,
+      ).toBeGreaterThanOrEqual(MIN_INSTALLMENT_CENTS);
+    }
+  });
+
+  it("devolve 1x quando o valor não dá nem uma parcela cheia", () => {
+    expect(maxInstallments(MIN_INSTALLMENT_CENTS - 1)).toBe(1);
+    expect(maxInstallments(0)).toBe(1);
+    expect(maxInstallments(-500)).toBe(1);
+  });
+
+  it("mantém a parcela em centavos inteiros", () => {
+    for (const plan of PLANS) {
+      expect(Number.isInteger(bestInstallment(plan.priceCents).cents)).toBe(
+        true,
+      );
+    }
+  });
+
+  it("nunca cobra mais que o total ao somar as parcelas", () => {
+    // Arredondar para baixo é de propósito: a sobra fica na primeira parcela,
+    // e o cliente jamais paga a mais por causa de arredondamento.
+    for (let cents = 100; cents <= 20_000; cents += 37) {
+      const { count, cents: each } = bestInstallment(cents);
+      expect(each * count, `${cents} vira ${count}x de ${each}`).toBeLessThanOrEqual(
+        cents,
+      );
+    }
   });
 });

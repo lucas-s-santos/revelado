@@ -73,12 +73,12 @@ describe("BlockRenderer", () => {
     expect(html).toContain('data-block="hero"'); // o resto continua no ar
   });
 
-  it("leva a paleta e a fonte da ocasião para o DOM", () => {
+  it("leva a paleta e a fonte para o DOM", () => {
     const html = renderToStaticMarkup(
       <BlockRenderer content={demoContent} mode="published" now={NOW} />,
     );
 
-    expect(html).toContain(`data-occasion="${demoContent.theme.palette}"`);
+    expect(html).toContain(`data-palette="${demoContent.theme.palette}"`);
     expect(html).toContain(`data-font="${demoContent.theme.font}"`);
   });
 });

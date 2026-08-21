@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+import {
+  DEFAULT_PALETTE,
+  DEFAULT_SKIN,
+  PALETTE_IDS,
+  SKIN_IDS,
+} from "@/lib/palettes";
+
 /**
  * O coração da arquitetura — SPEC 7.2.
  *
@@ -14,7 +21,11 @@ import { z } from "zod";
  * verdade — a seção 12 proíbe `any`.
  */
 
-export const SCHEMA_VERSION = 1;
+/**
+ * Versão 2: saiu `occasion` e `theme.palette` virou enum das paletas de
+ * revelação. Conteúdo na 1 sobe na leitura, em `blocks/migrate.ts`.
+ */
+export const SCHEMA_VERSION = 2;
 
 /** Unidades do contador, na ordem em que aparecem. */
 export const counterUnits = ["y", "mo", "d", "h", "m", "s"] as const;
@@ -150,10 +161,11 @@ export const blockSchema = z.discriminatedUnion("type", [
 
 export const siteContentSchema = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
-  occasion: z.string(),
   theme: z.object({
     template: z.string(),
-    palette: z.string(),
+    // Sem bump de versão: `.default()` preenche o que já está salvo na leitura.
+    skin: z.enum(SKIN_IDS).default(DEFAULT_SKIN),
+    palette: z.enum(PALETTE_IDS).default(DEFAULT_PALETTE),
     font: z.enum(["serif", "sans", "mixed"]).default("mixed"),
     effect: z
       .enum(["none", "hearts", "confetti", "snow", "stars"])
