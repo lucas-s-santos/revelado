@@ -50,7 +50,7 @@ export function StickyActs({
           >
             <p className="eyebrow">{act.eyebrow}</p>
             <h3 className="sticky-acts__title">{act.title}</h3>
-            <p className="text-[rgb(var(--color-muted))]">{act.text}</p>
+            <p className="text-[rgb(var(--color-ink-muted))]">{act.text}</p>
           </li>
         ))}
       </ol>

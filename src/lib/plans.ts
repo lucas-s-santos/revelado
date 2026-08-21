@@ -74,6 +74,45 @@ export const PLANS: readonly PlanSeed[] = [
 /** Order bump do checkout: "deixar para sempre, +R$ 9" (SPEC 8.5). */
 export const FOREVER_BUMP_CENTS = 900;
 
+/**
+ * Parcelamento no cartão — SPEC 8.5.
+ *
+ * Teto de 12x, com piso por parcela: 12x de R$ 2,91 não existe na maquininha,
+ * e prometer na vitrine o que o Mercado Pago recusa no checkout é o pior jeito
+ * de perder a venda. O piso de R$ 3 é o que faz o número da tela ser o mesmo
+ * que a pessoa vai ver lá.
+ *
+ * Sem juros: o valor da parcela é o total dividido, e é a gente que absorve a
+ * taxa do provedor. Se um dia passar a repassar, o cálculo muda **aqui** e a
+ * tela acompanha sozinha.
+ */
+export const MAX_INSTALLMENTS = 12;
+export const MIN_INSTALLMENT_CENTS = 300;
+
+export function maxInstallments(totalCents: number): number {
+  if (totalCents <= 0) return 1;
+  const byFloor = Math.floor(totalCents / MIN_INSTALLMENT_CENTS);
+  return Math.max(1, Math.min(MAX_INSTALLMENTS, byFloor));
+}
+
+export interface Installment {
+  count: number;
+  /** centavos por parcela, arredondado para baixo */
+  cents: number;
+}
+
+/**
+ * A maior parcela possível — é o que vai no "ou 11x de R$ 3,17".
+ *
+ * Arredonda para baixo e deixa o resto na primeira parcela, que é como as
+ * maquininhas fazem: assim a soma fecha exatamente com o total, sem centavo
+ * sobrando nem faltando.
+ */
+export function bestInstallment(totalCents: number): Installment {
+  const count = maxInstallments(totalCents);
+  return { count, cents: Math.floor(totalCents / count) };
+}
+
 export const PLAN_BY_ID = new Map<string, PlanSeed>(
   PLANS.map((plan) => [plan.id, plan]),
 );

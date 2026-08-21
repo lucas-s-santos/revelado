@@ -4,9 +4,14 @@
  * no PostHog, então eles vivem aqui e em nenhum outro lugar.
  */
 
+/**
+ * `occasion_selected` saiu no pivô para casais: o passo que ele media era o
+ * grid de oito ocasiões, que deixou de existir. Quem abre o funil agora é
+ * `editor_opened` — e não há evento de clique no botão porque ele é um `form`
+ * para Server Action, sem JavaScript no caminho.
+ */
 export const FUNNEL_EVENTS = [
   "landing_view",
-  "occasion_selected",
   "editor_opened",
   "editor_completed",
   "checkout_opened",

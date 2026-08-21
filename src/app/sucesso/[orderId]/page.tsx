@@ -52,7 +52,7 @@ export default async function SuccessPage({ params }: { params: Params }) {
   const title = hero?.type === "hero" ? hero.props.title : "Sua página";
 
   return (
-    <main className="success" data-occasion={draft.occasionId}>
+    <main className="success" data-palette={draft.content.theme.palette}>
       <Logo />
 
       <p className="eyebrow">está no ar</p>

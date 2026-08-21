@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+
+import { devDir } from "@/lib/dev-store";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -22,12 +24,11 @@ import { db, notDeleted } from "@/lib/db";
  */
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
-const DEV_DIR = join(process.cwd(), ".drafts");
+const DEV_DIR = devDir();
 
 export interface Draft {
   id: string;
   slug: string;
-  occasionId: string;
   templateId: string | null;
   content: SiteContent;
   status: "DRAFT" | "PENDING_PAYMENT" | "PUBLISHED" | "EXPIRED";
@@ -44,7 +45,6 @@ export interface Draft {
 }
 
 export interface CreateDraftInput {
-  occasionId: string;
   templateId?: string | null;
   content: SiteContent;
   anonId: string;
@@ -89,13 +89,12 @@ function devToDraft(record: DevRecord): Draft {
 // --- API pública ----------------------------------------------------------
 
 export async function createDraft(input: CreateDraftInput): Promise<Draft> {
-  const slug = await generateSlug(input.occasionId);
+  const slug = generateSlug();
 
   if (!hasDatabase) {
     const record: DevRecord = {
       id: randomUUID(),
       slug,
-      occasionId: input.occasionId,
       templateId: input.templateId ?? null,
       content: input.content,
       status: "DRAFT",
@@ -112,7 +111,6 @@ export async function createDraft(input: CreateDraftInput): Promise<Draft> {
   const site = await db.site.create({
     data: {
       slug,
-      occasionId: input.occasionId,
       templateId: input.templateId ?? null,
       content: input.content,
       anonId: input.anonId,
@@ -122,7 +120,6 @@ export async function createDraft(input: CreateDraftInput): Promise<Draft> {
   return {
     id: site.id,
     slug: site.slug,
-    occasionId: site.occasionId,
     templateId: site.templateId,
     content: input.content,
     status: site.status,
@@ -149,7 +146,6 @@ export async function getDraft(id: string): Promise<Draft | null> {
   return {
     id: site.id,
     slug: site.slug,
-    occasionId: site.occasionId,
     templateId: site.templateId,
     content: result.content,
     status: site.status,
@@ -220,7 +216,6 @@ export async function saveDraftContent(
     draft: {
       id: updated.id,
       slug: updated.slug,
-      occasionId: updated.occasionId,
       templateId: updated.templateId,
       content,
       status: updated.status,
@@ -349,7 +344,6 @@ export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
       {
         id: site.id,
         slug: site.slug,
-        occasionId: site.occasionId,
         templateId: site.templateId,
         content: result.content,
         status: site.status,
@@ -366,13 +360,16 @@ export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
 /**
  * Slug com sufixo aleatório — SPEC 9.4: não pode ser adivinhável, senão dá para
  * varrer as páginas dos outros. Imutável depois de publicado (SPEC 7.1).
+ *
+ * O prefixo era a ocasião; sem ocasiões, é fixo. "nosso" mantém a URL legível
+ * na hora de mostrar para alguém, sem dizer nada sobre o conteúdo.
  */
-async function generateSlug(occasionId: string): Promise<string> {
+function generateSlug(): string {
   const alphabet = "abcdefghijkmnpqrstuvwxyz23456789"; // sem 0/o/1/l
   const suffix = Array.from(
     { length: 8 },
     () => alphabet[Math.floor(Math.random() * alphabet.length)],
   ).join("");
 
-  return `${occasionId}-${suffix}`;
+  return `nosso-${suffix}`;
 }

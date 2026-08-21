@@ -1,13 +1,19 @@
 import { NextResponse } from "next/server";
 
 import {
-  fetchPaymentStatus,
+  fetchPayment,
   mapPaymentStatus,
   MP_CONFIGURED,
   verifySignature,
   type NotificationStatus,
 } from "@/lib/mercadopago";
-import { findByProviderRef, transitionOrder } from "@/lib/orders";
+import {
+  attachCharge,
+  findByProviderRef,
+  getOrder,
+  transitionOrder,
+  type Order,
+} from "@/lib/orders";
 import { publishSite } from "@/lib/publish";
 
 /**
@@ -21,6 +27,15 @@ import { publishSite } from "@/lib/publish";
  *     faz o Mercado Pago reenviar por horas sem motivo;
  *  4. "pagamento que confirma 2 dias depois publica normalmente" — nada aqui
  *     olha para a idade do pedido.
+ *
+ * Dois caminhos para achar o pedido, porque há dois meios de pagamento:
+ *  - **Pix**: a cobrança nasce no nosso servidor, então o `providerRef` já é o
+ *    id do pagamento e a busca é direta;
+ *  - **cartão**: o `providerRef` guardado é o id da *preferência*, e o
+ *    pagamento só ganha id quando a pessoa paga. Aí o caminho é o
+ *    `external_reference`, que carrega o id do pedido. Assim que resolve, o
+ *    id real do pagamento é gravado — da segunda notificação em diante a busca
+ *    volta a ser direta, e a idempotência por `providerRef` continua valendo.
  */
 
 export const dynamic = "force-dynamic";
@@ -63,14 +78,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, ignored: kind });
   }
 
-  const order = await findByProviderRef(dataId);
-  if (!order) {
+  const resolved = await resolveOrder(dataId, body);
+  if (!resolved.order) {
     // Pedido desconhecido: pode ser de outro ambiente compartilhando o mesmo
     // webhook. 200 para não gerar fila de reenvio eterna.
     return NextResponse.json({ ok: true, ignored: "pedido desconhecido" });
   }
 
-  const status = await resolveStatus(dataId, body);
+  const { order, status } = resolved;
   if (!status) {
     return NextResponse.json({ ok: true, ignored: "status indeterminado" });
   }
@@ -95,20 +110,47 @@ export async function POST(request: Request) {
 }
 
 /**
+ * Acha o pedido e o estado numa passada só.
+ *
+ * A consulta ao provedor é cara e traz as duas coisas, então fazer as duas
+ * perguntas separadas custaria duas chamadas por notificação — e o Mercado Pago
+ * reenvia bastante.
+ *
  * O webhook traz o id, não o estado. Com token, pergunta ao provedor — nunca
  * confiar no corpo, que qualquer um poderia forjar. Sem token (modo local), usa
  * o `action` da própria notificação, que é o que o simulador manda.
  */
-async function resolveStatus(
+async function resolveOrder(
   paymentId: string,
   body: WebhookBody,
-): Promise<NotificationStatus | null> {
-  if (MP_CONFIGURED) return fetchPaymentStatus(paymentId);
+): Promise<{ order: Order | null; status: NotificationStatus | null }> {
+  const direct = await findByProviderRef(paymentId);
 
-  const action = body.action ?? "";
-  if (action.startsWith("payment.")) {
-    return mapPaymentStatus(action.replace("payment.", ""));
+  if (!MP_CONFIGURED) {
+    // Modo local: sem provedor a quem perguntar, o simulador manda o estado no
+    // próprio `action`, e o pedido é sempre achado pelo providerRef.
+    const action = body.action ?? "";
+    const status = action.startsWith("payment.")
+      ? mapPaymentStatus(action.replace("payment.", ""))
+      : null;
+    return { order: direct, status };
   }
 
-  return null;
+  const payment = await fetchPayment(paymentId);
+  if (!payment) return { order: direct, status: null };
+
+  if (direct) return { order: direct, status: payment.status };
+
+  // Cartão: o providerRef guardado é o da preferência. Volta pelo pedido.
+  const reference = payment.externalReference;
+  if (!reference) return { order: null, status: payment.status };
+
+  const order = await getOrder(reference);
+  if (!order) return { order: null, status: payment.status };
+
+  // Grava o id real do pagamento: a próxima notificação já cai no caminho
+  // direto, e a idempotência por providerRef volta a valer.
+  await attachCharge(order.id, { providerRef: paymentId });
+
+  return { order, status: payment.status };
 }

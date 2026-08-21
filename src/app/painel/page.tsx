@@ -42,7 +42,7 @@ export default async function PanelPage() {
         // Tela vazia é convite, não recado triste (SPEC 11).
         <div className="panel__empty">
           <p>Nenhuma página por aqui ainda.</p>
-          <p className="text-sm text-[rgb(var(--color-muted))]">
+          <p className="text-sm text-[rgb(var(--color-ink-muted))]">
             Comece pela foto que você já tem no celular — leva uns oito minutos.
           </p>
           <Link href="/criar" className="btn-primary mt-2">

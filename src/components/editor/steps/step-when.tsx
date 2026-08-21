@@ -1,6 +1,7 @@
 "use client";
 
 import { Field } from "@/components/editor/field";
+import { MOMENTS } from "@/lib/moments";
 import { findBlock, useEditorStore } from "@/stores/editor-store";
 
 /**
@@ -21,7 +22,7 @@ export function StepWhen() {
         <header className="step__head">
           <h2 className="step__title">Esta página não tem contador</h2>
           <p className="step__lede">
-            Tudo bem — nem toda ocasião precisa de um. Siga para as fotos.
+            Tudo bem — nem toda página precisa de um. Siga para as fotos.
           </p>
         </header>
       </div>
@@ -81,6 +82,37 @@ export function StepWhen() {
           />
         )}
       </Field>
+
+      {/*
+        Atalhos dos momentos do casal. Cada um mexe em duas coisas de uma vez —
+        o rótulo e o sentido da contagem — porque separá-los deixaria a pessoa
+        com "faltam" correndo para trás numa data que já passou.
+      */}
+      <fieldset className="fieldset">
+        <legend className="field__label">Ou use um atalho</legend>
+        <div className="chips">
+          {MOMENTS.map((moment) => (
+            <button
+              key={moment.id}
+              type="button"
+              onClick={() =>
+                patch(counter.id, {
+                  label: moment.counterLabel,
+                  mode: moment.mode,
+                })
+              }
+              aria-pressed={
+                counter.props.label === moment.counterLabel &&
+                counter.props.mode === moment.mode
+              }
+              className="chip"
+            >
+              <span>{moment.label}</span>
+              <small>{moment.counterLabel}</small>
+            </button>
+          ))}
+        </div>
+      </fieldset>
     </div>
   );
 }

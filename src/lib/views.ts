@@ -1,4 +1,6 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
+
+import { devDir } from "@/lib/dev-store";
 import { join } from "node:path";
 
 import { db } from "@/lib/db";
@@ -17,7 +19,7 @@ import { listOrdersByEmail } from "@/lib/orders";
  * emocional do produto e a maior fonte de compartilhamento".
  */
 
-const DEV_FILE = join(process.cwd(), ".drafts", "views.json");
+const DEV_FILE = devDir("views.json");
 
 interface DevViews {
   [siteId: string]: {
@@ -66,7 +68,7 @@ export async function recordView(
       days: { ...current.days, [day]: (current.days[day] ?? 0) + 1 },
     };
 
-    await mkdir(join(process.cwd(), ".drafts"), { recursive: true });
+    await mkdir(devDir(), { recursive: true });
     await writeFile(
       DEV_FILE,
       JSON.stringify({ ...all, [siteId]: updated }, null, 2),
@@ -135,7 +137,7 @@ async function ownerEmailFor(siteId: string): Promise<string | null> {
 
   // Modo local: varre os pedidos em disco procurando o desta página.
   const { readdir } = await import("node:fs/promises");
-  const dir = join(process.cwd(), ".drafts", "orders");
+  const dir = devDir("orders");
 
   try {
     const files = await readdir(dir);

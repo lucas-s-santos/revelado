@@ -1,36 +1,76 @@
-/* Design system "Câmara Escura" — SPEC seção 4.
+/* Design system — SPEC seção 4.
  * Fonte única de verdade dos tokens. Nenhuma cor hardcoded no resto do código.
- * Cores em RGB sem vírgula para permitir rgb(var(--color-x) / .5). */
+ * Cores em RGB sem vírgula para permitir rgb(var(--color-x) / .5).
+ *
+ * DUAS PELES (v3).
+ *
+ * A pele **clara** é o site: fundo rosado quente, tinta quase-preta arroxeada e
+ * rosa de marca. Landing, editor e checkout são sempre ela. A "Câmara Escura"
+ * continua existindo abaixo, mas como escolha de quem monta a página.
+ *
+ * Os tokens de superfície dizem o **papel** (bg, surface, ink), não a cor. É o
+ * que deixa a pele trocar sem tocar em nenhuma regra do globals.css.
+ *
+ * ROSA DE PREENCHIMENTO vs ROSA DE TEXTO. São dois tokens, e é de propósito.
+ * O rosa vivo que o botão quer não sustenta texto: branco sobre ele dá 3.5:1.
+ * Então `--color-brand` é o rosa que preenche (e ainda carrega branco a 4.6:1)
+ * e `--color-accent` é o rosa que escreve, escurecido até passar sobre creme.
+ * `--color-brand-bright` só existe para brilho e gradiente, nunca para texto.
+ * Quem confere é `pnpm contrast` — contraste se mede (CLAUDE.md, regra 15). */
 
 @theme {
-  /* 4.1 — superfícies e texto */
-  --color-noir: 10 7 17; /* #0A0711 fundo */
-  --color-noir-2: 18 12 28; /* #120C1C superfície */
-  --color-noir-3: 26 18 40; /* #1A1228 superfície elevada */
-  --color-paper: 246 239 230; /* #F6EFE6 texto — nunca #FFF */
-  --color-muted: 155 144 170; /* #9B90AA texto secundário */
+  /* 4.1 — superfícies e texto: PELE CLARA (padrão) */
+  --color-bg: 255 245 248; /* #FFF5F8 fundo, branco puxado para o rosa */
+  --color-surface: 255 255 255; /* #FFFFFF cartão */
+  --color-surface-2: 253 233 241; /* #FDE9F1 superfície elevada, rosada */
+  --color-ink: 26 18 48; /* #1A1230 texto — 15.9:1 sobre o fundo */
+  --color-ink-muted: 106 90 120; /* #6A5A78 secundário */
 
-  /* 4.1 — acentos */
-  --color-safelight: 242 180 87; /* #F2B457 acento primário */
-  --color-magenta: 224 80 143; /* #E0508F acento secundário */
-  --color-cyan: 88 214 208; /* #58D6D0 estados vivos */
+  /* 4.1 — a marca. Não muda com a pele. */
+  --color-brand: 224 27 122; /* #E01B7A rosa de preenchimento — botão, selo */
+  --color-brand-bright: 255 46 147; /* #FF2E93 só brilho e gradiente */
+  --color-on-brand: 255 255 255; /* texto sobre o rosa de preenchimento */
+  --color-rose: 194 24 91; /* #C2185B rosa de texto sobre claro */
 
-  --color-danger: 232 90 90;
-  --color-success: 111 207 140;
+  /* A seção vinho — o respiro escuro no meio da landing. */
+  --color-deep: 44 10 27; /* #2C0A1B */
+  --color-deep-2: 61 15 34; /* #3D0F22 fim do gradiente */
+  --color-ink-on-deep: 255 240 245; /* #FFF0F5 */
+  --color-muted-on-deep: 201 168 184; /* #C9A8B8 */
+  --color-brand-on-deep: 255 111 174; /* #FF6FAE o rosa pode brilhar no escuro */
 
-  /* dinâmico: sobrescrito em runtime pela ocasião em foco.
-   * Toda a UI consome accent, nunca safelight diretamente. */
-  --color-accent: 242 180 87;
+  /* Fundos dos cartões de "o que sua página terá". Tons, não decoração:
+     cada bloco do produto tem o seu e ele se repete no editor. */
+  --color-card-rose: 253 232 239; /* #FDE8EF contador */
+  --color-card-lilac: 232 230 248; /* #E8E6F8 álbum */
+  --color-card-cream: 253 243 220; /* #FDF3DC música */
+  --color-card-deep: 46 14 28; /* #2E0E1C declaração */
+
+  /* Tintas herdadas do laboratório: as paletas da página saem delas. */
+  --color-safelight: 242 180 87; /* #F2B457 */
+  --color-magenta: 224 80 143; /* #E0508F */
+  --color-cyan: 88 214 208; /* #58D6D0 */
+
+  --color-danger: 190 42 42;
+  --color-success: 22 128 72;
+
+  /* dinâmico: sobrescrito pela paleta que a pessoa escolhe no editor.
+   * Toda a UI consome accent, nunca rose diretamente. */
+  --color-accent: 194 24 91;
+
+  /* Fundo efetivo atrás do h1 do hero, com a foto por cima. O par ink/wash
+     pede folga sobre os 4.5:1 porque ali o fundo não é chapado. */
+  --color-hero-wash: 255 240 245;
 
   /* 4.2 — famílias tipográficas (valores injetados por next/font no layout) */
   --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 
-  /* 4.3 — raios */
-  --radius-sm: 10px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
+  /* 4.3 — raios. Generosos: isto é presente, não painel de controle. */
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 28px;
   --radius-pill: 999px;
 
   /* 4.3 — easings e durações */
@@ -42,44 +82,99 @@
 
   /* 4.3 — layout e sombras */
   --maxw: 1200px;
+  --shadow-card: 0 18px 40px -24px rgb(74 20 55 / 0.22);
+  --shadow-glow: 0 14px 40px -16px rgb(var(--color-brand) / 0.42);
+
+  /* 4.3 — vidro. O `.glass` do globals.css lê só estes quatro. */
+  --glass-bg-a: 255 255 255;
+  --glass-bg-b: 255 255 255;
+  --glass-bg-alpha-a: 0.92;
+  --glass-bg-alpha-b: 0.72;
+  --glass-edge-a: 224 27 122;
+  --glass-edge-b: 26 18 48;
+  --glass-edge-alpha-a: 0.14;
+  --glass-edge-alpha-b: 0.05;
+
+  /* Quanto a foto do hero aparece. Sobre claro ela é atmosfera, não assunto. */
+  --hero-photo-opacity: 0.5;
+
+  /* Piso de opacidade do ato inativo em "Como funciona". */
+  --act-dim: 0.58;
+
+  /* QR é sempre escuro sobre claro — é assim que ele escaneia e é impresso.
+     Não acompanha a pele. */
+  --color-qr-paper: 255 255 255;
+  --color-qr-ink: 18 12 28;
+}
+
+/* --- Pele escura: a Câmara Escura original ------------------------------- */
+
+[data-skin="escura"] {
+  --color-bg: 10 7 17; /* #0A0711 */
+  --color-surface: 18 12 28; /* #120C1C */
+  --color-surface-2: 26 18 40; /* #1A1228 */
+  --color-ink: 246 239 230; /* #F6EFE6 — nunca #FFF */
+  --color-ink-muted: 155 144 170; /* #9B90AA */
+
+  --color-danger: 232 90 90;
+  --color-success: 111 207 140;
+
+  --color-accent: var(--palette-magenta);
+
   --shadow-card: 0 26px 60px -30px rgb(0 0 0 / 0.8);
   --shadow-glow: 0 14px 40px -14px rgb(var(--color-accent) / 0.8);
+
+  --glass-bg-a: 255 255 255;
+  --glass-bg-b: 255 255 255;
+  --glass-bg-alpha-a: 0.055;
+  --glass-bg-alpha-b: 0.018;
+  --glass-edge-a: 255 255 255;
+  --glass-edge-b: 255 255 255;
+  --glass-edge-alpha-a: 0.16;
+  --glass-edge-alpha-b: 0.03;
+
+  --hero-photo-opacity: 1;
+  --act-dim: 0.3;
 }
 
-/* Paleta por ocasião (SPEC 4.1). Aplicada via
- * document.documentElement.dataset.occasion ou data-occasion no contêiner. */
+/* --- Paletas de revelação (SPEC 4.1) ------------------------------------- *
+ * Mesmos ids de `lib/palettes.ts`. Aplicadas com data-palette no contêiner da
+ * página, nunca no documento.
+ *
+ * Cada paleta tem dois valores porque contraste não é opinião: o magenta que
+ * brilha sobre o noir vira ilegível como texto sobre creme. Os tons claros aqui
+ * são as versões escurecidas, todas acima de 4.5:1 sobre o fundo da pele
+ * clara — a cor é a mesma, a densidade é que muda, que é exatamente o que um
+ * laboratório faz ao ampliar. */
+
 :root {
-  --accent-namorados: 224 80 143;
-  --accent-aniversario: 242 180 87;
-  --accent-maes: 197 139 232;
-  --accent-pais: 90 169 230;
-  --accent-casamento: 230 216 184;
-  --accent-bebe: 127 212 224;
-  --accent-natal: 111 207 140;
-  --accent-memorial: 168 165 184;
+  --palette-magenta: 193 45 118;
+  --palette-ambar: 156 100 12;
+  --palette-rubi: 198 52 84;
+  --palette-ciano: 17 118 114;
+  --palette-papel: 133 110 62;
 }
 
-[data-occasion="namorados"] {
-  --color-accent: var(--accent-namorados);
+[data-skin="escura"] {
+  --palette-magenta: 224 80 143;
+  --palette-ambar: 242 180 87;
+  --palette-rubi: 214 74 92;
+  --palette-ciano: 88 214 208;
+  --palette-papel: 230 216 184;
 }
-[data-occasion="aniversario"] {
-  --color-accent: var(--accent-aniversario);
+
+[data-palette="magenta"] {
+  --color-accent: var(--palette-magenta);
 }
-[data-occasion="maes"] {
-  --color-accent: var(--accent-maes);
+[data-palette="ambar"] {
+  --color-accent: var(--palette-ambar);
 }
-[data-occasion="pais"] {
-  --color-accent: var(--accent-pais);
+[data-palette="rubi"] {
+  --color-accent: var(--palette-rubi);
 }
-[data-occasion="casamento"] {
-  --color-accent: var(--accent-casamento);
+[data-palette="ciano"] {
+  --color-accent: var(--palette-ciano);
 }
-[data-occasion="bebe"] {
-  --color-accent: var(--accent-bebe);
-}
-[data-occasion="natal"] {
-  --color-accent: var(--accent-natal);
-}
-[data-occasion="memorial"] {
-  --color-accent: var(--accent-memorial);
+[data-palette="papel"] {
+  --color-accent: var(--palette-papel);
 }

@@ -9,17 +9,17 @@ import { SCHEMA_VERSION, type SiteContent } from "@/lib/blocks/schema";
  */
 
 /** Slug reservado, servido sem banco enquanto o Neon não estiver configurado. */
-export const DEMO_SLUG = "exemplo-namorados";
+export const DEMO_SLUG = "exemplo-marina-e-teo";
 
 /** Data fixa para o conteúdo ser determinístico nos testes e no build. */
 const SINCE = "2021-06-12T03:00:00.000Z";
 
 export const demoContent: SiteContent = {
   schemaVersion: SCHEMA_VERSION,
-  occasion: "namorados",
   theme: {
-    template: "namorados-revelacao",
-    palette: "namorados",
+    template: "revelacao",
+    skin: "clara",
+    palette: "magenta",
     font: "mixed",
     effect: "hearts",
   },

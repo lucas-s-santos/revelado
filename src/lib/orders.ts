@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+
+import { devDir } from "@/lib/dev-store";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
@@ -18,7 +20,7 @@ import type { PlanId } from "@/lib/plans";
  */
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
-const DEV_DIR = join(process.cwd(), ".drafts", "orders");
+const DEV_DIR = devDir("orders");
 
 export type OrderStatus =
   "PENDING" | "PAID" | "REFUNDED" | "FAILED" | "EXPIRED";

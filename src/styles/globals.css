@@ -15,8 +15,8 @@
   }
 
   body {
-    background: rgb(var(--color-noir));
-    color: rgb(var(--color-paper));
+    background: rgb(var(--color-bg));
+    color: rgb(var(--color-ink));
     font-family: var(--font-sans);
     font-weight: 300;
     font-size: 1rem;
@@ -59,7 +59,7 @@
 
   ::selection {
     background: rgb(var(--color-accent) / 0.3);
-    color: rgb(var(--color-paper));
+    color: rgb(var(--color-ink));
   }
 
   img,
@@ -85,7 +85,7 @@
     font-size: 0.68rem;
     text-transform: uppercase;
     letter-spacing: 0.18em;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   /* SPEC 4.2 — itálico do display em gradiente accent → magenta */
@@ -102,13 +102,18 @@
     color: transparent;
   }
 
-  /* SPEC 4.3 — superfície de vidro + borda de 1px em gradiente */
+  /* SPEC 4.3 — superfície de vidro + borda de 1px em gradiente.
+   *
+   * Os valores vêm dos tokens --glass-* porque "vidro" quer dizer coisas
+   * opostas nas duas peles: sobre o noir é um véu branco translúcido; sobre o
+   * creme, o mesmo véu branco desapareceria. Na pele clara vira papel quase
+   * opaco com fio de framboesa na borda. A regra é uma só. */
   .glass {
     position: relative;
     background: linear-gradient(
       165deg,
-      rgb(255 255 255 / 0.055),
-      rgb(255 255 255 / 0.018)
+      rgb(var(--glass-bg-a) / var(--glass-bg-alpha-a)),
+      rgb(var(--glass-bg-b) / var(--glass-bg-alpha-b))
     );
     backdrop-filter: blur(14px);
     border-radius: var(--radius-md);
@@ -122,8 +127,8 @@
     padding: 1px;
     background: linear-gradient(
       165deg,
-      rgb(255 255 255 / 0.16),
-      rgb(255 255 255 / 0.03)
+      rgb(var(--glass-edge-a) / var(--glass-edge-alpha-a)),
+      rgb(var(--glass-edge-b) / var(--glass-edge-alpha-b))
     );
     -webkit-mask:
       linear-gradient(#000 0 0) content-box,
@@ -139,8 +144,8 @@
   /* SPEC 4.3 — texturas de fundo. Nunca as três na mesma dobra. */
   .bg-grid {
     background-image:
-      linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+      linear-gradient(to right, rgb(var(--color-ink) / 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--color-ink) / 0.06) 1px, transparent 1px);
     background-size: 62px 62px;
     -webkit-mask-image: radial-gradient(
       ellipse at center,
@@ -186,7 +191,10 @@
   }
 
   /* --- SpotlightCard (SPEC 5.3) ---------------------------------------- */
+  /* Sobre creme, um card branco com fio de borda não existe: ele precisa de
+     sombra para virar objeto. No noir isso vinha de graça do contraste. */
   .spotlight-card {
+    box-shadow: var(--shadow-card);
     position: relative;
     isolation: isolate;
     overflow: hidden;
@@ -270,7 +278,7 @@
 
   .sticky-acts__rail {
     position: relative;
-    background: rgb(var(--color-paper) / 0.08);
+    background: rgb(var(--color-ink) / 0.08);
     border-radius: var(--radius-pill);
   }
 
@@ -299,7 +307,7 @@
   /* Cada ato acende quando --p cruza a faixa dele. Sem JS, sem classe. */
   .sticky-acts__act {
     opacity: calc(
-      0.3 + 0.7 *
+      var(--act-dim, 0.3) + (1 - var(--act-dim, 0.3)) *
         clamp(
           0,
           (var(--p, 0) - var(--from)) / (var(--to) - var(--from)) + 0.35,
@@ -342,7 +350,7 @@
     padding: 0.85rem 1.6rem;
     border-radius: var(--radius-pill);
     background: rgb(var(--color-accent));
-    color: rgb(var(--color-noir));
+    color: rgb(var(--color-bg));
     font-weight: 500;
     white-space: nowrap;
     transition:
@@ -365,12 +373,12 @@
     align-items: center;
     gap: 0.4rem;
     padding: 0.85rem 0.4rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     transition: color var(--dur-fast) var(--ease-out);
   }
 
   .btn-quiet:hover {
-    color: rgb(var(--color-paper));
+    color: rgb(var(--color-ink));
   }
 
   /* --- Estrutura de seção ---------------------------------------------- */
@@ -397,7 +405,7 @@
   }
 
   .section__lede {
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   /* --- Barra de promoção (SPEC 8.1 §1) --------------------------------- */
@@ -409,7 +417,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.55rem 1rem;
-    background: rgb(var(--color-noir-3));
+    background: rgb(var(--color-surface-2));
     border-bottom: 1px solid rgb(var(--color-magenta) / 0.25);
     font-size: 0.82rem;
   }
@@ -451,12 +459,12 @@
     width: 26px;
     height: 26px;
     border-radius: var(--radius-pill);
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     transition: color var(--dur-fast) var(--ease-out);
   }
 
   .promo-bar__close:hover {
-    color: rgb(var(--color-paper));
+    color: rgb(var(--color-ink));
   }
 
   /* --- Nav (SPEC 8.1 §2) ----------------------------------------------- */
@@ -473,9 +481,9 @@
   /* Exceção consciente à regra "não animar cor de fundo": é a nav
    * solidificando, dura 320ms, não roda por frame e não causa layout. */
   .site-nav[data-solid] {
-    background: rgb(var(--color-noir) / 0.72);
+    background: rgb(var(--color-bg) / 0.72);
     backdrop-filter: blur(14px);
-    border-bottom-color: rgb(var(--color-paper) / 0.08);
+    border-bottom-color: rgb(var(--color-ink) / 0.08);
   }
 
   .site-nav__inner {
@@ -493,19 +501,19 @@
   }
 
   .site-nav__link {
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     transition: color var(--dur-fast) var(--ease-out);
   }
 
   .site-nav__link:hover {
-    color: rgb(var(--color-paper));
+    color: rgb(var(--color-ink));
   }
 
   .site-nav__login {
     display: none;
     padding: 0.5rem 0.9rem;
     font-size: 0.9rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .site-nav__cta {
@@ -537,31 +545,34 @@
   }
 
   .hero__inner {
+    /* Acima da foto, que fica em z-index 0. */
+    position: relative;
+    z-index: 1;
     display: grid;
     gap: clamp(3rem, 7vw, 4.5rem);
     align-items: center;
   }
 
-  @media (min-width: 1000px) {
-    .hero__inner {
-      grid-template-columns: 1.05fr 0.95fr;
-    }
-  }
-
+  /* Uma coluna só: o mockup mudou para a `PhoneShowcase`. Centralizado, com
+     medida de leitura travada — texto largo em tela grande cansa. */
   .hero__copy {
     display: flex;
     flex-direction: column;
     gap: 1.15rem;
+    align-items: center;
+    text-align: center;
+    max-width: 46rem;
+    margin-inline: auto;
   }
 
   .hero__title {
     font-size: clamp(2.4rem, 7.5vw, 4.4rem);
-    max-width: 22ch;
+    max-width: 18ch;
   }
 
   .hero__lede {
     max-width: 46ch;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     font-size: clamp(1rem, 2.2vw, 1.1rem);
   }
 
@@ -575,12 +586,93 @@
 
   .hero__social {
     font-size: 0.9rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .hero__note {
     font-size: 0.8rem;
-    color: rgb(var(--color-muted) / 0.75);
+    color: rgb(var(--color-ink-muted) / 0.75);
+  }
+
+  /* --- Foto do hero ----------------------------------------------------- */
+
+  /*
+   * A foto é **contida**, não é fundo.
+   *
+   * Full-bleed atrás de hero claro não fecha: para a tinta escura respirar você
+   * teria que lavar a foto até virar névoa, e aí ela só suja a tela — sem borda
+   * em lugar nenhum, o olho não acha onde descansar e a silhueta atravessa o
+   * h1. Isso funcionava no noir porque lá dá para escurecer a foto à vontade e
+   * o texto claro salta.
+   *
+   * Então ela ocupa o lado do mockup, com a borda esquerda dissolvida em
+   * máscara. A coluna do texto fica em creme limpo, sem véu por cima.
+   */
+  .hero__photo {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    pointer-events: none;
+  }
+
+  /*
+   * Enquadra o **céu**, não o casal.
+   *
+   * Com o mockup mostrando a mesma foto ao lado, centrar aqui fazia o casal
+   * aparecer duas vezes lado a lado. O fundo fica com o pôr do sol — que é a
+   * atmosfera — e as pessoas ficam só dentro do produto, que é o que a gente
+   * está vendendo.
+   */
+  .hero__photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: 100% 38%;
+    opacity: var(--hero-photo-opacity, 1);
+  }
+
+  /* Empilhado no celular o mockup vem **depois** da copy, então a foto desce
+     com ele: faixa na metade de baixo, dissolvida no topo. Assim ela nunca
+     encosta no h1, que é onde ela suja a leitura. */
+  .hero__photo {
+    inset: auto 0 0 0;
+    height: 58%;
+    -webkit-mask-image: linear-gradient(
+      180deg,
+      transparent 0%,
+      #000 30%,
+      #000 84%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      180deg,
+      transparent 0%,
+      #000 30%,
+      #000 84%,
+      transparent 100%
+    );
+  }
+
+  @media (min-width: 1000px) {
+    .hero__photo {
+      inset: 0 0 0 auto;
+      width: 62%;
+      border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+      overflow: hidden;
+      -webkit-mask-image: linear-gradient(
+        100deg,
+        transparent 0%,
+        #000 34%,
+        #000 100%
+      );
+      mask-image: linear-gradient(
+        100deg,
+        transparent 0%,
+        #000 34%,
+        #000 100%
+      );
+    }
   }
 
   /* --- Mockup de celular (SPEC 8.1 §3) --------------------------------- */
@@ -609,32 +701,43 @@
     border-radius: 34px;
     background: linear-gradient(
       165deg,
-      rgb(var(--color-noir-3)),
-      rgb(var(--color-noir-2))
+      rgb(var(--color-surface-2)),
+      rgb(var(--color-surface))
     );
-    border: 1px solid rgb(var(--color-paper) / 0.1);
+    border: 1px solid rgb(var(--color-ink) / 0.1);
     box-shadow: var(--shadow-card);
   }
 
   .hero-phone__screen {
     overflow: hidden;
     border-radius: 26px;
-    background: rgb(var(--color-noir));
+    background: rgb(var(--color-bg));
   }
 
+  /*
+   * A capa dentro do mockup.
+   *
+   * Era um degradê chapado, e como é o maior retângulo da dobra ele lia como
+   * buraco no meio do argumento de venda — a gente vende uma página com foto e
+   * mostrava um vazio. Agora é a foto de verdade (`hero-mockup`, gerada pelo
+   * mesmo script do hero), com o degradê ficando de fundo para o caso de a
+   * imagem não carregar.
+   */
   .hero-phone__photo {
     aspect-ratio: 1/1;
-    background:
-      radial-gradient(
-        120% 90% at 30% 15%,
-        rgb(var(--color-accent) / 0.35),
-        transparent 60%
+    background-color: rgb(var(--color-surface-2));
+    background-image:
+      image-set(
+        url("/hero-mockup.avif") type("image/avif"),
+        url("/hero-mockup.webp") type("image/webp")
       ),
       linear-gradient(
         160deg,
-        rgb(var(--color-magenta) / 0.28),
-        rgb(var(--color-noir-3))
+        rgb(var(--color-surface-2)),
+        rgb(var(--color-ink) / 0.09)
       );
+    background-size: cover;
+    background-position: center 42%;
   }
 
   .hero-phone__body {
@@ -654,7 +757,7 @@
 
   .hero-phone__counter small {
     font-size: 0.7rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     margin-right: 0.35rem;
   }
 
@@ -667,7 +770,7 @@
     font-family: var(--font-display);
     font-size: 1rem;
     line-height: 1.35;
-    color: rgb(var(--color-paper) / 0.9);
+    color: rgb(var(--color-ink) / 0.9);
   }
 
   .hero-phone__thumbs {
@@ -682,20 +785,20 @@
     border-radius: var(--radius-sm);
     background: linear-gradient(
       145deg,
-      rgb(var(--color-paper) / 0.14),
-      rgb(var(--color-paper) / 0.04)
+      rgb(var(--color-ink) / 0.14),
+      rgb(var(--color-ink) / 0.04)
     );
   }
 
   .hero-phone__qr {
     padding: 0.85rem;
     border-radius: var(--radius-md);
-    background: rgb(var(--color-paper));
+    background: rgb(var(--color-qr-paper));
     box-shadow: var(--shadow-card);
   }
 
   .hero-phone__qr .eyebrow {
-    color: rgb(var(--color-noir) / 0.55);
+    color: rgb(var(--color-bg) / 0.55);
   }
 
   .hero-phone__qr-grid {
@@ -711,11 +814,11 @@
   }
 
   .hero-phone__qr-grid span[data-on] {
-    background: rgb(var(--color-noir));
+    background: rgb(var(--color-qr-ink));
   }
 
-  /* --- Chips de ocasião ------------------------------------------------ */
-  .occasion-chip {
+  /* --- Chips de momento do casal --------------------------------------- */
+  .moment-chip {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
@@ -727,45 +830,224 @@
     white-space: nowrap;
   }
 
-  /* --- Card de ocasião (SPEC 8.1 §6) ---------------------------------- */
-  .occasion-card__link {
+  /* --- Card de bloco (SPEC 8.1 §6) ------------------------------------- */
+  .block-card {
     display: flex;
     flex-direction: column;
     gap: 0.6rem;
     padding: 1.4rem;
   }
 
-  .occasion-card__icon {
+  .block-card__icon {
     display: grid;
     place-items: center;
     width: 40px;
     height: 40px;
     border-radius: var(--radius-sm);
-    background: currentColor;
-    box-shadow: inset 0 0 0 40px rgb(var(--color-noir-3));
+    border: 1px solid rgb(var(--color-accent) / 0.24);
+    background: rgb(var(--color-accent) / 0.08);
+    color: rgb(var(--color-accent));
   }
 
-  .occasion-card__name {
+  .block-card__name {
     font-size: 1.05rem;
   }
 
-  .occasion-card__cta {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgb(var(--color-muted));
-    opacity: 0;
-    transform: translateY(4px);
-    transition:
-      opacity var(--dur-base) var(--ease-out),
-      transform var(--dur-base) var(--ease-out);
+  .block-card__text {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: rgb(var(--color-ink-muted));
   }
 
-  .occasion-card[data-spotlight="on"] .occasion-card__cta,
-  .occasion-card__link:focus-visible .occasion-card__cta {
-    opacity: 1;
-    transform: none;
+  /* --- Mockup em destaque (SPEC 8.1) ----------------------------------- */
+  .showcase__head {
+    align-items: center;
+    text-align: center;
+    margin-inline: auto;
+  }
+
+  .showcase__stage {
+    display: flex;
+    justify-content: center;
+    /* O mockup nasceu para a coluna estreita do hero; aqui ele é o assunto. */
+    --phone-scale: 1.08;
+  }
+
+  .showcase__badges {
+    display: grid;
+    gap: 0.75rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-lg);
+    background: rgb(var(--color-surface));
+    box-shadow: var(--shadow-card);
+  }
+
+  @media (min-width: 760px) {
+    .showcase__badges {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+  }
+
+  .showcase__badge {
+    display: flex;
+    gap: 0.7rem;
+    align-items: flex-start;
+  }
+
+  .showcase__badge-icon {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-accent) / 0.1);
+    color: rgb(var(--color-accent));
+  }
+
+  .showcase__badge-name {
+    font-size: 0.95rem;
+    line-height: 1.3;
+  }
+
+  .showcase__badge-text {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* --- Do outro lado do link (SPEC 8.1) -------------------------------- */
+  .reaction__grid {
+    display: grid;
+    gap: clamp(2rem, 6vw, 4rem);
+    align-items: center;
+  }
+
+  @media (min-width: 1000px) {
+    .reaction__grid {
+      grid-template-columns: 0.85fr 1fr;
+    }
+  }
+
+  .reaction__chat {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    max-width: 22rem;
+    margin-inline: auto;
+    width: 100%;
+    border-radius: var(--radius-lg);
+    background: rgb(var(--color-surface));
+    box-shadow: var(--shadow-card);
+  }
+
+  .reaction__chat-bar {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    padding: 0.7rem 0.9rem;
+    background: rgb(var(--color-brand));
+    color: rgb(var(--color-on-brand));
+  }
+
+  .reaction__chat-avatar {
+    width: 30px;
+    height: 30px;
+    flex: none;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-on-brand) / 0.25);
+  }
+
+  .reaction__chat-who {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+
+  .reaction__chat-who small {
+    font-size: 0.7rem;
+    opacity: 0.85;
+  }
+
+  .reaction__messages {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.9rem;
+    background: rgb(var(--color-surface-2) / 0.5);
+  }
+
+  .reaction__msg {
+    max-width: 82%;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--radius-md);
+    font-size: 0.85rem;
+    line-height: 1.45;
+  }
+
+  .reaction__msg--mine {
+    align-self: flex-end;
+    background: rgb(var(--color-accent) / 0.12);
+  }
+
+  .reaction__msg--theirs {
+    align-self: flex-start;
+    background: rgb(var(--color-surface));
+    box-shadow: var(--shadow-card);
+  }
+
+  .reaction__msg-link {
+    display: block;
+    margin-top: 0.3rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: rgb(var(--color-accent));
+    word-break: break-all;
+  }
+
+  /* Diz que a conversa é ilustração, não depoimento. Discreto, mas presente. */
+  .reaction__chat-note {
+    padding: 0.5rem 0.9rem 0.7rem;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-align: center;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .reaction__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .reaction__bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    margin-top: 0.3rem;
+  }
+
+  .reaction__bullets li {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+
+  .reaction__tick {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 22px;
+    height: 22px;
+    margin-top: 0.1rem;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-accent) / 0.12);
+    color: rgb(var(--color-accent));
   }
 
   /* --- Preços (SPEC 8.1 §8) ------------------------------------------- */
@@ -794,10 +1076,11 @@
     border-radius: var(--radius-md);
     background: linear-gradient(
       165deg,
-      rgb(255 255 255 / 0.055),
-      rgb(255 255 255 / 0.018)
+      rgb(var(--glass-bg-a) / var(--glass-bg-alpha-a)),
+      rgb(var(--glass-bg-b) / var(--glass-bg-alpha-b))
     );
-    border: 1px solid rgb(var(--color-paper) / 0.08);
+    border: 1px solid rgb(var(--color-ink) / 0.08);
+    box-shadow: var(--shadow-card);
     transition: border-color var(--dur-base) var(--ease-out);
   }
 
@@ -834,7 +1117,7 @@
 
   .pricing__list {
     font-size: 0.8rem;
-    color: rgb(var(--color-muted) / 0.8);
+    color: rgb(var(--color-ink-muted) / 0.8);
   }
 
   .pricing__price strong {
@@ -845,7 +1128,14 @@
 
   .pricing__price small {
     font-size: 0.78rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .pricing__installment {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.72rem;
+    color: rgb(var(--color-ink-muted));
   }
 
   .pricing__features {
@@ -861,7 +1151,7 @@
   .pricing__features li {
     display: flex;
     gap: 0.55rem;
-    color: rgb(var(--color-paper) / 0.88);
+    color: rgb(var(--color-ink) / 0.88);
   }
 
   .pricing__bump {
@@ -890,7 +1180,7 @@
     gap: 0.75rem 1.5rem;
     padding: 1.5rem;
     border-radius: var(--radius-md);
-    background: rgb(var(--color-noir-2));
+    background: rgb(var(--color-surface));
   }
 
   .pricing__total-value {
@@ -911,7 +1201,7 @@
   }
 
   .faq__item {
-    border-bottom: 1px solid rgb(var(--color-paper) / 0.08);
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.08);
   }
 
   .faq__question {
@@ -941,7 +1231,7 @@
 
   .faq__answer {
     padding-bottom: 1.25rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     line-height: 1.65;
   }
 
@@ -991,19 +1281,19 @@
 
   .final-cta__lede {
     max-width: 44ch;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .final-cta__countdown {
     font-size: 0.9rem;
-    color: rgb(var(--color-paper) / 0.9);
+    color: rgb(var(--color-ink) / 0.9);
   }
 
   /* --- Rodapé ---------------------------------------------------------- */
   .site-footer {
     margin-top: clamp(3rem, 8vw, 5rem);
-    border-top: 1px solid rgb(var(--color-paper) / 0.08);
-    background: rgb(var(--color-noir-2) / 0.5);
+    border-top: 1px solid rgb(var(--color-ink) / 0.08);
+    background: rgb(var(--color-surface) / 0.5);
   }
 
   /* ===================================================================
@@ -1026,14 +1316,14 @@
 
   .published {
     min-height: 100vh;
-    background: rgb(var(--color-noir));
+    background: rgb(var(--color-bg));
   }
 
   /* Caixa da /dev/blocos: a publicada dentro de uma moldura, para comparar. */
   .published--boxed {
     min-height: 0;
     border-radius: var(--radius-md);
-    border: 1px solid rgb(var(--color-paper) / 0.08);
+    border: 1px solid rgb(var(--color-ink) / 0.08);
     overflow: hidden;
   }
 
@@ -1085,8 +1375,8 @@
     inset: 0;
     background: linear-gradient(
       to top,
-      rgb(var(--color-noir)) 2%,
-      rgb(var(--color-noir) / var(--overlay, 0.45)) 55%,
+      rgb(var(--color-bg)) 2%,
+      rgb(var(--color-bg) / var(--overlay, 0.45)) 55%,
       transparent
     );
   }
@@ -1110,7 +1400,7 @@
   }
 
   .block-hero__subtitle {
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     font-size: 0.95rem;
   }
 
@@ -1155,7 +1445,7 @@
     font-size: 0.6rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   /* --- letter ---------------------------------------------------------- */
@@ -1170,7 +1460,7 @@
     font-family: var(--block-body-font, var(--font-display));
     font-size: 1.15rem;
     line-height: 1.55;
-    color: rgb(var(--color-paper) / 0.92);
+    color: rgb(var(--color-ink) / 0.92);
   }
 
   .block-letter__signature {
@@ -1222,7 +1512,7 @@
 
   .block-gallery.is-polaroid .block-gallery__item {
     padding: 0.5rem 0.5rem 1.75rem;
-    background: rgb(var(--color-paper));
+    background: rgb(var(--color-ink));
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-card);
   }
@@ -1265,7 +1555,7 @@
     font-size: 0.65rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .block-music__frame {
@@ -1308,7 +1598,7 @@
     font-size: 0.68rem;
     letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .block-timeline__title {
@@ -1320,15 +1610,15 @@
 
   .block-timeline__text {
     font-size: 0.92rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .block-timeline__empty {
     padding: 1.5rem;
     border-radius: var(--radius-md);
-    border: 1px dashed rgb(var(--color-paper) / 0.14);
+    border: 1px dashed rgb(var(--color-ink) / 0.14);
     text-align: center;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     font-size: 0.9rem;
   }
 
@@ -1339,14 +1629,14 @@
     align-items: center;
     gap: 0.75rem;
     padding: 2rem 1.25rem 3rem;
-    border-top: 1px solid rgb(var(--color-paper) / 0.07);
+    border-top: 1px solid rgb(var(--color-ink) / 0.07);
     text-align: center;
   }
 
   .block-footer__text {
     font-family: var(--font-display);
     font-style: italic;
-    color: rgb(var(--color-paper) / 0.85);
+    color: rgb(var(--color-ink) / 0.85);
   }
 
   .block-footer__brand {
@@ -1354,7 +1644,7 @@
     font-size: 0.65rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   /* --- PhoneFrame (SPEC 5.3 / 8.4) ------------------------------------- */
@@ -1369,10 +1659,10 @@
     border-radius: 42px;
     background: linear-gradient(
       165deg,
-      rgb(var(--color-noir-3)),
-      rgb(var(--color-noir-2))
+      rgb(var(--color-surface-2)),
+      rgb(var(--color-surface))
     );
-    border: 1px solid rgb(var(--color-paper) / 0.1);
+    border: 1px solid rgb(var(--color-ink) / 0.1);
     box-shadow: var(--shadow-card);
   }
 
@@ -1384,7 +1674,7 @@
     width: 78px;
     height: 22px;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-noir));
+    background: rgb(var(--color-bg));
     z-index: 2;
   }
 
@@ -1392,7 +1682,7 @@
     height: calc(720px * var(--phone-scale, 1));
     overflow: hidden;
     border-radius: 34px;
-    background: rgb(var(--color-noir));
+    background: rgb(var(--color-bg));
   }
 
   .phone-frame__screen[data-interactive] {
@@ -1416,7 +1706,7 @@
   .dev-table td {
     padding: 0.5rem 0.75rem;
     text-align: left;
-    border-bottom: 1px solid rgb(var(--color-paper) / 0.08);
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.08);
   }
 
   .dev-table th {
@@ -1424,7 +1714,7 @@
     font-size: 0.65rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   /* ===================================================================
@@ -1452,28 +1742,11 @@
 
   .create-page__lede {
     max-width: 52ch;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
-  .create-page__error {
-    margin-bottom: 1rem;
-    padding: 0.85rem 1.1rem;
-    border-radius: var(--radius-sm);
-    background: rgb(var(--color-danger) / 0.12);
-    border: 1px solid rgb(var(--color-danger) / 0.35);
-    font-size: 0.9rem;
-  }
-
-  .create-page__grid {
-    display: grid;
-    gap: 0.85rem;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  }
-
-  /* No /criar o CTA fica sempre visível: em celular não existe hover. */
-  .occasion-card__cta[data-always] {
-    opacity: 1;
-    transform: none;
+  .create-page__action {
+    margin-top: 2rem;
   }
 
   /* --- shell ----------------------------------------------------------- */
@@ -1489,8 +1762,8 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 0.7rem 1rem;
-    border-bottom: 1px solid rgb(var(--color-paper) / 0.08);
-    background: rgb(var(--color-noir-2));
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.08);
+    background: rgb(var(--color-surface));
   }
 
   .editor__crumb {
@@ -1499,7 +1772,7 @@
     gap: 0.6rem;
     font-family: var(--font-mono);
     font-size: 0.72rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .editor__locked {
@@ -1525,8 +1798,8 @@
     place-items: center;
     height: 40vh;
     padding: 0.75rem;
-    background: rgb(var(--color-noir));
-    border-bottom: 1px solid rgb(var(--color-paper) / 0.08);
+    background: rgb(var(--color-bg));
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.08);
     overflow: hidden;
   }
 
@@ -1554,7 +1827,7 @@
       flex: 1;
       height: calc(100dvh - 3.5rem);
       border-bottom: 0;
-      border-left: 1px solid rgb(var(--color-paper) / 0.08);
+      border-left: 1px solid rgb(var(--color-ink) / 0.08);
     }
 
     .editor__phone {
@@ -1586,7 +1859,7 @@
     border-radius: var(--radius-pill);
     font-size: 0.8rem;
     white-space: nowrap;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     cursor: pointer;
   }
 
@@ -1596,29 +1869,29 @@
     width: 18px;
     height: 18px;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-paper) / 0.1);
+    background: rgb(var(--color-ink) / 0.1);
     font-size: 0.65rem;
   }
 
   .editor__step[data-done] span {
     background: rgb(var(--color-accent) / 0.3);
-    color: rgb(var(--color-paper));
+    color: rgb(var(--color-ink));
   }
 
   .editor__step[data-current] {
     background: rgb(var(--color-accent) / 0.12);
-    color: rgb(var(--color-paper));
+    color: rgb(var(--color-ink));
   }
 
   .editor__step[data-current] span {
     background: rgb(var(--color-accent));
-    color: rgb(var(--color-noir));
+    color: rgb(var(--color-bg));
   }
 
   .editor__progress {
     height: 2px;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-paper) / 0.08);
+    background: rgb(var(--color-ink) / 0.08);
     overflow: hidden;
   }
 
@@ -1635,7 +1908,7 @@
   }
 
   .editor__loading {
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .editor__actions {
@@ -1644,7 +1917,7 @@
     justify-content: space-between;
     gap: 0.75rem;
     padding-top: 0.5rem;
-    border-top: 1px solid rgb(var(--color-paper) / 0.08);
+    border-top: 1px solid rgb(var(--color-ink) / 0.08);
   }
 
   /* --- indicador de salvamento ------------------------------------------ */
@@ -1655,14 +1928,14 @@
     font-family: var(--font-mono);
     font-size: 0.68rem;
     letter-spacing: 0.06em;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .save-indicator__dot {
     width: 6px;
     height: 6px;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-muted));
+    background: rgb(var(--color-ink-muted));
     transition: background-color var(--dur-fast) var(--ease-out);
   }
 
@@ -1707,7 +1980,7 @@
 
   .step__lede {
     font-size: 0.9rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .field {
@@ -1730,12 +2003,12 @@
 
   .field__count {
     font-size: 0.7rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .field__hint {
     font-size: 0.78rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .field__error {
@@ -1747,14 +2020,14 @@
     width: 100%;
     padding: 0.7rem 0.9rem;
     border-radius: var(--radius-sm);
-    background: rgb(var(--color-noir-2));
-    border: 1px solid rgb(var(--color-paper) / 0.12);
-    color: rgb(var(--color-paper));
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.12);
+    color: rgb(var(--color-ink));
     transition: border-color var(--dur-fast) var(--ease-out);
   }
 
   .input::placeholder {
-    color: rgb(var(--color-muted) / 0.7);
+    color: rgb(var(--color-ink-muted) / 0.7);
   }
 
   .input:focus {
@@ -1793,7 +2066,7 @@
   }
 
   .swatch[aria-pressed="true"] {
-    border-color: rgb(var(--color-paper));
+    border-color: rgb(var(--color-ink));
     transform: scale(1.12);
   }
 
@@ -1809,8 +2082,8 @@
     gap: 0.1rem;
     padding: 0.5rem 0.85rem;
     border-radius: var(--radius-sm);
-    border: 1px solid rgb(var(--color-paper) / 0.12);
-    background: rgb(var(--color-noir-2));
+    border: 1px solid rgb(var(--color-ink) / 0.12);
+    background: rgb(var(--color-surface));
     font-size: 0.85rem;
     text-align: left;
     cursor: pointer;
@@ -1818,7 +2091,7 @@
 
   .chip small {
     font-size: 0.68rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .chip[aria-pressed="true"] {
@@ -1834,8 +2107,8 @@
     gap: 0.6rem;
     padding: 1.5rem 1.25rem;
     border-radius: var(--radius-md);
-    border: 1px dashed rgb(var(--color-paper) / 0.18);
-    background: rgb(var(--color-noir-2) / 0.6);
+    border: 1px dashed rgb(var(--color-ink) / 0.18);
+    background: rgb(var(--color-surface) / 0.6);
     text-align: center;
     transition: border-color var(--dur-fast) var(--ease-out);
   }
@@ -1861,7 +2134,7 @@
 
   .uploader__hint {
     font-size: 0.78rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .uploader__upsell {
@@ -1890,14 +2163,14 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .uploads__bar {
     width: 90px;
     height: 3px;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-paper) / 0.1);
+    background: rgb(var(--color-ink) / 0.1);
     overflow: hidden;
   }
 
@@ -1912,7 +2185,7 @@
   .uploads__pct {
     width: 3rem;
     text-align: right;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .uploads__item.is-error .uploads__error {
@@ -1933,10 +2206,10 @@
   .photo-grid__empty {
     padding: 1.25rem;
     border-radius: var(--radius-md);
-    border: 1px dashed rgb(var(--color-paper) / 0.12);
+    border: 1px dashed rgb(var(--color-ink) / 0.12);
     text-align: center;
     font-size: 0.85rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .photo-grid__item {
@@ -1955,7 +2228,7 @@
     aspect-ratio: 1/1;
     overflow: hidden;
     border-radius: var(--radius-sm);
-    background: rgb(var(--color-noir-3));
+    background: rgb(var(--color-surface-2));
     cursor: grab;
   }
 
@@ -1971,7 +2244,7 @@
     bottom: 0.3rem;
     padding: 0.1rem 0.4rem;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-noir) / 0.8);
+    background: rgb(var(--color-bg) / 0.8);
     font-family: var(--font-mono);
     font-size: 0.55rem;
     letter-spacing: 0.1em;
@@ -1985,9 +2258,9 @@
     width: 22px;
     height: 22px;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-noir-3));
-    border: 1px solid rgb(var(--color-paper) / 0.15);
-    color: rgb(var(--color-muted));
+    background: rgb(var(--color-surface-2));
+    border: 1px solid rgb(var(--color-ink) / 0.15);
+    color: rgb(var(--color-ink-muted));
     font-size: 0.9rem;
     line-height: 1;
     cursor: pointer;
@@ -2069,8 +2342,8 @@
     gap: 0.5rem;
     padding: 1.5rem;
     border-radius: var(--radius-md);
-    background: rgb(var(--color-noir-2));
-    border: 1px solid rgb(var(--color-paper) / 0.08);
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.08);
   }
 
   .checkout__title {
@@ -2078,7 +2351,7 @@
   }
 
   .checkout__sub {
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     font-size: 0.9rem;
   }
 
@@ -2094,7 +2367,7 @@
     font-size: 0.62rem;
     letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .checkout__blocked {
@@ -2109,7 +2382,7 @@
   .checkout__blocked ul {
     margin: 0.5rem 0 0;
     padding-left: 1.1rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .checkout__form {
@@ -2131,8 +2404,8 @@
     gap: 0.15rem 1rem;
     padding: 1rem 1.15rem;
     border-radius: var(--radius-md);
-    border: 1px solid rgb(var(--color-paper) / 0.12);
-    background: rgb(var(--color-noir-2));
+    border: 1px solid rgb(var(--color-ink) / 0.12);
+    background: rgb(var(--color-surface));
     cursor: pointer;
   }
 
@@ -2154,9 +2427,62 @@
     font-size: 1.25rem;
   }
 
+  /* --- Meio de pagamento (SPEC 8.5) ------------------------------------ */
+  .checkout__methods {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  @media (max-width: 480px) {
+    .checkout__methods {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .checkout__method {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.9rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgb(var(--color-ink) / 0.12);
+    background: rgb(var(--color-surface));
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      background var(--dur-fast) var(--ease-out);
+  }
+
+  .checkout__method.is-active {
+    border-color: rgb(var(--color-accent) / 0.55);
+    background: rgb(var(--color-accent) / 0.07);
+  }
+
+  /* O foco tem que aparecer no cartão inteiro: o input está em sr-only, então
+     sem isto a navegação por teclado fica cega aqui (SPEC 11). */
+  .checkout__method:has(input:focus-visible) {
+    outline: 2px solid rgb(var(--color-accent));
+    outline-offset: 3px;
+  }
+
+  .checkout__method-name {
+    font-size: 0.95rem;
+  }
+
+  .checkout__method-price {
+    font-size: 1.15rem;
+    color: rgb(var(--color-ink));
+  }
+
+  .checkout__method-hint {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: rgb(var(--color-ink-muted));
+  }
+
   .checkout__plan-hint {
     font-size: 0.78rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .checkout__total {
@@ -2166,7 +2492,7 @@
     gap: 1rem;
     padding: 1rem 1.25rem;
     border-radius: var(--radius-md);
-    background: rgb(var(--color-noir-2));
+    background: rgb(var(--color-surface));
   }
 
   /* --- Pix ------------------------------------------------------------- */
@@ -2202,25 +2528,25 @@
     overflow: auto;
     padding: 0.75rem;
     border-radius: var(--radius-sm);
-    background: rgb(var(--color-noir));
-    border: 1px solid rgb(var(--color-paper) / 0.1);
+    background: rgb(var(--color-bg));
+    border: 1px solid rgb(var(--color-ink) / 0.1);
     font-family: var(--font-mono);
     font-size: 0.62rem;
     line-height: 1.5;
     word-break: break-all;
     text-align: left;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .pix__hint {
     font-size: 0.82rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
     max-width: 34ch;
   }
 
   .pix__timer {
     font-size: 0.75rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .pix__steps {
@@ -2232,7 +2558,7 @@
     list-style: none;
     text-align: left;
     font-size: 0.9rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .pix__steps li::before {
@@ -2248,7 +2574,7 @@
   }
 
   .pix__steps li[data-current] {
-    color: rgb(var(--color-paper));
+    color: rgb(var(--color-ink));
   }
 
   .pix__steps li[data-current]::before {
@@ -2259,7 +2585,7 @@
     width: 100%;
     margin-top: 1rem;
     padding-top: 1rem;
-    border-top: 1px dashed rgb(var(--color-paper) / 0.15);
+    border-top: 1px dashed rgb(var(--color-ink) / 0.15);
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -2284,7 +2610,7 @@
 
   .success__lede {
     max-width: 44ch;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .success__actions {
@@ -2301,8 +2627,8 @@
     gap: 0.5rem;
     padding: 0.65rem 0.65rem 0.65rem 1rem;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-noir-2));
-    border: 1px solid rgb(var(--color-paper) / 0.1);
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.1);
   }
 
   .success__link code {
@@ -2313,7 +2639,7 @@
     font-family: var(--font-mono);
     font-size: 0.78rem;
     text-align: left;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .success__buttons {
@@ -2329,7 +2655,7 @@
     gap: 0.6rem;
     align-items: center;
     padding-top: 1rem;
-    border-top: 1px solid rgb(var(--color-paper) / 0.08);
+    border-top: 1px solid rgb(var(--color-ink) / 0.08);
   }
 
   .success__downloads .chips,
@@ -2340,12 +2666,12 @@
   .success__print-hint {
     max-width: 38ch;
     font-size: 0.76rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .success__mail {
     font-size: 0.82rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   /* --- painel (sóbrio: SPEC 8.7) --------------------------------------- */
@@ -2375,7 +2701,7 @@
     gap: 0.5rem;
     padding: 3rem 1.5rem;
     border-radius: var(--radius-md);
-    border: 1px dashed rgb(var(--color-paper) / 0.14);
+    border: 1px dashed rgb(var(--color-ink) / 0.14);
     text-align: center;
   }
 
@@ -2396,8 +2722,8 @@
     gap: 0.75rem;
     padding: 1rem 1.15rem;
     border-radius: var(--radius-md);
-    background: rgb(var(--color-noir-2));
-    border: 1px solid rgb(var(--color-paper) / 0.08);
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.08);
   }
 
   .panel__item-title {
@@ -2408,7 +2734,7 @@
     display: flex;
     gap: 0.4rem;
     font-size: 0.76rem;
-    color: rgb(var(--color-muted));
+    color: rgb(var(--color-ink-muted));
   }
 
   .panel__item-meta [data-status="PUBLISHED"] {
@@ -2543,12 +2869,26 @@
   }
 
   /* --- Frame (SPEC 5.4) ------------------------------------------------ */
+  /*
+   * Moldura vazia = "foto entra aqui", nunca "caixa quebrada".
+   *
+   * Sobre o noir, `--color-surface` chapado já lia como filme não revelado.
+   * Sobre creme, branco em creme vira um retângulo morto — daí o degradê morno
+   * e o fio de borda, que devolvem a leitura de papel fotográfico. Quando vier
+   * `src` ou blurhash, os dois somem por baixo da imagem.
+   */
   .frame {
     position: relative;
     overflow: hidden;
     margin: 0;
     border-radius: var(--radius-md);
-    background-color: rgb(var(--color-noir-2));
+    background-color: rgb(var(--color-surface));
+    background-image: linear-gradient(
+      152deg,
+      rgb(var(--color-surface-2)),
+      rgb(var(--color-ink) / 0.07)
+    );
+    box-shadow: inset 0 0 0 1px rgb(var(--color-ink) / 0.07);
     /* placeholder do blurhash, quando vier */
     background-size: cover;
     background-position: center;
@@ -2569,8 +2909,8 @@
     inset: 0;
     background: linear-gradient(
       145deg,
-      rgb(var(--color-noir-3)),
-      rgb(var(--color-noir-2))
+      rgb(var(--color-surface-2)),
+      rgb(var(--color-surface))
     );
   }
 
@@ -2578,7 +2918,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    box-shadow: inset 0 0 90px 24px rgb(0 0 0 / var(--vignette, 0.55));
+    box-shadow: inset 0 0 90px 24px rgb(var(--color-ink) / var(--vignette, 0.3));
   }
 
   .frame__grain {
@@ -2595,7 +2935,7 @@
     font-size: 0.8rem;
     background: linear-gradient(
       to top,
-      rgb(var(--color-noir) / 0.85),
+      rgb(var(--color-bg) / 0.85),
       transparent
     );
   }

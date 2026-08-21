@@ -46,7 +46,7 @@ export function DriverStats() {
         />
       </dl>
 
-      <p className="mt-3 text-[rgb(var(--color-muted))]">
+      <p className="mt-3 text-[rgb(var(--color-ink-muted))]">
         Confirme no console: <code>getEventListeners(window)</code>
       </p>
     </aside>

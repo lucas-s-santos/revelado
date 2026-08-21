@@ -19,11 +19,18 @@ import { Spotlight } from "@/components/ui/spotlight-new";
 import { Button as StatefulButton } from "@/components/ui/stateful-button";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useSectionProgress } from "@/hooks/use-section-progress";
-import { OCCASIONS } from "@/lib/occasions";
+import { MOMENTS } from "@/lib/moments";
+import { PALETTES } from "@/lib/palettes";
 
-/** Troca o accent global — mesmo gesto do grid de ocasiões da landing (SPEC 6.3). */
-function setAccent(occasionId: string) {
-  document.documentElement.dataset.occasion = occasionId;
+/**
+ * Troca o accent do documento inteiro.
+ *
+ * Só a bancada faz isso: na aplicação de verdade, `data-palette` fica no
+ * contêiner da página publicada, nunca no `documentElement` (ver theme.css).
+ * Aqui o ponto é justamente ver os componentes em todas as paletas de uma vez.
+ */
+function setAccent(paletteId: string) {
+  document.documentElement.dataset.palette = paletteId;
 }
 
 export function MotionLab() {
@@ -65,7 +72,7 @@ function Section({
       <header className="flex flex-col gap-1.5">
         <p className="eyebrow">{n}</p>
         <h2 className="text-[clamp(1.75rem,4vw,2.5rem)]">{title}</h2>
-        <p className="max-w-[62ch] text-sm text-[rgb(var(--color-muted))]">
+        <p className="max-w-[62ch] text-sm text-[rgb(var(--color-ink-muted))]">
           {note}
         </p>
       </header>
@@ -83,7 +90,7 @@ function Hero() {
       <h1 className="text-[clamp(2.5rem,8vw,5rem)]">
         Laboratório <span className="display-italic">de motion</span>
       </h1>
-      <p className="max-w-[52ch] text-[rgb(var(--color-muted))]">
+      <p className="max-w-[52ch] text-[rgb(var(--color-ink-muted))]">
         Cada hook e cada componente da seção 6 do SPEC, num lugar só. Mexa o
         ponteiro: a safelight segue. Role: um único listener responde por tudo.
       </p>
@@ -92,7 +99,7 @@ function Hero() {
         <Magnetic>
           <button
             type="button"
-            className="rounded-pill bg-[rgb(var(--color-accent))] px-6 py-3 font-medium text-[rgb(var(--color-noir))] transition-shadow hover:shadow-(--shadow-glow)"
+            className="rounded-pill bg-[rgb(var(--color-accent))] px-6 py-3 font-medium text-[rgb(var(--color-bg))] transition-shadow hover:shadow-(--shadow-glow)"
           >
             Botão magnético
           </button>
@@ -109,35 +116,35 @@ function Hero() {
 }
 
 function Cards() {
-  const [accent, setAccentName] = useState(OCCASIONS[0]?.name ?? "");
+  const [accent, setAccentName] = useState(PALETTES[0]?.name ?? "");
 
   return (
     <Section
       n="01 · SpotlightCard + accent dinâmico"
       title="O halo segue o ponteiro"
-      note="O card escreve --sx/--sy em si mesmo, sem re-render, e só assina o driver enquanto o ponteiro está dentro. Passar o ponteiro também troca --color-accent da página inteira — é o comportamento do grid de ocasiões da landing."
+      note="O card escreve --sx/--sy em si mesmo, sem re-render, e só assina o driver enquanto o ponteiro está dentro. Passar o ponteiro troca --color-accent do documento inteiro: é um gesto só da bancada, para conferir os componentes em todas as paletas."
     >
       <p className="text-sm">
         accent atual: <strong>{accent}</strong>
       </p>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {OCCASIONS.map((occasion) => (
+        {PALETTES.map((palette) => (
           <div
-            key={occasion.id}
+            key={palette.id}
             onPointerEnter={() => {
-              setAccent(occasion.id);
-              setAccentName(occasion.name);
+              setAccent(palette.id);
+              setAccentName(palette.name);
             }}
           >
             <SpotlightCard className="h-full p-5">
-              <p className="eyebrow mb-2">ocasião</p>
-              <p className="text-lg">{occasion.name}</p>
+              <p className="eyebrow mb-2">paleta</p>
+              <p className="text-lg">{palette.name}</p>
               <p
                 data-numeric
-                className="mt-1 text-xs text-[rgb(var(--color-muted))]"
+                className="mt-1 text-xs text-[rgb(var(--color-ink-muted))]"
               >
-                {occasion.accent}
+                {palette.accent}
               </p>
             </SpotlightCard>
           </div>
@@ -177,7 +184,7 @@ function Numbers() {
           <p className="text-4xl">
             <NumberTicker value={97} decimalPlaces={1} />%
           </p>
-          <p className="mt-2 text-xs text-[rgb(var(--color-muted))]">
+          <p className="mt-2 text-xs text-[rgb(var(--color-ink-muted))]">
             Máximo dois efeitos ambientais por dobra (SPEC 6.1).
           </p>
         </div>
@@ -190,14 +197,13 @@ function Faixa() {
   return (
     <Section
       n="03 · Marquee"
-      title="Faixa de ocasiões"
+      title="Faixa de momentos"
       note="Pausa no hover. Some inteiro em prefers-reduced-motion."
     >
       <Marquee pauseOnHover className="[--duration:26s]">
-        {OCCASIONS.map((occasion) => (
+        {MOMENTS.map((moment) => (
           <span
-            key={occasion.id}
-            data-occasion={occasion.id}
+            key={moment.id}
             className="glass mx-2 px-5 py-2.5 text-sm whitespace-nowrap"
           >
             <span
@@ -205,7 +211,7 @@ function Faixa() {
               className="mr-2 inline-block size-2 rounded-full align-middle"
               style={{ background: "rgb(var(--color-accent))" }}
             />
-            {occasion.name}
+            {moment.label}
           </span>
         ))}
       </Marquee>
@@ -254,8 +260,8 @@ function Acts() {
         acts={[
           {
             eyebrow: "ato um",
-            title: "Escolha a ocasião",
-            text: "Oito ocasiões, cada uma com sua paleta. A página inteira muda de cor.",
+            title: "Escolha as fotos",
+            text: "As que já estão no celular. Arraste para ordenar e escreva a legenda.",
           },
           {
             eyebrow: "ato dois",
@@ -314,7 +320,7 @@ function Estado({ reduced }: { reduced: boolean }) {
         className={
           reduced
             ? "text-[rgb(var(--color-cyan))]"
-            : "text-[rgb(var(--color-muted))]"
+            : "text-[rgb(var(--color-ink-muted))]"
         }
       >
         prefers-reduced-motion: {reduced ? "reduce" : "no-preference"}

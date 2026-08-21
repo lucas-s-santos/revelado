@@ -1,4 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
+
+import { devDir } from "@/lib/dev-store";
 import { join } from "node:path";
 
 /**
@@ -12,7 +14,7 @@ import { join } from "node:path";
  * cuida do modo local.
  */
 
-const DEV_DIR = join(process.cwd(), ".drafts");
+const DEV_DIR = devDir();
 
 export async function markDraftPublished(
   draftId: string,

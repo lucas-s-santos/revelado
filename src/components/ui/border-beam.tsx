@@ -56,7 +56,7 @@ export const BorderBeam = ({
   size = 50,
   delay = 0,
   duration = 6,
-  // Retematizado (SPEC Fase 1): accent da ocasião → magenta. Sem cor hardcoded.
+  // Retematizado (SPEC Fase 1): accent da paleta. Sem cor hardcoded.
   colorFrom = "rgb(var(--color-accent))",
   colorTo = "rgb(var(--color-magenta))",
   transition,
