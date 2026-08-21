@@ -30,7 +30,7 @@ interface ShineBorderProps extends React.HTMLAttributes<HTMLDivElement> {
 export function ShineBorder({
   borderWidth = 1,
   duration = 14,
-  // Retematizado (SPEC Fase 1): accent da ocasião. Sem cor hardcoded.
+  // Retematizado (SPEC Fase 1): accent da paleta. Sem cor hardcoded.
   shineColor = "rgb(var(--color-accent) / 0.9)",
   className,
   style,

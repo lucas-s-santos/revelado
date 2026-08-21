@@ -19,7 +19,6 @@ export interface PublishedSite {
   id: string;
   slug: string;
   content: SiteContent;
-  occasionId: string;
   hasPassword: boolean;
   indexable: boolean;
   expiresAt: Date | null;
@@ -68,7 +67,6 @@ async function readPublishedSite(
       id: draft.id,
       slug: draft.slug,
       content: draft.content,
-      occasionId: draft.occasionId,
       hasPassword: Boolean(draft.passwordHash),
       indexable: draft.indexable ?? false,
       expiresAt: draft.expiresAt ?? null,
@@ -81,7 +79,6 @@ async function readPublishedSite(
       id: true,
       slug: true,
       content: true,
-      occasionId: true,
       passwordHash: true,
       indexable: true,
       expiresAt: true,
@@ -105,7 +102,6 @@ async function readPublishedSite(
     id: site.id,
     slug: site.slug,
     content: result.content,
-    occasionId: site.occasionId,
     hasPassword: Boolean(site.passwordHash),
     indexable: site.indexable,
     expiresAt: site.expiresAt,
@@ -117,7 +113,6 @@ function demoSite(): PublishedSite {
     id: DEMO_SLUG,
     slug: DEMO_SLUG,
     content: demoContent,
-    occasionId: demoContent.occasion,
     hasPassword: false,
     indexable: false,
     expiresAt: null,

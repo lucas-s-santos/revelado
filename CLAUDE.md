@@ -1,8 +1,14 @@
 # Revelado — contexto do projeto
 
-SaaS brasileiro de páginas comemorativas com QR Code. A pessoa monta uma página
-(fotos, mensagem, música, contador ao vivo), paga uma vez via Pix e recebe link +
-QR Code para imprimir e presentear.
+SaaS brasileiro de **páginas de casal** com QR Code. A pessoa monta a página do
+casal dela (fotos, carta, música, contador ao vivo desde o primeiro dia), paga
+uma vez via Pix e recebe link + QR Code para imprimir e entregar em mãos.
+
+**O produto é um só.** Não há ocasião a escolher: a mesma página serve do
+primeiro mês às bodas. O que varia é o template (a moldura) e a paleta (a cor),
+nunca o público. Se aparecer um seletor que ramifica conteúdo por data, é sinal
+de que o modelo de ocasiões está voltando — e ele foi removido de propósito na
+v2 do SPEC.
 
 ## Documento de referência
 
@@ -24,20 +30,34 @@ Postgres · Cloudflare R2 · Mercado Pago · Inngest · pnpm.
    throttled por rAF, escrevendo CSS custom properties.
 4. Server Components por padrão. `"use client"` só na folha da árvore.
 5. Nenhuma cor hardcoded. Tudo vem dos tokens em `styles/theme.css`.
-6. `--color-accent` é dinâmico e muda conforme a ocasião.
+6. `--color-accent` é dinâmico e muda conforme a **paleta** que a pessoa
+   escolhe (`lib/palettes.ts`), nunca conforme uma data. `data-palette` vai no
+   contêiner da página, nunca no `documentElement`.
 7. Nunca publicar página sem webhook de pagamento confirmado.
-8. Nunca exigir login antes do editor.
+8. Nunca exigir login antes do editor — nem colocar tela nenhuma antes dele.
 9. Nunca processar imagem no request — vai para a fila.
 10. Nunca hospedar arquivo de música (só embed oficial).
 11. Motion ambiental é proibido no painel e no admin.
 12. Valores monetários em centavos, inteiros.
 13. Toda entrada validada com zod no cliente e no servidor.
 14. `prefers-reduced-motion` desliga tudo.
+15. Contraste se **mede**, não se estima. Cor nova passa pelo cálculo WCAG
+    antes de entrar — e texto que fica por cima de foto precisa de folga sobre
+    os 4.5:1, não do valor no limite.
+16. Nenhum dado de cartão passa pelo nosso servidor. Cartão é Checkout Pro.
 
 ## Identidade visual
 
-Conceito "Câmara Escura": preto arroxeado de laboratório fotográfico, luz de
-segurança âmbar, magenta de filtro de ampliação, ciano só para estados vivos.
+**Duas peles.** O padrão é a **clara**: creme quente (`#FFF8F5`), tinta
+quase-preta (`#2A1B22`), framboesa (`#C63454`). Landing, editor e checkout são
+sempre ela. A **escura** é a "Câmara Escura" original — preto arroxeado de
+laboratório, luz de segurança âmbar, magenta de ampliação — e hoje é escolha de
+quem monta a página (`theme.skin`), não o padrão do site.
+
+Os tokens de superfície dizem o papel, nunca a cor: `--color-bg`,
+`--color-surface`, `--color-surface-2`, `--color-ink`, `--color-ink-muted`.
+Nenhuma regra de CSS deve saber de que cor é a pele. O mesmo vale para o vidro
+(`--glass-*`), a sombra e a vinheta.
 Tipografia: Instrument Serif (display, com parcimônia) + Inter (corpo) +
 JetBrains Mono (contadores e labels, sempre com tabular-nums).
 

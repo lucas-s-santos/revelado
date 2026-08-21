@@ -5,9 +5,14 @@ import { readAnonId } from "@/lib/anon";
 import { validateForPublish } from "@/lib/blocks/schema";
 import { applyCoupon } from "@/lib/coupons";
 import { getDraft } from "@/lib/drafts";
-import { createPixCharge } from "@/lib/mercadopago";
+import { createCardCheckout, createPixCharge } from "@/lib/mercadopago";
 import { attachCharge, createOrder } from "@/lib/orders";
-import { orderTotalCents, PLAN_IDS, type PlanId } from "@/lib/plans";
+import {
+  maxInstallments,
+  orderTotalCents,
+  PLAN_IDS,
+  type PlanId,
+} from "@/lib/plans";
 
 /**
  * Cria o pedido e a cobrança — SPEC 9.1.
@@ -26,6 +31,8 @@ const bodySchema = z.object({
   bumpForever: z.boolean().default(false),
   email: z.email("Confira o seu e-mail — parece que falta alguma coisa nele."),
   coupon: z.string().max(32).optional(),
+  /** Pix continua sendo o padrão: é instantâneo e não tem taxa de parcela. */
+  method: z.enum(["pix", "card"]).default("pix"),
 });
 
 export async function POST(request: Request) {
@@ -47,7 +54,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const { draftId, planId, bumpForever, email, coupon } = parsed.data;
+  const { draftId, planId, bumpForever, email, coupon, method } =
+    parsed.data;
 
   const draft = await getDraft(draftId);
   if (!draft) {
@@ -100,11 +108,42 @@ export async function POST(request: Request) {
     email,
   });
 
+  const description = "Revelado — a página de vocês";
+
+  if (method === "card") {
+    const installments = maxInstallments(amountCents);
+
+    const checkout = await createCardCheckout({
+      orderId: order.id,
+      amountCents,
+      email,
+      description,
+      installments,
+    });
+
+    // O providerRef aqui é o da **preferência**, não o do pagamento — que ainda
+    // não existe. O webhook troca por um quando a pessoa paga.
+    await attachCharge(order.id, { providerRef: checkout.providerRef });
+
+    return NextResponse.json(
+      {
+        orderId: order.id,
+        amountCents,
+        card: {
+          url: checkout.url,
+          installments,
+          simulated: checkout.simulated,
+        },
+      },
+      { status: 201 },
+    );
+  }
+
   const charge = await createPixCharge({
     orderId: order.id,
     amountCents,
     email,
-    description: "Revelado — página comemorativa",
+    description,
   });
 
   await attachCharge(order.id, {

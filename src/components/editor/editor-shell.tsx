@@ -38,13 +38,11 @@ const STEPS = [
 export function EditorShell({
   draftId,
   slug,
-  occasionId,
   content,
   published,
 }: {
   draftId: string;
   slug: string;
-  occasionId: string;
   content: SiteContent;
   published: boolean;
 }) {
@@ -59,8 +57,8 @@ export function EditorShell({
   useEffect(() => {
     load(draftId, content);
     setReady(true);
-    void track("editor_opened", { occasion: occasionId });
-  }, [draftId, content, occasionId, load]);
+    void track("editor_opened", { template: content.theme.template });
+  }, [draftId, content, load]);
 
   useAutosave();
   useUndoShortcuts();
@@ -72,8 +70,11 @@ export function EditorShell({
   const Step = current.Component;
   const isLast = step === STEPS.length - 1;
 
+  // Sem `data-palette` na raiz de propósito: a paleta é do conteúdo, e quem a
+  // aplica é o BlockRenderer, dentro do preview. Tingir a interface inteira
+  // faria o editor mudar de cor a cada clique no passo de estilo.
   return (
-    <div className="editor" data-occasion={occasionId}>
+    <div className="editor">
       <header className="editor__bar">
         <Logo size={26} showName={false} />
 
