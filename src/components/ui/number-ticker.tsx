@@ -66,7 +66,7 @@ export function NumberTicker({
       className={cn(
         // Retematizado (SPEC Fase 1 + 4.2): mono e tabular-nums obrigatórios,
         // senão o dígito pula a cada segundo. Cor vem do token.
-        "inline-block font-mono text-[rgb(var(--color-paper))] tabular-nums",
+        "inline-block font-mono text-[rgb(var(--color-ink))] tabular-nums",
         className,
       )}
       {...props}

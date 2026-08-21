@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  * Escreve --sx/--sy no próprio nó, sem re-render do React.
  */
 export interface SpotlightCardProps {
-  /** RGB "224 80 143". Default: var(--color-accent) da ocasião em foco. */
+  /** RGB "224 80 143". Default: o `--color-accent` que estiver valendo. */
   accent?: string;
   /** raio do halo em px */
   radius?: number;

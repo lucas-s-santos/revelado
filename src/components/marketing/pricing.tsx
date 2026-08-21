@@ -1,15 +1,16 @@
 "use client";
 
 import { Check } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 
+import { startDraft } from "@/app/actions/start-draft";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { NumberTicker } from "@/components/ui/number-ticker";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { track } from "@/lib/analytics";
 import { copy } from "@/lib/copy";
 import {
+  bestInstallment,
   FOREVER_BUMP_CENTS,
   orderTotalCents,
   PLANS,
@@ -36,6 +37,7 @@ export function Pricing() {
     planId: selected,
     bumpForever: bumpApplies,
   });
+  const installment = bestInstallment(totalCents);
 
   return (
     <section id="precos" className="section">
@@ -89,6 +91,12 @@ export function Pricing() {
                       ? copy.pricing.forever
                       : copy.pricing.perYear}
                   </small>
+
+                  {/* A parcela é calculada pela mesma função do checkout: a
+                      vitrine não pode prometer um número que a cobrança recusa. */}
+                  <small data-numeric className="pricing__installment">
+                    {installmentLabel(candidate.priceCents)}
+                  </small>
                 </span>
               </button>
 
@@ -120,7 +128,7 @@ export function Pricing() {
           />
           <span>
             <span className="block">{copy.pricing.bumpLabel}</span>
-            <span className="block text-xs text-[rgb(var(--color-muted))]">
+            <span className="block text-xs text-[rgb(var(--color-ink-muted))]">
               {copy.pricing.bumpHint}
             </span>
           </span>
@@ -139,28 +147,52 @@ export function Pricing() {
             key={`${selected}-${bumpApplies}`}
             value={totalCents / 100}
             decimalPlaces={2}
-            className="text-[rgb(var(--color-paper))]"
+            className="text-[rgb(var(--color-ink))]"
           />
         </p>
 
-        <Link
-          href={`/criar?plano=${selected}${bumpApplies ? "&sempre=1" : ""}`}
-          onClick={() =>
+        {installment.count > 1 ? (
+          <p
+            data-numeric
+            className="text-sm text-[rgb(var(--color-ink-muted))]"
+          >
+            no Pix · ou {installment.count}x de{" "}
+            {formatBRL(installment.cents)} sem juros
+          </p>
+        ) : null}
+
+        {/*
+          O plano escolhido aqui não viaja para o editor de propósito: quem
+          decide plano é o checkout, que recalcula tudo no servidor (o cliente
+          não decide preço). A URL antiga levava `?plano=`, mas ninguém do outro
+          lado lia — era promessa que não se cumpria. O que viaja é o evento,
+          que é o que responde "qual card puxou o clique".
+        */}
+        <form
+          action={startDraft}
+          onSubmit={() =>
             void track("checkout_opened", {
               plan: selected,
               bump: bumpApplies,
               from: "landing_pricing",
             })
           }
-          className="btn-primary"
         >
-          {copy.pricing.cta}
-        </Link>
+          <button type="submit" className="btn-primary">
+            {copy.pricing.cta}
+          </button>
+        </form>
 
-        <p className="text-xs text-[rgb(var(--color-muted))]">
+        <p className="text-xs text-[rgb(var(--color-ink-muted))]">
           {copy.pricing.guarantee}
         </p>
       </div>
     </section>
   );
+}
+
+/** "ou 11x de R$ 3,17" — vazio quando o valor não parcela. */
+function installmentLabel(priceCents: number): string {
+  const { count, cents } = bestInstallment(priceCents);
+  return count > 1 ? `ou ${count}x de ${formatBRL(cents)}` : "à vista";
 }

@@ -64,7 +64,8 @@ export default async function PublishedPage({ params }: { params: Params }) {
   return (
     <main
       className="published"
-      data-occasion={site.content.theme.palette}
+      data-skin={site.content.theme.skin}
+      data-palette={site.content.theme.palette}
       data-effect={site.content.theme.effect}
     >
       {expired ? (

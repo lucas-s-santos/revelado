@@ -1,4 +1,6 @@
 import { readFile } from "node:fs/promises";
+
+import { devDir } from "@/lib/dev-store";
 import { join, normalize } from "node:path";
 
 import { NextResponse } from "next/server";
@@ -12,7 +14,7 @@ import { isAcceptedMime, LOCAL_MEDIA_ENABLED } from "@/lib/r2";
  * existir.
  */
 
-const DEV_MEDIA_DIR = join(process.cwd(), ".drafts", "media");
+const DEV_MEDIA_DIR = devDir("media");
 
 type Params = Promise<{ key: string[] }>;
 

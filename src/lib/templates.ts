@@ -1,0 +1,120 @@
+/**
+ * Templates — SPEC 7.1 (`model Template`) e 8.3.
+ *
+ * Antes eram dois por ocasião, o que dava dezesseis páginas quase iguais. Com um
+ * produto só, eles voltam a ser o que deveriam ser: cinco jeitos diferentes de
+ * contar a mesma história.
+ *
+ * O que o template carrega é **preset**, não conteúdo: paleta, fonte, efeito e
+ * a ordem dos blocos. Trocar de template no editor não apaga o que a pessoa já
+ * escreveu — só remonta a moldura.
+ *
+ * Fonte de verdade para o seed do banco. Em runtime o app lê do banco, porque o
+ * admin cria template novo sem deploy (SPEC 8.9).
+ */
+
+import type { BlockType } from "@/lib/blocks/schema";
+import type { PaletteId } from "@/lib/palettes";
+
+export interface TemplateSeed {
+  id: string;
+  name: string;
+  /** uma linha, para o card de escolha */
+  hint: string;
+  previewUrl: string;
+  /** null = incluso em todos os planos */
+  planRequired: string | null;
+  order: number;
+  preset: {
+    palette: PaletteId;
+    font: "serif" | "sans" | "mixed";
+    effect: "none" | "hearts" | "confetti" | "snow" | "stars";
+    /** ordem dos blocos; o editor completa o resto com os padrões */
+    blocks: readonly BlockType[];
+  };
+}
+
+export const TEMPLATES: readonly TemplateSeed[] = [
+  {
+    id: "essencial",
+    name: "Essencial",
+    hint: "capa, contador, fotos e a carta",
+    previewUrl: "/templates/essencial.webp",
+    planRequired: null,
+    order: 1,
+    preset: {
+      palette: "magenta",
+      font: "mixed",
+      effect: "hearts",
+      blocks: ["hero", "counter", "gallery", "letter", "footer"],
+    },
+  },
+  {
+    id: "revelacao",
+    name: "Revelação",
+    hint: "as fotos aparecem conforme a pessoa rola",
+    previewUrl: "/templates/revelacao.webp",
+    planRequired: null,
+    order: 2,
+    preset: {
+      palette: "magenta",
+      font: "serif",
+      effect: "hearts",
+      blocks: ["hero", "counter", "letter", "gallery", "timeline", "footer"],
+    },
+  },
+  {
+    id: "linha-do-tempo",
+    name: "Linha do tempo",
+    hint: "de onde começou até aqui, data por data",
+    previewUrl: "/templates/linha-do-tempo.webp",
+    planRequired: null,
+    order: 3,
+    preset: {
+      palette: "ambar",
+      font: "mixed",
+      effect: "none",
+      blocks: ["hero", "timeline", "gallery", "counter", "letter", "footer"],
+    },
+  },
+  {
+    id: "motivos",
+    name: "Motivos",
+    hint: "a lista de por que você gosta dela ou dele",
+    previewUrl: "/templates/motivos.webp",
+    planRequired: "especial",
+    order: 4,
+    preset: {
+      palette: "rubi",
+      font: "sans",
+      effect: "hearts",
+      blocks: ["hero", "reasons", "gallery", "counter", "music", "footer"],
+    },
+  },
+  {
+    id: "capsula",
+    name: "Cápsula do tempo",
+    hint: "uma carta que só abre na data que você marcar",
+    previewUrl: "/templates/capsula.webp",
+    planRequired: "especial",
+    order: 5,
+    preset: {
+      palette: "ciano",
+      font: "mixed",
+      effect: "stars",
+      blocks: ["hero", "counter", "capsule", "gallery", "letter", "footer"],
+    },
+  },
+] as const;
+
+export const TEMPLATE_IDS = TEMPLATES.map(
+  (template) => template.id,
+) as readonly string[];
+
+const TEMPLATE_BY_ID = new Map(
+  TEMPLATES.map((template) => [template.id, template]),
+);
+
+export function getTemplate(id: string): TemplateSeed | undefined {
+  return TEMPLATE_BY_ID.get(id);
+}

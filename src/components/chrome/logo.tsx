@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
  * Nota de identidade: `public/logo.png` veio em petróleo/creme/coral, uma
  * paleta diferente da Câmara Escura (âmbar e magenta sobre noir). O símbolo
  * funciona sobre o noir porque o corpo do envelope é claro, mas ele não puxa o
- * accent da ocasião como o resto da interface. Se aparecer uma versão vetorial
+ * accent da paleta como o resto da interface. Se aparecer uma versão vetorial
  * ou monocromática, é aqui que ela entra.
  */
 export function Logo({

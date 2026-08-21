@@ -53,3 +53,5 @@ next-env.d.ts
 
 # rascunhos e mídias do modo local de desenvolvimento (ver lib/drafts.ts)
 /.drafts/
+# o mesmo, isolado para a suíte de testes (ver vitest.config.ts)
+/.drafts-test/

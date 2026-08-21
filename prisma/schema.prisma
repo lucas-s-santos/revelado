@@ -33,7 +33,6 @@ model Site {
   userId        String?
   anonId        String? // cookie do rascunho pré-login
   slug          String     @unique
-  occasionId    String
   templateId    String?
   content       Json // SiteContent — ver SPEC 7.2
   schemaVersion Int        @default(1)
@@ -49,7 +48,6 @@ model Site {
   updatedAt     DateTime   @updatedAt
 
   user      User?            @relation(fields: [userId], references: [id])
-  occasion  Occasion         @relation(fields: [occasionId], references: [id])
   media     Media[]
   guestbook GuestbookEntry[]
   orders    Order[]
@@ -85,32 +83,16 @@ model Media {
   @@index([siteId, position])
 }
 
-model Occasion {
-  id            String  @id
-  slug          String  @unique
-  name          String
-  accent        String // "224 80 143"
-  icon          String
-  defaultBlocks Json
-  seo           Json
-  active        Boolean @default(true)
-  order         Int
-
-  templates Template[]
-  sites     Site[]
-}
-
 model Template {
-  id           String  @id @default(cuid())
-  occasionId   String
+  id           String  @id
   name         String
   previewUrl   String
   preset       Json // SiteContent parcial
   planRequired String?
+  active       Boolean @default(true)
+  order        Int     @default(0)
 
-  occasion Occasion @relation(fields: [occasionId], references: [id], onDelete: Cascade)
-
-  @@index([occasionId])
+  @@index([active, order])
 }
 
 model Plan {

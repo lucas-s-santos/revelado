@@ -1,6 +1,20 @@
 # Especificação de Implementação — "Revelado"
-### SaaS de páginas comemorativas com QR Code
-**Documento de execução para Claude Code** · v1.0 · Julho/2026
+### SaaS de páginas de casal com QR Code
+**Documento de execução para Claude Code** · v2.0 · Agosto/2026
+
+> **v2.0 — pivô para casais.** O produto deixou de ser multi-ocasião. Saíram as
+> oito ocasiões, o model `Occasion`, o campo `SiteContent.occasion` e as telas
+> `/criar` (grid) e `/criar/[occasion]`. Entraram as **paletas de revelação**
+> (`lib/palettes.ts`), os **momentos do casal** (`lib/moments.ts`) e os
+> **templates globais** (`lib/templates.ts`). O schema dos blocos foi para a
+> **versão 2**, com migração de leitura em `lib/blocks/migrate.ts`.
+>
+> **v2.1 — duas peles e cartão parcelado.** A "Câmara Escura" deixou de ser a
+> única pele: o padrão agora é a **clara** (creme, tinta quase-preta,
+> framboesa), e a escura virou escolha de quem monta a página
+> (`theme.skin`). Os tokens de superfície passaram a dizer o papel
+> (`--color-bg`, `--color-surface`, `--color-ink`) em vez da cor. No checkout
+> entrou **cartão em até 12x** via Checkout Pro.
 
 ---
 
@@ -21,16 +35,19 @@ Comando de abertura de cada sessão:
 
 ## 1. Escopo do produto
 
-Uma pessoa entra no site, escolhe uma **ocasião** (namoro, aniversário, Dia das Mães…), monta uma **página personalizada** com fotos, mensagem, música e contador ao vivo, vê o resultado num preview de celular em tempo real, paga uma vez via Pix e recebe **link + QR Code** para imprimir e presentear.
+Uma pessoa monta a **página do casal dela** — fotos, carta, música e contador ao vivo desde o dia em que tudo começou —, vê o resultado num preview de celular em tempo real, paga uma vez via Pix e recebe **link + QR Code** para imprimir e entregar em mãos.
+
+**O produto é um só.** Não há ocasião a escolher, nem ramificação de conteúdo por data: a mesma página serve do primeiro mês às bodas. O que varia é o **template** (a moldura) e a **paleta** (a cor) — nunca o público.
 
 **Restrições de produto que dirigem toda a arquitetura:**
 
 - A criação acontece **sem login**. A conta nasce no checkout.
+- Não há passo antes do editor. O CTA cria o rascunho e cai direto nele.
 - O usuário monta **antes** de pagar. Rascunho persiste sempre.
 - 90% do tráfego é **mobile**, à noite, em 4G.
 - A página publicada é o produto entregue — precisa abrir instantaneamente e nunca sair do ar.
 - O slug é **imutável** após a publicação (o QR já foi impresso).
-- Pico sazonal de até 50x (Dia das Mães, Dia dos Namorados, Natal).
+- Pico sazonal de até 50x, concentrado no **Dia dos Namorados (12 de junho)**.
 
 ---
 
@@ -71,18 +88,16 @@ revelado/
 │  └─ MOTION-REFS.md               ← seção 6.5, links de referência
 ├─ prisma/
 │  ├─ schema.prisma
-│  └─ seed.ts                      ← ocasiões, templates, planos
+│  └─ seed.ts                      ← templates e planos
 ├─ src/
 │  ├─ app/
 │  │  ├─ layout.tsx
 │  │  ├─ page.tsx                        # landing
 │  │  ├─ (marketing)/
-│  │  │  ├─ ocasioes/[slug]/page.tsx     # SEO por ocasião
 │  │  │  ├─ exemplos/[slug]/page.tsx
 │  │  │  └─ mensagens/[slug]/page.tsx    # SEO programático
-│  │  ├─ criar/
-│  │  │  ├─ page.tsx                     # escolha da ocasião
-│  │  │  └─ [occasion]/page.tsx          # escolha do template
+│  │  ├─ actions/start-draft.ts          # Server Action: cria e redireciona
+│  │  ├─ criar/page.tsx                  # passagem para o editor
 │  │  ├─ editor/[draftId]/page.tsx
 │  │  ├─ checkout/[draftId]/page.tsx
 │  │  ├─ sucesso/[orderId]/page.tsx
@@ -139,9 +154,11 @@ revelado/
 │  ├─ lib/
 │  │  ├─ blocks/
 │  │  │  ├─ schema.ts              # zod dos blocos, versionado
-│  │  │  ├─ defaults.ts            # preset por ocasião
+│  │  │  ├─ defaults.ts            # conteúdo do rascunho novo
 │  │  │  └─ migrate.ts             # migração entre schemaVersion
-│  │  ├─ occasions.ts
+│  │  ├─ palettes.ts               # paletas de revelação (--color-accent)
+│  │  ├─ moments.ts                # momentos do casal (faixa + atalhos)
+│  │  ├─ templates.ts              # templates globais
 │  │  ├─ plans.ts
 │  │  ├─ qr.ts
 │  │  ├─ r2.ts
@@ -159,9 +176,18 @@ revelado/
 
 ---
 
-## 4. Design system — "Câmara Escura"
+## 4. Design system — duas peles
 
-O sistema visual vem do laboratório fotográfico: preto arroxeado de darkroom, luz de segurança âmbar, magenta de filtro de ampliação. Ciano só para estados vivos.
+O vocabulário vem do laboratório fotográfico, mas ele agora se expressa em **duas peles**:
+
+- **clara** (padrão): creme quente, tinta quase-preta, framboesa. É a pele do produto — a landing, o editor e o checkout são sempre ela.
+- **escura** ("Câmara Escura"): preto arroxeado de darkroom, luz de segurança âmbar, magenta de filtro de ampliação. Deixou de ser a única e virou uma escolha de quem monta a página.
+
+**Por que a clara é o padrão:** o produto vende presente de casal para o público amplo, e o noir era um filtro na porta — bonito, autoral e estreito.
+
+**A regra que faz as duas funcionarem:** os tokens de superfície dizem o **papel**, não a cor (`--color-bg`, `--color-surface`, `--color-surface-2`, `--color-ink`, `--color-ink-muted`). Nenhuma regra do `globals.css` sabe de que cor é a pele — quem escreve `rgb(var(--color-bg))` funciona nas duas. `data-skin="escura"` vai no contêiner da página publicada, ao lado de `data-palette`.
+
+Tudo que depende da pele mora em token, inclusive o vidro (`--glass-*`), a sombra do card e a vinheta: "vidro" sobre noir é véu branco translúcido, e sobre creme o mesmo véu sumiria.
 
 ### 4.1 Cores (formato RGB sem vírgula, para permitir opacidade)
 
@@ -180,25 +206,24 @@ O sistema visual vem do laboratório fotográfico: preto arroxeado de darkroom, 
   --color-danger:    232 90 90;
   --color-success:   111 207 140;
 
-  /* dinâmico: sobrescrito em runtime pela ocasião em foco */
-  --color-accent:    242 180 87;
+  /* dinâmico: sobrescrito pela paleta que a pessoa escolhe no editor */
+  --color-accent:    224 80 143;
 }
 ```
 
-**Regra crítica:** `--color-accent` muda conforme a ocasião. Toda a UI consome `accent`, nunca `safelight` diretamente (exceto o próprio default).
+**Regra crítica:** `--color-accent` continua dinâmico — o que mudou é quem manda nele. Não é mais o calendário: é a pessoa, no passo de estilo. O padrão é o magenta do filtro de ampliação, que é a cor do produto. Toda a UI consome `accent`, nunca `magenta` diretamente (exceto o próprio default).
 
-Paleta por ocasião:
+**Paletas de revelação** (`lib/palettes.ts`) — nomes do laboratório, não do calendário:
 
-| Ocasião | accent (RGB) | Hex |
-|---|---|---|
-| namorados | `224 80 143` | #E0508F |
-| aniversario | `242 180 87` | #F2B457 |
-| maes | `197 139 232` | #C58BE8 |
-| pais | `90 169 230` | #5AA9E6 |
-| casamento | `230 216 184` | #E6D8B8 |
-| bebe | `127 212 224` | #7FD4E0 |
-| natal | `111 207 140` | #6FCF8C |
-| memorial | `168 165 184` | #A8A5B8 |
+| id | nome | accent (RGB) | Hex |
+|---|---|---|---|
+| magenta | Ampliação | `224 80 143` | #E0508F |
+| ambar | Luz de segurança | `242 180 87` | #F2B457 |
+| rubi | Revelador | `214 74 92` | #D64A5C |
+| ciano | Cianotipia | `88 214 208` | #58D6D0 |
+| papel | Papel | `230 216 184` | #E6D8B8 |
+
+**Onde o atributo vive:** `data-palette` fica no **contêiner da página** (o `BlockRenderer`, a tela de senha, o sucesso, o checkout) — nunca no `documentElement`. O editor mostra as duas paletas na mesma tela (a da interface e a da página); tingir o documento inteiro faria a interface mudar de cor a cada clique no passo de estilo. A exceção é `/dev/motion`, que troca no documento de propósito, para conferir os componentes em todas as paletas.
 
 ### 4.2 Tipografia — três papéis
 
@@ -263,22 +288,22 @@ Magic UI expõe um **MCP server** — vale plugar no `.mcp.json` do projeto para
 | **Shine Border** | Magic UI | Plano em destaque (versão contida do beam) | 1 |
 | **Number Ticker** | Magic UI | "1.482 páginas criadas", total do checkout, contadores do painel | 1 |
 | **Blur Fade** | Magic UI | Entrada escalonada de grids e galerias | 1 |
-| **Magic Card** | Magic UI | Cards de ocasião e de plano (gradiente seguindo o cursor) | 1 |
+| **Magic Card** | Magic UI | Cards de bloco e de plano (gradiente seguindo o cursor) | 1 |
 | **Lens** | Magic UI | Zoom nas fotos dentro do editor e da galeria | 2 |
 | **Animated List** | Magic UI | Painel lateral de fotos selecionadas; notificações do admin | 2 |
-| **Marquee** | Magic UI | Faixa de ocasiões rolando na landing | 1 |
+| **Marquee** | Magic UI | Faixa de momentos do casal rolando na landing | 1 |
 | **Confetti** | Magic UI | Tela de sucesso após publicar | 2 |
 | **Scroll Progress** | Magic UI | Barra de progresso do topo | 1 |
 | **Smooth Cursor** | Magic UI | Landing desktop apenas (opcional, testar A/B) | 3 |
 | **Focus Cards** | Aceternity | **Grid de fotos**: irmãs desfocam no hover | 2 |
 | **Glowing Effect** | Aceternity | Borda que segue o ponteiro — marca foto/plano selecionado | 2 |
-| **Card Spotlight** | Aceternity | Cards de ocasião (alternativa ao Magic Card) | 1 |
+| **Card Spotlight** | Aceternity | Cards de bloco (alternativa ao Magic Card) | 1 |
 | **Expandable Cards** | Aceternity | Foto → fullscreen com `layoutId` | 2 |
 | **Parallax Hero Images** | Aceternity | Hero da landing: profundidades dirigidas pelo mouse | 1 |
 | **Sticky Scroll Reveal** | Aceternity | Seção "como funciona" em três atos | 1 |
 | **Container Scroll Animation** | Aceternity | Mockup de celular "saindo da tela" ao rolar | 2 |
 | **Parallax Scroll** | Aceternity | Galeria de exemplos (duas colunas em direções opostas) | 2 |
-| **Tracing Beam** | Aceternity | Página de ocasião (SEO), acompanha o scroll | 3 |
+| **Tracing Beam** | Aceternity | Páginas de SEO programático, acompanha o scroll | 3 |
 | **Spotlight New** | Aceternity | Cone de luz atrás do hero e do checkout | 1 |
 | **Dotted Glow Background** | Aceternity | Fundo do editor e do painel (contido) | 2 |
 | **Aurora Background** | Aceternity | Somente a landing. **Nunca** no painel | 1 |
@@ -394,12 +419,12 @@ Durações: micro-interação 180ms · transição de componente 320ms · revela
 | Landing / hero | Luz que segue o mouse ("safelight") | `use-pointer` escreve `--mx/--my` no `:root`; um `div fixed` com radial-gradient e `mix-blend-mode: screen` consome. **Um listener para a página toda** |
 | Landing / hero | Parallax de profundidade | `Parallax Hero Images` + `use-section-progress` para o mockup |
 | Landing / topo | Barra de progresso | `Scroll Progress` (Magic UI) ou `scaleX` num ref |
-| Landing / ocasiões | Spotlight no card + **troca do accent global** | `SpotlightCard` próprio; `onPointerEnter` seta `--color-accent` no `documentElement` |
+| Landing / blocos | Spotlight no card, **sem trocar accent** | `SpotlightCard` próprio. A troca de accent global saiu na v2.1: a paleta é do conteúdo, e mexer nela no `documentElement` faria a landing piscar de cor |
 | Landing / como funciona | Sticky em três atos com trilho preenchendo | `Sticky Scroll Reveal` ou `use-sticky-acts` próprio |
 | Landing / revelação | **Assinatura**: fotos saem de `saturate(.06) blur(5px)` para nítidas conforme o scroll, com stagger | `use-section-progress` escreve `--dev`; CSS puro no filtro. Zero JS por frame |
 | Landing / CTA | Botão magnético | `Magnetic` próprio com spring `smooth` |
 | Landing / prova | Contadores subindo | `Number Ticker` disparado por IntersectionObserver |
-| Landing / faixa | Marquee de ocasiões | `Marquee` (Magic UI), pausar no hover |
+| Landing / faixa | Marquee de momentos do casal | `Marquee` (Magic UI), pausar no hover |
 | Editor | Preview atualizando ao digitar | Zustand + `useDeferredValue`; nunca animar o preview inteiro |
 | Editor | Reordenar blocos | `dnd-kit` + `layout` prop do Motion, spring `gentle` |
 | Editor | Grid de fotos | `FocusGrid` (Focus Cards + Glowing Effect + Lens) |
@@ -454,7 +479,6 @@ model Site {
   userId        String?
   anonId        String?    // cookie do rascunho pré-login
   slug          String     @unique
-  occasionId    String
   templateId    String?
   content       Json       // SiteContent — ver 7.2
   schemaVersion Int        @default(1)
@@ -488,25 +512,17 @@ model Media {
   @@index([siteId, position])
 }
 
-model Occasion {
-  id            String  @id
-  slug          String  @unique
-  name          String
-  accent        String  // "224 80 143"
-  icon          String
-  defaultBlocks Json
-  seo           Json
-  active        Boolean @default(true)
-  order         Int
-}
-
+// O model Occasion saiu na v2. Templates são globais.
 model Template {
-  id           String  @id @default(cuid())
-  occasionId   String
+  id           String  @id
   name         String
   previewUrl   String
-  preset       Json    // SiteContent parcial
+  preset       Json    // theme parcial: paleta, fonte, efeito, ordem dos blocos
   planRequired String?
+  active       Boolean @default(true)
+  order        Int     @default(0)
+
+  @@index([active, order])
 }
 
 model Plan {
@@ -639,11 +655,10 @@ export const blockSchema = z.discriminatedUnion("type",
 );
 
 export const siteContentSchema = z.object({
-  schemaVersion: z.literal(1),
-  occasion: z.string(),
+  schemaVersion: z.literal(2),   // v2: saiu `occasion`, palette virou enum
   theme: z.object({
     template: z.string(),
-    palette: z.string(),
+    palette: z.enum(PALETTE_IDS).default("magenta"),
     font: z.enum(["serif","sans","mixed"]).default("mixed"),
     effect: z.enum(["none","hearts","confetti","snow","stars"]).default("none"),
   }),
@@ -666,15 +681,15 @@ Formato de cada tela: objetivo · layout · estados · componentes · aceite.
 
 ### 8.1 `/` — Landing
 
-**Objetivo:** levar ao `/criar` no menor número de decisões possível.
+**Objetivo:** levar ao editor no menor número de decisões possível — hoje, **zero**: o CTA é um `form` que chama a Server Action `startDraft`, cria o rascunho e redireciona.
 
 **Seções, em ordem:**
-1. Barra de promoção sticky com contagem regressiva real e pulso magenta. Dismissível (guardar em cookie).
+1. Barra de promoção sticky com contagem regressiva real até o Dia dos Namorados e pulso magenta. Dismissível (guardar em cookie).
 2. Nav em vidro que solidifica após 40px de scroll.
-3. Hero: eyebrow · H1 display com itálico em gradiente · lede · CTA magnético + link secundário · prova social com `Number Ticker`. À direita, mockup de celular com contador rodando ao vivo e cartão de QR inclinado, ambos em parallax.
-4. Marquee de ocasiões.
+3. Hero: foto de fundo revelada (ver 8.1.1) · eyebrow · H1 display com itálico em gradiente · lede · CTA magnético + link para o exemplo · prova social com `Number Ticker`. À direita, mockup de celular com contador rodando ao vivo e cartão de QR inclinado, ambos em parallax.
+4. Marquee dos momentos do casal (`lib/moments.ts`) — texto, sem link: não há o que escolher.
 5. "Como funciona" em três atos sticky.
-6. Grid de ocasiões — hover troca o accent da página inteira.
+6. Grid dos **blocos** — o que vai dentro da página. Server Component, sem troca de accent.
 7. **Revelação** (assinatura): quatro fotos revelando conforme o scroll.
 8. Preços: três planos, o do meio destacado, order bump clicável, total recalculando.
 9. Prova social: três depoimentos em SpotlightCard.
@@ -684,15 +699,33 @@ Formato de cada tela: objetivo · layout · estados · componentes · aceite.
 
 **Aceite:** LCP < 2,5s em 4G simulado · sem CLS no carregamento das fontes · funil registrado no PostHog · tudo navegável por teclado · `prefers-reduced-motion` remove safelight e revelações.
 
-### 8.2 `/criar` — Escolha da ocasião
+#### 8.1.1 A foto do hero
 
-Grid de 8 cards. Hover: spotlight + accent global. Clique: navega para `/criar/[occasion]` com transição de layout compartilhado no ícone. Cria um `Site` em `DRAFT` com `anonId` de cookie.
+Fonte em `assets/hero.png` (fora de `public/`, que é servido). `scripts/prepare-hero.mjs` a revela e gera as variantes; roda sob demanda, nunca no build.
 
-**Aceite:** rascunho criado no servidor antes da navegação; refresh mantém a escolha.
+A gradação é a marca virando imagem: dessatura, empurra as sombras para o noir arroxeado, joga o filtro magenta de ampliação por cima e deixa **o sol como única brasa quente** — o pôr do sol vira a luz de segurança do laboratório. Vinheta e sangria das bordas para `--color-noir`, para a foto terminar na cor do fundo em vez de num corte reto. Grão de filme por cima, que é da marca e disfarça a resolução curta do original.
 
-### 8.3 `/criar/[occasion]` — Escolha do template
+Direção de arte com `<picture>`, não `next/image`: no celular vai um recorte **retrato** fechado nos dois; no desktop, o **2,2:1**. Enquadramento diferente é decisão de arte, e `next/image` só resolveria resolução.
 
-6 a 8 templates em mockup de celular, com preview real (não imagem estática). Filtro por plano ("disponível no Especial"). Clique aplica o `preset` do template ao content do rascunho.
+Regra de efeitos: a foto **ocupa a vaga** do cone de `Spotlight` no hero. Safelight + foto = os dois da SPEC 6.1. Não somar um terceiro.
+
+**Gradação na pele clara:** a foto não é rebaixada ao escuro — é **lavada para dentro do creme**, como um print que ainda está aparecendo na bandeja do revelador. Fica textura, não imagem: baixo contraste, preto levantado, e o disco solar sobrando como único ponto denso. É o que deixa a tinta quase-preta passar por cima com folga.
+
+**Contraste, medido e não estimado:** com o véu do `.hero::before`, o pior caso na coluna do texto dá **13,3:1** para `--color-ink` e **5,8:1** para `--color-ink-muted` no desktop; **11,8:1** e **5,2:1** no mobile. Foi essa medição que obrigou `--color-ink-muted` a ser mais denso do que "parecia bonito": no valor original ele passava no creme puro (4,9:1) e falhava sobre a foto.
+
+**Orçamento:** cada variante < 250 KB (a de 1718px sai em ~9 KB AVIF).
+
+### 8.2 `/criar` — Passagem para o editor
+
+Sem grid: o produto é um só. A tela é o botão, que submete para a Server Action `startDraft` — cria um `Site` em `DRAFT` com `anonId` de cookie e redireciona para `/editor/[draftId]`.
+
+É Server Action e não Server Component com `redirect` porque `ensureAnonId` grava cookie, e no App Router só Action e Route Handler escrevem. De quebra: funciona sem JavaScript, e robô que passa na URL não cria rascunho. `robots: noindex`.
+
+**Aceite:** rascunho criado no servidor antes da navegação; um clique do CTA ao editor.
+
+### 8.3 Templates
+
+Cinco templates **globais** (`lib/templates.ts`), não mais dois por ocasião. Cada um carrega `preset` (paleta, fonte, efeito, ordem dos blocos), nunca conteúdo — trocar de template não apaga o que a pessoa escreveu. Filtro por plano ("disponível no Especial"). A escolha vive dentro do editor, no passo de estilo.
 
 ### 8.4 `/editor/[draftId]` — O coração do produto
 
@@ -716,6 +749,12 @@ Grid de 8 cards. Hover: spotlight + accent global. Clique: navega para `/criar/[
 **Aceite:** digitar no campo de mensagem não causa jank no preview (medir com React DevTools Profiler) · upload de 20 fotos de 5MB em 4G conclui sem travar a UI · fechar a aba e voltar restaura tudo.
 
 ### 8.5 `/checkout/[draftId]`
+
+**Meios de pagamento.** Pix (padrão) e **cartão em até 12x sem juros**.
+
+O Pix cria um `Payment` direto e a gente já sai sabendo o id dele. O cartão cria uma `Preference` e manda para o **Checkout Pro** — nenhum dado de cartão passa pelo nosso servidor, que é o que nos mantém fora do escopo de PCI. O preço disso: o id do pagamento só existe depois que a pessoa paga, então o webhook resolve o pedido pelo `external_reference` e, assim que resolve, grava o id real — da segunda notificação em diante a idempotência por `providerRef` volta a valer.
+
+**Parcela:** teto de 12x com piso de R$ 3 por parcela (`lib/plans.ts`). Prometer na vitrine o que o provedor recusa no checkout é o pior jeito de perder a venda, então a vitrine e a cobrança usam **a mesma função**. Arredonda para baixo: a soma das parcelas nunca passa do total.
 
 Resumo da página + três planos + order bump ("deixar para sempre, +R$ 9") + campo de cupom + e-mail (obrigatório — é onde a conta nasce) + Pix ou cartão.
 
@@ -754,7 +793,7 @@ Lista de páginas com status. Detalhe: editar, baixar QR, estatísticas (visitas
 
 ### 8.9 `/admin`
 
-Vendas, funil por etapa, receita por ocasião, CRUD de ocasiões e templates (criar ocasião sem deploy), fila de moderação, cupons, busca de pedido, reenvio de e-mail, reembolso. Protegido por role. Zero enfeite.
+Vendas, funil por etapa, receita por plano e por meio de pagamento, CRUD de templates (criar template sem deploy), fila de moderação, cupons, busca de pedido, reenvio de e-mail, reembolso. Protegido por role. Zero enfeite.
 
 ---
 
@@ -812,7 +851,7 @@ Bundle analyzer no CI. PR que estourar o orçamento não passa.
 - Acordeão, tabs, dialog e sheet com semântica correta (usar Radix via shadcn, não recriar).
 - Formulários com `label` real, erro associado por `aria-describedby`.
 - `prefers-reduced-motion` desliga safelight, parallax, revelações e marquee.
-- Alt text nas fotos: no editor, campo opcional "descreva a foto"; default = legenda ou nome da ocasião.
+- Alt text nas fotos: no editor, campo opcional "descreva a foto"; default = a legenda, ou o título da capa quando não houver legenda.
 - Testar com teclado do começo ao fim do funil.
 
 **Voz da interface:** verbos ativos, frases curtas, tom conversacional. O botão que diz "Publicar" gera o aviso "Publicado". Erros explicam o que aconteceu e o que fazer — nunca pedem desculpa nem são vagos. Tela vazia é convite para agir, não recado triste.
@@ -850,7 +889,7 @@ Bundle analyzer no CI. PR que estourar o orçamento não passa.
 Uma fase por sessão do Claude Code. Cada fase tem critério de aceite verificável.
 
 ### Fase 0 — Fundação
-Projeto Next.js 15 + TS strict + Tailwind v4 + shadcn · fontes via `next/font` · `styles/theme.css` com todos os tokens da seção 4 · `lib/utils.ts` · ESLint/Prettier · Prisma + schema da seção 7.1 + migration + seed de ocasiões, templates e planos · Sentry e PostHog · CI com build, lint, typecheck e bundle analyzer.
+Projeto Next.js 15 + TS strict + Tailwind v4 + shadcn · fontes via `next/font` · `styles/theme.css` com todos os tokens da seção 4 · `lib/utils.ts` · ESLint/Prettier · Prisma + schema da seção 7.1 + migration + seed de templates e planos · Sentry e PostHog · CI com build, lint, typecheck e bundle analyzer.
 **Aceite:** `pnpm build` limpo; página em branco renderizando com os tokens aplicados.
 
 ### Fase 1 — Camada de motion e primitivos
@@ -862,7 +901,7 @@ As 12 seções da 8.1 · responsivo até 360px · funil no PostHog · `prefers-r
 **Aceite:** Lighthouse mobile ≥ 90 em performance e ≥ 95 em acessibilidade; orçamento da seção 10 respeitado.
 
 ### Fase 3 — Motor de blocos
-`lib/blocks/schema.ts` · `registry.ts` · blocos hero, counter, letter, gallery, music, timeline, footer · `BlockRenderer` · `PhoneFrame` · `defaults.ts` por ocasião · `migrate.ts`.
+`lib/blocks/schema.ts` · `registry.ts` · blocos hero, counter, letter, gallery, music, timeline, footer · `BlockRenderer` · `PhoneFrame` · `defaults.ts` (conteúdo do rascunho novo) · `migrate.ts`.
 **Aceite:** renderizar um `SiteContent` fixo em preview e em `/p/[slug]` com o mesmo componente e resultado idêntico.
 
 ### Fase 4 — Editor
@@ -878,7 +917,7 @@ ISR + revalidação por tag · `opengraph-image` · senha · expiração com pá
 **Aceite:** LCP < 1,5s em 4G; card do WhatsApp renderizando certo.
 
 ### Fase 7 — Crescimento
-Blocos V2 (mural, vídeo, mapa, cápsula, motivos, stats) · mais 4 ocasiões · estatísticas do painel · SEO programático (`/ocasioes`, `/exemplos`, `/mensagens`) · admin completo · moderação · cupons e afiliados.
+Blocos V2 (mural, vídeo, mapa, cápsula, motivos, stats) · mais templates · estatísticas do painel · SEO programático (`/exemplos`, `/mensagens`) · admin completo · moderação · cupons e afiliados.
 
 ### Fase 8 — Escala
 Modo avançado do editor · produtos físicos · B2B/white label · assistente de IA para a mensagem · espanhol.
@@ -887,7 +926,9 @@ Modo avançado do editor · produtos físicos · B2B/white label · assistente d
 
 ## 14. Métricas a instrumentar desde a fase 2
 
-Funil no PostHog: `landing_view → occasion_selected → editor_opened → editor_completed → checkout_opened → payment_started → payment_confirmed`.
+Funil no PostHog: `landing_view → editor_opened → editor_completed → checkout_opened → payment_started → payment_confirmed`.
+
+`occasion_selected` saiu na v2 junto com o grid que ele media. Não entrou evento de clique no lugar: o CTA é um `form` para Server Action, sem JavaScript no caminho, e quem abre o funil agora é `editor_opened`.
 
 Metas: visitante→editor > 25% · editor→checkout > 35% · checkout→pago > 45% · conversão total 3–6% · tempo até publicar < 8min · Pix ≈ 70% · reembolso < 2% · páginas por cliente/ano > 1,4.
 
@@ -935,7 +976,9 @@ Postgres · Cloudflare R2 · Mercado Pago · Inngest · pnpm.
    throttled por rAF, escrevendo CSS custom properties.
 4. Server Components por padrão. `"use client"` só na folha da árvore.
 5. Nenhuma cor hardcoded. Tudo vem dos tokens em `styles/theme.css`.
-6. `--color-accent` é dinâmico e muda conforme a ocasião.
+6. `--color-accent` é dinâmico e muda conforme a **paleta** que a pessoa
+   escolhe (`lib/palettes.ts`), nunca conforme uma data. `data-palette` e
+   `data-skin` vão no contêiner da página, nunca no `documentElement`.
 7. Nunca publicar página sem webhook de pagamento confirmado.
 8. Nunca exigir login antes do editor.
 9. Nunca processar imagem no request — vai para a fila.
