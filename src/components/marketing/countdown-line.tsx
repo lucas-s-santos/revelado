@@ -32,7 +32,10 @@ export function CountdownLine({
     <p data-numeric className="final-cta__countdown">
       {label} em {days}d {String(hours).padStart(2, "0")}h{" "}
       {String(minutes).padStart(2, "0")}m {String(seconds).padStart(2, "0")}s
-      <span className="block text-xs text-[rgb(var(--color-ink-muted))]">
+      {/* Herda a cor de quem a contém: esta linha vive no cartão rosa e
+          também já viveu sobre creme. Fixar a tinta aqui deixaria ela
+          ilegível num dos dois. */}
+      <span className="block text-xs opacity-75">
         {dateLabel} — dá tempo de imprimir
       </span>
     </p>
