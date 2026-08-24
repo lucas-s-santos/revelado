@@ -896,6 +896,108 @@
     color: rgb(var(--color-ink-muted));
   }
 
+  /* --- Grade de temas do editor ---------------------------------------- *
+   * Cada ladrilho carrega o próprio `data-skin`, e o theme.css já reescreve
+   * os tokens para os descendentes desse atributo. Então o ladrilho se pinta
+   * sozinho na pele que representa: `rgb(var(--color-bg))` dentro de um
+   * ladrilho escuro é noir, dentro de um claro é papel. Nenhuma cor literal. */
+  .themes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
+  }
+
+  @media (min-width: 520px) {
+    .themes {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .theme-tile {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.15rem;
+    padding: 0.75rem;
+    text-align: left;
+    border-radius: var(--radius-md);
+    border: 2px solid rgb(var(--color-ink) / 0.1);
+    background: rgb(var(--color-bg));
+    color: rgb(var(--color-ink));
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out);
+  }
+
+  .theme-tile:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  .theme-tile[aria-pressed="true"] {
+    border-color: rgb(var(--color-accent));
+  }
+
+  /* Travado NÃO é apagado. `opacity` na peça inteira derruba o contraste do
+     texto abaixo do mínimo — e a régua não pega, porque ela mede os tokens,
+     não a opacidade aplicada por cima deles. Quem esmaece é só a amostra de
+     cor; o nome e a dica continuam legíveis, e quem diz que está travado é o
+     selo, que é a informação de verdade. */
+  .theme-tile:disabled {
+    cursor: not-allowed;
+    border-style: dashed;
+  }
+
+  .theme-tile:disabled .theme-tile__chip i {
+    filter: grayscale(0.7);
+    opacity: 0.75;
+  }
+
+  .theme-tile__chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 34px;
+    margin-bottom: 0.35rem;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-surface));
+  }
+
+  .theme-tile__chip i {
+    display: block;
+    width: 18px;
+    height: 18px;
+    border-radius: var(--radius-pill);
+  }
+
+  .theme-tile__name {
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .theme-tile__hint {
+    font-size: 0.68rem;
+    line-height: 1.3;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* A trava é convite, não punição: diz o plano, não "bloqueado". */
+  .theme-tile__lock {
+    position: absolute;
+    top: 0.4rem;
+    right: 0.4rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-safelight));
+    color: rgb(var(--color-on-safelight));
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
   /* --- Cards em tom (SPEC 8.1 §6) -------------------------------------- *
    * Os quatro tons saem dos tokens --color-card-*, todos medidos com a tinta
    * por cima no `pnpm contrast`. As prévias são forma em CSS: nenhuma custa
