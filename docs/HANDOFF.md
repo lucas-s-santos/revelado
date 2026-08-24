@@ -93,10 +93,10 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
 | Fase | Escopo | Estado |
 |---|---|---|
 | A | Pele: tokens + régua de contraste | ✅ completa |
-| B | Landing seção por seção | 🟡 parcial — Revelation com envelope ✅; faltam BlocksGrid nos 4 tons, Testimonials, Pricing em 2 planos, FinalCta |
+| B | Landing seção por seção | 🟡 parcial — Revelation com envelope ✅, BlocksGrid nos 4 tons ✅; faltam Testimonials e FinalCta no formato novo |
 | C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | ⬜ não começada |
 | D | Formatos novos: envelope que abre, carta interativa, quiz do casal | ⬜ não começada |
-| E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada |
+| E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada — **mexe em dinheiro** (plans.ts, checkout, seed); pedir aval antes |
 
 ### O mascote (decisão pendente)
 
