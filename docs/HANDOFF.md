@@ -83,17 +83,45 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
    passou a ser feita com Playwright contra o dev server: sem rolagem
    horizontal e sem erro de console nos dois. Falta a medição de performance.
 6. **Dev server e `next build` disputam o mesmo `.next`.** Rodar os dois ao
-   mesmo tempo quebra o build com `Cannot find module for page: /_not-found`.
-   Encerre o dev antes de buildar, ou apague `.next`.
+   mesmo tempo quebra o build com `Cannot find module for page: /_not-found`
+   ou `MODULE_NOT_FOUND`. Encerre o servidor antes de buildar.
+7. **`/termos` e `/privacidade` não existem.** O rodapé aponta para as duas
+   e o Next faz prefetch quando ele entra em tela: dois 404 em toda visita.
+   Não é só link quebrado — são páginas que um site que cobra precisa ter.
+   O texto é jurídico e específico do negócio, então não inventei nenhum.
 
 ---
+
+### Armadilha de cascata — ler antes de mexer em CSS
+
+`.eyebrow` e `.display-italic` moram em **`@layer utilities`**. O CSS das
+seções mora em **`@layer components`**, e o Tailwind emite `utilities`
+depois. **Camada vence especificidade**: uma regra como
+`.final-cta .display-italic` (0,2,0) escrita junto da seção perde para
+`.display-italic` (0,1,0). Ela é emitida, aparece no CSS servido e
+simplesmente não se aplica — sem erro nenhum avisando.
+
+Toda variante dessas duas classes entra no bloco de `utilities`, logo depois
+da classe que ela modifica. Já custou uma seção inteira pintada errada sem
+ninguém notar.
+
+### O dev server mente; verifique contra a produção
+
+Ele travou uma vez (1,2 GB, sem responder) e serviu CSS defasado outra, o
+que gerou dois diagnósticos errados. Para conferir estilo, use
+`next build` + `next start` e leia o estilo **computado** no navegador, não
+a olho:
+
+```js
+el.evaluate((n) => getComputedStyle(n).color)
+```
 
 ## 4. O que falta — fases
 
 | Fase | Escopo | Estado |
 |---|---|---|
 | A | Pele: tokens + régua de contraste | ✅ completa |
-| B | Landing seção por seção | 🟡 parcial — Revelation com envelope ✅, BlocksGrid nos 4 tons ✅; faltam Testimonials e FinalCta no formato novo |
+| B | Landing seção por seção | ✅ **completa** — Revelation com envelope, BlocksGrid nos 4 tons, cenas de entrega, CTA em cartão rosa |
 | C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | ⬜ não começada |
 | D | Formatos novos: envelope que abre, carta interativa, quiz do casal | ⬜ não começada |
 | E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada — **mexe em dinheiro** (plans.ts, checkout, seed); pedir aval antes |
