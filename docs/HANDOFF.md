@@ -79,8 +79,12 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
    `public/hero-*` ainda são da paleta antiga. Precisam ser regerados.
 4. **`moments-marquee.tsx` saiu da landing** mas o arquivo continua no repo.
    Decidir se volta em outro lugar ou se sai de vez.
-5. **Não medido nesta sessão:** Lighthouse e a conferência visual em 375px.
-   O build passa e o orçamento de JS está dentro, mas ninguém olhou a tela.
+5. **Lighthouse ainda não medido.** A conferência visual em 375px e 1280px
+   passou a ser feita com Playwright contra o dev server: sem rolagem
+   horizontal e sem erro de console nos dois. Falta a medição de performance.
+6. **Dev server e `next build` disputam o mesmo `.next`.** Rodar os dois ao
+   mesmo tempo quebra o build com `Cannot find module for page: /_not-found`.
+   Encerre o dev antes de buildar, ou apague `.next`.
 
 ---
 
@@ -89,7 +93,7 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
 | Fase | Escopo | Estado |
 |---|---|---|
 | A | Pele: tokens + régua de contraste | ✅ completa |
-| B | Landing seção por seção | 🟡 parcial — faltam Revelation (envelope), BlocksGrid nos 4 tons, Testimonials, Pricing em 2 planos, FinalCta |
+| B | Landing seção por seção | 🟡 parcial — Revelation com envelope ✅; faltam BlocksGrid nos 4 tons, Testimonials, Pricing em 2 planos, FinalCta |
 | C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | ⬜ não começada |
 | D | Formatos novos: envelope que abre, carta interativa, quiz do casal | ⬜ não começada |
 | E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada |
