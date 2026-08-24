@@ -63,6 +63,8 @@ const PARES = [
   ["clara", "color-accent", "color-bg", 4.5, "link/eyebrow sobre o fundo"],
   ["clara", "color-accent", "color-surface", 4.5, "link/eyebrow no cartão"],
   ["clara", "color-on-brand", "color-brand", 4.5, "texto do botão primário"],
+  ["clara", "color-on-brand", "color-accent", 4.5, "texto no fim do gradiente do CTA"],
+  ["clara", "color-accent", "color-on-brand", 4.5, "botão invertido dentro do CTA"],
   ["clara", "color-ink", "color-hero-wash", 6, "h1 sobre a foto do hero (folga)"],
   ["clara", "color-danger", "color-surface", 4.5, "erro de formulário"],
   ["clara", "color-success", "color-surface", 4.5, "confirmação"],

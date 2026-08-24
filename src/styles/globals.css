@@ -102,6 +102,39 @@
     color: transparent;
   }
 
+  /* ATENÇÃO — estas três variantes moram AQUI, e não junto do CSS da seção
+   * que as usa, por causa das camadas.
+   *
+   * `.eyebrow` e `.display-italic` estão em @layer utilities. O CSS das
+   * seções está em @layer components, e o Tailwind põe utilities DEPOIS.
+   * Camada vence especificidade: escrito lá, nem `.final-cta .display-italic`
+   * (0,2,0) ganha de `.display-italic` (0,1,0) daqui. A regra é emitida,
+   * aparece no arquivo servido, e simplesmente não se aplica — sem erro
+   * nenhum para avisar.
+   *
+   * Toda variante de eyebrow ou de display-italic entra neste bloco, depois
+   * da classe que ela modifica. */
+
+  /* Eyebrow sobre a faixa vinho. */
+  .eyebrow--on-deep {
+    color: rgb(var(--color-brand-on-deep));
+  }
+
+  /* Eyebrow sobre o cartão rosa do CTA final. */
+  .eyebrow--on-brand {
+    color: rgb(var(--color-on-brand) / 0.95);
+  }
+
+  /* Sobre creme o gradiente accent → magenta canta. Sobre o cartão rosa são
+     dois rosas em cima de rosa e a palavra some, então ali vira tinta chapada. */
+  .final-cta .display-italic {
+    background: none;
+    -webkit-background-clip: initial;
+    background-clip: initial;
+    -webkit-text-fill-color: currentColor;
+    color: rgb(var(--color-on-brand));
+  }
+
   /* SPEC 4.3 — superfície de vidro + borda de 1px em gradiente.
    *
    * Os valores vêm dos tokens --glass-* porque "vidro" quer dizer coisas
@@ -1084,10 +1117,6 @@
     padding-bottom: clamp(4rem, 10vw, 7.5rem);
   }
 
-  .eyebrow--on-deep {
-    color: rgb(var(--color-brand-on-deep));
-  }
-
   .revelation__grid {
     display: grid;
     gap: clamp(2.5rem, 7vw, 4.5rem);
@@ -1671,16 +1700,76 @@
   }
 
   /* --- CTA final (SPEC 8.1 §11) ---------------------------------------- */
-  .final-cta {
-    position: relative;
+  /* --- Cenas de entrega (SPEC 8.1 §9) ---------------------------------- */
+  .scene-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  @media (min-width: 800px) {
+    .scene-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .scene {
     display: flex;
     flex-direction: column;
+    gap: 0.7rem;
+    padding: 1.4rem;
+    border-radius: var(--radius-lg);
+    background: rgb(var(--color-surface));
+    box-shadow: var(--shadow-card);
+  }
+
+  .scene__tag {
+    display: flex;
     align-items: center;
-    gap: 1rem;
-    max-width: var(--maxw);
-    margin: clamp(5rem, 12vw, 9rem) auto 0;
-    padding: clamp(3rem, 8vw, 5rem) 1.25rem clamp(4rem, 9vw, 6rem);
-    text-align: center;
+    gap: 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-accent));
+  }
+
+  .scene__icon {
+    display: grid;
+    place-items: center;
+  }
+
+  .scene__text {
+    font-size: 0.98rem;
+    line-height: 1.55;
+  }
+
+  /* Diz que a cena é ilustração. Discreto, mas presente — é o que separa
+     "assim funciona" de "alguém disse que funcionou". */
+  .scene__note {
+    margin-top: auto;
+    padding-top: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* --- CTA final (SPEC 8.1 §11) ---------------------------------------- *
+   * Cartão rosa cheio: é o último bloco antes do rodapé e precisa fechar a
+   * página. O gradiente vai de --color-brand a --color-accent e para por aí:
+   * as duas carregam texto branco acima de 4.5:1, e --color-brand-bright não
+   * carrega (3.48:1). Medido em `pnpm contrast`. */
+  .final-cta {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(
+      145deg,
+      rgb(var(--color-brand)) 0%,
+      rgb(var(--color-accent)) 100%
+    );
+    color: rgb(var(--color-on-brand));
   }
 
   .final-cta__glow {
@@ -1688,25 +1777,65 @@
     inset: 0;
     pointer-events: none;
     background: radial-gradient(
-      60% 60% at 50% 100%,
-      rgb(var(--color-accent) / 0.14),
+      70% 70% at 80% 0%,
+      rgb(var(--color-on-brand) / 0.16),
       transparent 70%
     );
   }
 
+  .final-cta__inner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: clamp(2.5rem, 7vw, 4.5rem) 1.5rem;
+    text-align: center;
+  }
+
   .final-cta__title {
     font-size: clamp(2rem, 6vw, 3.4rem);
-    max-width: 26ch;
+    max-width: 20ch;
   }
 
   .final-cta__lede {
-    max-width: 44ch;
-    color: rgb(var(--color-ink-muted));
+    max-width: 46ch;
+    color: rgb(var(--color-on-brand) / 0.88);
   }
 
   .final-cta__countdown {
     font-size: 0.9rem;
-    color: rgb(var(--color-ink) / 0.9);
+    color: rgb(var(--color-on-brand) / 0.9);
+  }
+
+  .final-cta__note {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-on-brand) / 0.72);
+  }
+
+  /* O botão inverte dentro do cartão: papel sobre tinta, não tinta sobre
+     tinta. É a única superfície da página onde isso acontece. */
+  .btn-on-brand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.85rem 1.6rem;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-on-brand));
+    color: rgb(var(--color-accent));
+    font-weight: 500;
+    transition:
+      transform var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
+  }
+
+  .btn-on-brand:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px -12px rgb(0 0 0 / 0.4);
   }
 
   /* --- Rodapé ---------------------------------------------------------- */

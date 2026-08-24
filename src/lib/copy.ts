@@ -222,27 +222,36 @@ export const copy = {
     guarantee: "7 dias de garantia. Não gostou, devolvemos o valor.",
   },
 
+  // NÃO são depoimentos. Eram três citações com nome e atribuição — pessoas
+  // que não existem dizendo que gostaram —, e isso é alegação falsa, não
+  // copy. Viraram cenas identificadas como ilustração, que ainda por cima
+  // explicam os três modos de entrega: QR impresso, link e a música.
+  //
+  // Quando houver depoimento de gente real, com permissão, ele entra aqui com
+  // nome de verdade e esta seção troca de rótulo.
   testimonials: {
-    eyebrow: "quem já presenteou",
-    title: "O que acontece quando ela abre",
+    eyebrow: "como a página chega",
+    title: "O momento em que ela abre.",
+    lede: "Três cenas do que o formato faz. Cada uma é uma forma de entregar.",
+    demoLabel: "cena ilustrativa",
     items: [
       {
-        quote:
-          "Imprimi o QR e colei dentro de um cartão. Ela escaneou na mesa do restaurante e chorou antes da segunda foto.",
-        author: "Marina",
-        detail: "3 anos de namoro",
+        id: "qr",
+        tag: "QR impresso",
+        scene:
+          "O código colado dentro de um cartão de papel. Ela aponta a câmera na mesa do restaurante e a primeira foto aparece antes de você explicar o que é.",
       },
       {
-        quote:
-          "A gente namora à distância há dois anos. Mandei o link no dia do nosso aniversário e ela ficou meia hora no telefone só passando as fotos.",
-        author: "Rafael",
-        detail: "São Paulo e Recife",
+        id: "link",
+        tag: "link no WhatsApp",
+        scene:
+          "O link no meio de uma conversa, num dia comum, sem data nenhuma. Do outro lado, meia hora passando as fotos para cima e para baixo.",
       },
       {
-        quote:
-          "Coloquei a música que tocou no nosso primeiro encontro. Ele reconheceu nos três primeiros segundos e não falou mais nada.",
-        author: "Bia",
-        detail: "7 anos juntos",
+        id: "musica",
+        tag: "a música de vocês",
+        scene:
+          "A faixa do primeiro encontro começa sozinha quando a página abre. Reconhecida nos três primeiros segundos, antes de qualquer texto.",
       },
     ],
   },
@@ -287,10 +296,12 @@ export const copy = {
   },
 
   finalCta: {
-    eyebrow: "última chamada",
-    title: "Comece pela foto que você já tem no celular",
-    lede: "Em oito minutos existe uma página que só vocês dois têm.",
+    eyebrow: "começa com uma foto que você já tem",
+    titleLead: "Essa página ainda não existe.",
+    titleAccent: "Depende de você.",
+    lede: "Em oito minutos ela está no ar, com link e QR Code prontos para imprimir. Você só paga quando decidir publicar.",
     cta: "Criar nossa página",
+    note: "Sem cadastro para começar",
   },
 
   footer: {
