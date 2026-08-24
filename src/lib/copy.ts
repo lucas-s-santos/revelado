@@ -145,51 +145,52 @@ export const copy = {
     ],
   },
 
+  // Quatro em destaque, com tom e prévia próprios; o resto numa linha
+  // compacta. O produto continua tendo oito blocos — o que muda é que a
+  // landing para de listar tudo com o mesmo peso e mostra os quatro que
+  // vendem a página.
   blocks: {
     eyebrow: "o que vai dentro",
-    title: "Os pedaços da página de vocês",
+    title: "Cada pedaço é uma lembrança.",
     lede: "Todos vêm montados. Você tira, põe e arrasta na ordem que quiser.",
-    items: [
+    featured: [
       {
         id: "counter",
+        tone: "rose",
         name: "Contador ao vivo",
         text: "Anos, meses, dias e os segundos correndo desde o dia em que vocês começaram.",
+        digits: [
+          { value: "04", label: "anos" },
+          { value: "08", label: "meses" },
+          { value: "19", label: "dias" },
+        ],
       },
       {
         id: "gallery",
+        tone: "lilac",
         name: "Galeria",
         text: "Carrossel, grade, polaroide ou pilha. As fotos revelam conforme a pessoa rola.",
       },
       {
-        id: "letter",
-        name: "A carta",
-        text: "O texto longo que você não conseguiria falar olhando nos olhos. Com assinatura no fim.",
-      },
-      {
         id: "music",
+        tone: "cream",
         name: "A música de vocês",
         text: "A faixa do Spotify ou do YouTube que toca quando a pessoa aperta o play.",
       },
       {
-        id: "timeline",
-        name: "Linha do tempo",
-        text: "O primeiro encontro, a viagem, a mudança. Data por data, até hoje.",
+        id: "letter",
+        tone: "deep",
+        name: "A carta",
+        text: "O texto longo que você não conseguiria falar olhando nos olhos. Com assinatura no fim.",
+        quote: "Tem coisa que eu só consigo escrever.",
       },
-      {
-        id: "reasons",
-        name: "Motivos",
-        text: "Cem motivos, dez, ou só três. A lista aparece um item de cada vez.",
-      },
-      {
-        id: "capsule",
-        name: "Cápsula do tempo",
-        text: "Uma carta lacrada que só abre na data que você marcar. Nem você lê antes.",
-      },
-      {
-        id: "map",
-        name: "O lugar",
-        text: "O ponto exato onde vocês se conheceram, marcado no mapa.",
-      },
+    ],
+    moreLabel: "e ainda vêm junto",
+    more: [
+      { id: "timeline", name: "Linha do tempo" },
+      { id: "reasons", name: "Motivos" },
+      { id: "capsule", name: "Cápsula do tempo" },
+      { id: "map", name: "O lugar" },
     ],
   },
 

@@ -863,6 +863,209 @@
     color: rgb(var(--color-ink-muted));
   }
 
+  /* --- Cards em tom (SPEC 8.1 §6) -------------------------------------- *
+   * Os quatro tons saem dos tokens --color-card-*, todos medidos com a tinta
+   * por cima no `pnpm contrast`. As prévias são forma em CSS: nenhuma custa
+   * requisição e todas acompanham a paleta sozinhas. */
+  .tone-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  @media (min-width: 620px) {
+    .tone-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1020px) {
+    .tone-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .tone-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.25rem;
+    border-radius: var(--radius-lg);
+    background: rgb(var(--color-card-rose));
+    color: rgb(var(--color-ink));
+  }
+
+  .tone-card--rose { background: rgb(var(--color-card-rose)); }
+  .tone-card--lilac { background: rgb(var(--color-card-lilac)); }
+  .tone-card--cream { background: rgb(var(--color-card-cream)); }
+
+  .tone-card--deep {
+    background: rgb(var(--color-card-deep));
+    color: rgb(var(--color-ink-on-deep));
+  }
+
+  .tone-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .tone-card__name {
+    font-size: 1.02rem;
+    line-height: 1.25;
+  }
+
+  .tone-card__text {
+    font-size: 0.86rem;
+    line-height: 1.5;
+    opacity: 0.78;
+  }
+
+  /* A faixa da prévia. Altura fixa para os quatro cards baterem em linha. */
+  .tone-card__preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 110px;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-surface) / 0.62);
+  }
+
+  .tone-card--deep .tone-card__preview {
+    background: rgb(var(--color-ink-on-deep) / 0.09);
+  }
+
+  /* Contador: dígitos em mono e tabular-nums, senão eles dançam. */
+  .tone-card__digit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.15rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-surface));
+  }
+
+  .tone-card__digit strong {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.15rem;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .tone-card__digit small {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  /* Galeria: três retratos em leque. Precisam de tinta própria — brancos
+     sobre o painel claro da prévia eles se fundem num borrão só, e o leque
+     deixa de ser leque. A moldura branca é o que separa um do outro. */
+  .tone-card__gallery {
+    gap: 0.15rem;
+  }
+
+  .tone-card__gallery span {
+    width: 32px;
+    height: 46px;
+    border-radius: 6px;
+    border: 2px solid rgb(var(--color-surface));
+    background: linear-gradient(
+      160deg,
+      rgb(var(--color-accent) / 0.22) 0%,
+      rgb(var(--color-accent) / 0.42) 100%
+    );
+    box-shadow: 0 6px 14px -8px rgb(0 0 0 / 0.5);
+  }
+
+  .tone-card__gallery span:first-child { transform: rotate(-10deg) translateX(-3px); }
+  .tone-card__gallery span:nth-child(2) { transform: scale(1.16); z-index: 1; }
+  .tone-card__gallery span:last-child { transform: rotate(10deg) translateX(3px); }
+
+  /* Música: play e as barras da onda. */
+  .tone-card__music {
+    gap: 0.6rem;
+  }
+
+  .tone-card__play {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    flex: none;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-safelight));
+    color: rgb(var(--color-ink));
+  }
+
+  .tone-card__wave {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 42px;
+  }
+
+  .tone-card__wave i {
+    display: block;
+    width: 4px;
+    border-radius: 999px;
+    background: rgb(var(--color-safelight));
+  }
+
+  /* Carta: um trecho, na display, como ela aparece na página. */
+  .tone-card__letter p {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    text-align: center;
+    text-wrap: balance;
+  }
+
+  /* A linha compacta com o resto dos blocos. */
+  .blocks-more {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1.1rem;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-lg);
+    background: rgb(var(--color-surface));
+    box-shadow: var(--shadow-card);
+  }
+
+  .blocks-more__label {
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .blocks-more__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.1rem;
+  }
+
+  .blocks-more__list li {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.88rem;
+  }
+
+  .blocks-more__icon {
+    display: grid;
+    place-items: center;
+    color: rgb(var(--color-accent));
+  }
+
   /* --- Faixa escura + envelope (SPEC 8.1 §7) --------------------------- *
    * A única seção escura da landing. O contraste com a pele clara em volta é
    * o que dá respiração à página; sem ela a rolagem inteira é rosa sobre rosa.
