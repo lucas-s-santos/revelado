@@ -1,51 +1,72 @@
 "use client";
 
-import { useRef } from "react";
+import { useState } from "react";
 
-import { Frame } from "@/components/ui/frame";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { useSectionProgress } from "@/hooks/use-section-progress";
 import { copy } from "@/lib/copy";
 
 /**
- * A assinatura da marca — SPEC 8.1 seção 7 e 6.3.
+ * A quebra escura da landing — SPEC 8.1 seção 7.
  *
- * Quatro fotos saem de `saturate(.06) blur(5px)` para nítidas conforme o
- * scroll, com stagger. O hook escreve `--p` no contêiner e a classe
- * `.developing` resolve o filtro em CSS: zero JS por frame.
+ * É a única seção que respira no escuro. Tudo em volta é a pele clara, e o
+ * contraste entre as duas é o que faz a página ter respiração em vez de
+ * rolar como um bloco rosa só.
  *
- * As fotos aqui são as molduras vazias do `Frame` — quando houver imagens de
- * exemplo em `public/`, é só passar `src`.
+ * O que estava aqui antes eram quatro molduras vazias esperando fotos de
+ * exemplo que nunca chegaram. Na tela isso lê como imagem quebrada, não como
+ * espera — então o lugar passou a ser do envelope, que não depende de asset
+ * nenhum: é forma em CSS.
+ *
+ * Cliente por causa de um `useState`. O envelope é um `<button>` de verdade,
+ * então teclado e leitor de tela funcionam sem nada extra. Com
+ * `prefers-reduced-motion` a aba não gira: o estado troca sem transição
+ * (regra 14).
  */
 export function Revelation() {
-  const ref = useRef<HTMLDivElement>(null);
+  const [aberto, setAberto] = useState(false);
   const reduced = useReducedMotion();
 
-  useSectionProgress(ref, { enabled: !reduced });
-
-  const labels = ["o primeiro encontro", "a viagem", "o dia a dia", "hoje"];
-
   return (
-    <section className="section">
-      <header className="section__head">
-        <p className="eyebrow">{copy.revelation.eyebrow}</p>
-        <h2 className="section__title">{copy.revelation.title}</h2>
-        <p className="section__lede">{copy.revelation.lede}</p>
-      </header>
+    <div className="deep-band">
+      <section className="section deep-band__inner">
+        <div className="revelation__grid">
+          <div className="revelation__copy">
+            <p className="eyebrow eyebrow--on-deep">{copy.revelation.eyebrow}</p>
 
-      <div ref={ref} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {labels.map((label, index) => (
-          <div
-            key={label}
-            className={reduced ? undefined : "developing"}
-            style={{ "--i": index } as React.CSSProperties}
-          >
-            <Frame ratio="3/4" vignette={0.6}>
-              <span className="eyebrow">{label}</span>
-            </Frame>
+            <h2 className="section__title">
+              {copy.revelation.titleLead}{" "}
+              <span className="display-italic">
+                {copy.revelation.titleAccent}
+              </span>
+            </h2>
+
+            <p className="revelation__lede">{copy.revelation.lede}</p>
           </div>
-        ))}
-      </div>
-    </section>
+
+          <div className="revelation__stage">
+            <button
+              type="button"
+              aria-expanded={aberto}
+              aria-label={aberto ? copy.revelation.close : copy.revelation.open}
+              onClick={() => setAberto((v) => !v)}
+              data-open={aberto || undefined}
+              data-still={reduced || undefined}
+              className="envelope"
+            >
+              <span aria-hidden className="envelope__card">
+                {copy.revelation.peek}
+              </span>
+              <span aria-hidden className="envelope__body" />
+              <span aria-hidden className="envelope__flap" />
+              <span aria-hidden className="envelope__seal" />
+            </button>
+
+            <p className="revelation__hint" aria-live="polite">
+              {aberto ? copy.revelation.openHint : copy.revelation.closedHint}
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }

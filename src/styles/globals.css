@@ -408,6 +408,10 @@
     color: rgb(var(--color-ink-muted));
   }
 
+  .deep-band .section__title {
+    color: rgb(var(--color-ink-on-deep));
+  }
+
   /* --- Barra de promoção (SPEC 8.1 §1) --------------------------------- */
   .promo-bar {
     position: sticky;
@@ -857,6 +861,219 @@
     font-size: 0.9rem;
     line-height: 1.55;
     color: rgb(var(--color-ink-muted));
+  }
+
+  /* --- Faixa escura + envelope (SPEC 8.1 §7) --------------------------- *
+   * A única seção escura da landing. O contraste com a pele clara em volta é
+   * o que dá respiração à página; sem ela a rolagem inteira é rosa sobre rosa.
+   * Os pares de texto daqui estão medidos em `pnpm contrast`. */
+  .deep-band {
+    width: 100%;
+    background: linear-gradient(
+      160deg,
+      rgb(var(--color-deep)) 0%,
+      rgb(var(--color-deep-2)) 100%
+    );
+    color: rgb(var(--color-ink-on-deep));
+  }
+
+  .deep-band__inner {
+    padding-bottom: clamp(4rem, 10vw, 7.5rem);
+  }
+
+  .eyebrow--on-deep {
+    color: rgb(var(--color-brand-on-deep));
+  }
+
+  .revelation__grid {
+    display: grid;
+    gap: clamp(2.5rem, 7vw, 4.5rem);
+    align-items: center;
+  }
+
+  @media (min-width: 900px) {
+    .revelation__grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .revelation__copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .revelation__lede {
+    color: rgb(var(--color-muted-on-deep));
+    max-width: 46ch;
+  }
+
+  .revelation__stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.1rem;
+  }
+
+  .revelation__hint {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(var(--color-muted-on-deep));
+  }
+
+  /* O envelope é forma em CSS, não imagem: não custa byte nenhum e acompanha
+     a paleta sozinho. É um <button> de verdade — foco e teclado vêm de graça. */
+  .envelope {
+    position: relative;
+    width: min(320px, 100%);
+    aspect-ratio: 3 / 2;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    perspective: 900px;
+  }
+
+  .envelope__card,
+  .envelope__body,
+  .envelope__flap,
+  .envelope__seal {
+    position: absolute;
+    transition:
+      transform var(--dur-slow) var(--ease-out),
+      opacity var(--dur-base) var(--ease-out);
+  }
+
+  /* A carta que sai de dentro. Fica atrás da frente do envelope e sobe. */
+  .envelope__card {
+    /* Geometria: o bolso cobre os 64% de baixo, ou seja, de 36% a 100% a
+       partir do topo. Fechada, a carta precisa caber INTEIRA nessa faixa —
+       alta demais ela aparece pelos cantos transparentes da aba (em cima) ou
+       sobra para fora do envelope (embaixo). Daí 38% + 58% = 96%. */
+    left: 9%;
+    right: 9%;
+    top: 38%;
+    height: 58%;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    padding: 1.1rem;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-ink-on-deep));
+    color: rgb(var(--color-deep));
+    font-family: var(--font-display);
+    font-size: 0.88rem;
+    line-height: 1.3;
+    text-align: center;
+    /* Fechado, a carta tem de sumir por inteiro atrás do bolso. A aba é um
+       triângulo, então os cantos de cima dela são transparentes: qualquer
+       pedaço da carta acima da linha do bolso (36%) aparece por ali e entrega
+       o texto antes da pessoa abrir. */
+    transform: translateY(0);
+    box-shadow: 0 18px 30px -18px rgb(0 0 0 / 0.7);
+  }
+
+  /* Sobe o bastante para a carta inteira ficar acima da linha do bolso (36%).
+     Com menos que isso o texto é cortado ao meio: a carta centraliza o próprio
+     conteúdo, e o centro dela caía justamente atrás da frente do envelope. */
+  .envelope[data-open] .envelope__card {
+    transform: translateY(-95%);
+  }
+
+  /* A frente do envelope: o bolso que esconde a carta. */
+  .envelope__body {
+    inset: auto 0 0 0;
+    height: 64%;
+    z-index: 4;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-brand)) 0%,
+      rgb(var(--color-accent)) 100%
+    );
+  }
+
+  /* O V da frente do envelope é DESENHO, não recorte. Como recorte ele abria
+     um vão: a aba é um triângulo que aponta para baixo e o V apontava para
+     baixo também, então entre as duas diagonais sobrava uma lente onde nada
+     cobria — e a carta aparecia por ali antes de alguém abrir. Aqui o bolso é
+     um retângulo sólido, que veda, e o V vem por cima como linha. */
+  .envelope__body::before,
+  .envelope__body::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+  }
+
+  /* Cada aba vive na sua metade. Um gradiente diagonal sozinho atravessa a
+     caixa inteira, e os dois juntos desenhariam um X em vez de um V. */
+  .envelope__body::before {
+    left: 0;
+    background: linear-gradient(
+      to bottom right,
+      transparent calc(50% - 1px),
+      rgb(var(--color-deep) / 0.22) 50%,
+      transparent calc(50% + 1px)
+    );
+  }
+
+  .envelope__body::after {
+    right: 0;
+    background: linear-gradient(
+      to bottom left,
+      transparent calc(50% - 1px),
+      rgb(var(--color-deep) / 0.22) 50%,
+      transparent calc(50% + 1px)
+    );
+  }
+
+  /* A aba de cima, que gira para trás ao abrir. */
+  .envelope__flap {
+    inset: 0 0 auto 0;
+    height: 62%;
+    z-index: 3;
+    transform-origin: top center;
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-brand-bright)) 0%,
+      rgb(var(--color-brand)) 100%
+    );
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  }
+
+  .envelope[data-open] .envelope__flap {
+    transform: rotateX(180deg);
+    z-index: 0;
+  }
+
+  .envelope__seal {
+    top: 46%;
+    left: 50%;
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+    z-index: 5;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-ink-on-deep));
+    box-shadow: 0 6px 14px -6px rgb(0 0 0 / 0.6);
+  }
+
+  .envelope[data-open] .envelope__seal {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+
+  /* Regra 14: sem movimento, o estado ainda troca — só não anima. */
+  .envelope[data-still] .envelope__card,
+  .envelope[data-still] .envelope__body,
+  .envelope[data-still] .envelope__flap,
+  .envelope[data-still] .envelope__seal {
+    transition: none;
   }
 
   /* --- Mockup em destaque (SPEC 8.1) ----------------------------------- */
