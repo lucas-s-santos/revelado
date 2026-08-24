@@ -105,6 +105,11 @@
      Não acompanha a pele. */
   --color-qr-paper: 255 255 255;
   --color-qr-ink: 18 12 28;
+
+  /* Texto sobre a luz de segurança (selo de plano, avisos em âmbar). Fixo, e
+     não `--color-ink`: dentro de um ladrilho de pele escura a tinta vira
+     creme, e creme sobre âmbar não se lê. */
+  --color-on-safelight: 38 24 8;
 }
 
 /* --- Pele escura: a Câmara Escura original ------------------------------- */
@@ -153,6 +158,9 @@
   --palette-rubi: 198 52 84;
   --palette-ciano: 17 118 114;
   --palette-papel: 133 110 62;
+  --palette-sepia: 138 90 43;
+  --palette-selenio: 109 76 168;
+  --palette-verde: 47 122 82;
 }
 
 [data-skin="escura"] {
@@ -161,6 +169,9 @@
   --palette-rubi: 214 74 92;
   --palette-ciano: 88 214 208;
   --palette-papel: 230 216 184;
+  --palette-sepia: 217 160 102;
+  --palette-selenio: 183 155 232;
+  --palette-verde: 127 214 160;
 }
 
 [data-palette="magenta"] {
@@ -177,4 +188,13 @@
 }
 [data-palette="papel"] {
   --color-accent: var(--palette-papel);
+}
+[data-palette="sepia"] {
+  --color-accent: var(--palette-sepia);
+}
+[data-palette="selenio"] {
+  --color-accent: var(--palette-selenio);
+}
+[data-palette="verde"] {
+  --color-accent: var(--palette-verde);
 }

@@ -35,6 +35,9 @@ export const PALETTE_IDS = [
   "rubi",
   "ciano",
   "papel",
+  "sepia",
+  "selenio",
+  "verde",
 ] as const;
 
 export type PaletteId = (typeof PALETTE_IDS)[number];
@@ -60,6 +63,9 @@ export const PALETTES: readonly Palette[] = [
   { id: "rubi", name: "Revelador", accent: "214 74 92" },
   { id: "ciano", name: "Cianotipia", accent: "88 214 208" },
   { id: "papel", name: "Papel", accent: "230 216 184" },
+  { id: "sepia", name: "Sépia", accent: "217 160 102" },
+  { id: "selenio", name: "Selênio", accent: "183 155 232" },
+  { id: "verde", name: "Viragem", accent: "127 214 160" },
 ] as const;
 
 const PALETTE_BY_ID = new Map<string, Palette>(

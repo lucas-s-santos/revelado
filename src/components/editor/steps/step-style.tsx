@@ -1,9 +1,23 @@
 "use client";
 
-import { PALETTES, SKINS } from "@/lib/palettes";
+import { getPalette } from "@/lib/palettes";
+import { isThemeUnlocked, THEMES } from "@/lib/themes";
 import { useEditorStore } from "@/stores/editor-store";
 
-/** Passo 5 — Estilo. Paleta, fonte e efeito (SPEC 7.2, `theme`). */
+/**
+ * Passo de estilo — tema, letra e efeito (SPEC 7.2, `theme`).
+ *
+ * A pele e a cor deixaram de ser dois seletores separados e viraram uma grade
+ * de temas nomeados. Ninguém escolhe "pele clara + accent selênio"; escolhe
+ * "Selênio". Por baixo continua sendo skin × palette, então nada muda no CSS.
+ *
+ * O tema ativo é **derivado** de skin + palette, não guardado: assim a grade
+ * entra sem migração de conteúdo e rascunho antigo continua abrindo.
+ *
+ * Os três temas travados aparecem, mas não selecionam. Deixar escolher sem o
+ * checkout cobrar seria prometer o que o sistema não entrega — quando a
+ * cobrança existir (fase E), eles passam a selecionar com aviso.
+ */
 
 const FONTS = [
   {
@@ -36,41 +50,43 @@ export function StepStyle() {
         <p className="step__lede">Veja no celular ao lado — muda na hora.</p>
       </header>
 
-      {/* A pele vem antes da cor de propósito: ela troca o fundo inteiro, e
-          escolher o acento antes seria escolher no escuro. */}
       <fieldset className="fieldset">
-        <legend className="field__label">Fundo</legend>
-        <div className="chips">
-          {SKINS.map((skin) => (
-            <button
-              key={skin.id}
-              type="button"
-              onClick={() => setTheme({ skin: skin.id })}
-              aria-pressed={content.theme.skin === skin.id}
-              className="chip"
-            >
-              <span>{skin.name}</span>
-              <small>{skin.hint}</small>
-            </button>
-          ))}
-        </div>
-      </fieldset>
+        <legend className="field__label">Tema</legend>
 
-      <fieldset className="fieldset">
-        <legend className="field__label">Cor</legend>
-        <div className="swatches">
-          {PALETTES.map((palette) => (
-            <button
-              key={palette.id}
-              type="button"
-              onClick={() => setTheme({ palette: palette.id })}
-              aria-pressed={content.theme.palette === palette.id}
-              aria-label={palette.name}
-              title={palette.name}
-              className="swatch"
-              style={{ background: `rgb(${palette.accent})` }}
-            />
-          ))}
+        <div className="themes">
+          {THEMES.map((theme) => {
+            const ativo =
+              content.theme.skin === theme.skin &&
+              content.theme.palette === theme.palette;
+            // Ainda não há plano escolhido no editor: só os livres contam.
+            const livre = isThemeUnlocked(theme, null);
+
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                disabled={!livre}
+                onClick={() =>
+                  setTheme({ skin: theme.skin, palette: theme.palette })
+                }
+                aria-pressed={ativo}
+                className="theme-tile"
+                data-skin={theme.skin}
+                data-locked={!livre || undefined}
+              >
+                <span aria-hidden className="theme-tile__chip">
+                  <i style={{ background: `rgb(${getPalette(theme.palette).accent})` }} />
+                </span>
+
+                <span className="theme-tile__name">{theme.name}</span>
+                <small className="theme-tile__hint">{theme.hint}</small>
+
+                {!livre ? (
+                  <span className="theme-tile__lock">no Especial</span>
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       </fieldset>
 

@@ -33,7 +33,10 @@ function tokensOf(selector) {
   return out;
 }
 
-const clara = tokensOf("@theme");
+// As paletas da pele clara não moram no @theme: ficam num `:root` separado,
+// logo abaixo. Sem ler os dois blocos, metade das cores escolhíveis pelo
+// editor nunca era medida.
+const clara = { ...tokensOf("@theme"), ...tokensOf(":root {") };
 const escura = { ...clara, ...tokensOf('[data-skin="escura"]') };
 
 // `--color-accent` na pele escura é `var(--palette-magenta)`: resolve na mão,
@@ -63,6 +66,7 @@ const PARES = [
   ["clara", "color-accent", "color-bg", 4.5, "link/eyebrow sobre o fundo"],
   ["clara", "color-accent", "color-surface", 4.5, "link/eyebrow no cartão"],
   ["clara", "color-on-brand", "color-brand", 4.5, "texto do botão primário"],
+  ["clara", "color-on-safelight", "color-safelight", 4.5, "selo de plano sobre âmbar"],
   ["clara", "color-on-brand", "color-accent", 4.5, "texto no fim do gradiente do CTA"],
   ["clara", "color-accent", "color-on-brand", 4.5, "botão invertido dentro do CTA"],
   ["clara", "color-ink", "color-hero-wash", 6, "h1 sobre a foto do hero (folga)"],
@@ -80,6 +84,25 @@ const PARES = [
   ["escura", "color-ink-muted", "color-bg", 4.5, "secundário sobre o fundo"],
   ["escura", "color-accent", "color-bg", 4.5, "accent sobre o fundo"],
 ];
+
+/* Cada paleta é um --color-accent possível: a pessoa escolhe no editor e a
+ * cor entra como texto (eyebrow, link, rótulo) sobre o fundo e sobre o cartão.
+ * Medir só o accent padrão deixaria as outras passarem sem ninguém olhar —
+ * que é exatamente onde uma cor bonita e ilegível se esconde. */
+for (const [nome, valor] of Object.entries(clara)) {
+  if (!nome.startsWith("palette-")) continue;
+  const id = nome.slice("palette-".length);
+  PARES.push(["clara", nome, "color-bg", 4.5, `paleta ${id} sobre o fundo`]);
+  PARES.push(["clara", nome, "color-surface", 4.5, `paleta ${id} no cartão`]);
+  void valor;
+}
+
+for (const nome of Object.keys(escura)) {
+  if (!nome.startsWith("palette-")) continue;
+  const id = nome.slice("palette-".length);
+  PARES.push(["escura", nome, "color-bg", 4.5, `paleta ${id} sobre o fundo`]);
+  PARES.push(["escura", nome, "color-surface", 4.5, `paleta ${id} no cartão`]);
+}
 
 let falhas = 0;
 console.log("");
