@@ -193,10 +193,18 @@ export const copy = {
     ],
   },
 
+  // A quebra escura da landing. Tudo em volta é claro; esta seção é a única
+  // que respira no escuro, e é ela que segura o envelope.
   revelation: {
-    eyebrow: "a revelação",
-    title: "As fotos aparecem como no laboratório",
-    lede: "Quem abre o seu link vê as fotos revelando conforme rola a página. É o efeito que faz a pessoa parar e olhar até o fim.",
+    eyebrow: "uma prévia da emoção",
+    titleLead: "Não conte o que é.",
+    titleAccent: "Deixa ela descobrir.",
+    lede: "Abre o envelope e veja o que aparece do outro lado do link — antes mesmo de você dizer qualquer coisa.",
+    closedHint: "toque para abrir",
+    openHint: "é isto que ela vê primeiro",
+    open: "Abrir o envelope",
+    close: "Fechar o envelope",
+    peek: "Nossa história começou numa terça que não tinha nada de especial.",
   },
 
   pricing: {
