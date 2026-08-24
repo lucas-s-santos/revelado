@@ -84,13 +84,31 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
    horizontal e sem erro de console nos dois. Falta a medição de performance.
 6. **Dev server e `next build` disputam o mesmo `.next`.** Rodar os dois ao
    mesmo tempo quebra o build com `Cannot find module for page: /_not-found`
-   ou `MODULE_NOT_FOUND`. Encerre o servidor antes de buildar.
+   ou `MODULE_NOT_FOUND`. Encerre o servidor antes de buildar. E `rm -rf
+   .next` seguido de build falha na **primeira** tentativa com alguma
+   frequência neste drive, sempre passando na segunda — build incremental
+   (sem apagar) não tem esse problema.
 7. **`/termos` e `/privacidade` não existem.** O rodapé aponta para as duas
    e o Next faz prefetch quando ele entra em tela: dois 404 em toda visita.
    Não é só link quebrado — são páginas que um site que cobra precisa ter.
    O texto é jurídico e específico do negócio, então não inventei nenhum.
 
 ---
+
+### A régua tem dois pontos cegos — conheça os dois
+
+`pnpm contrast` mede **pares de tokens sólidos**. Ela não vê:
+
+1. **Opacidade aplicada por cima.** Um `opacity: .62` numa peça inteira
+   derruba o contraste do texto abaixo do mínimo e a régua continua verde.
+   Já aconteceu na grade de temas. Se precisar esmaecer algo, esmaeça a
+   decoração, nunca o texto.
+2. **Qual classe cai em qual superfície.** Ela mede que `--color-accent`
+   funciona sobre `--color-bg`; não sabe que `.display-italic` foi parar
+   dentro de um cartão rosa. Foi assim que o CTA saiu ilegível.
+
+Para os dois casos, o que funciona é ler o estilo **computado** no navegador
+contra o build de produção.
 
 ### Armadilha de cascata — ler antes de mexer em CSS
 
@@ -122,7 +140,7 @@ el.evaluate((n) => getComputedStyle(n).color)
 |---|---|---|
 | A | Pele: tokens + régua de contraste | ✅ completa |
 | B | Landing seção por seção | ✅ **completa** — Revelation com envelope, BlocksGrid nos 4 tons, cenas de entrega, CTA em cartão rosa |
-| C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | ⬜ não começada |
+| C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | 🟡 parcial — 12 temas com trava ✅; faltam os 9 passos, a barra de % e os 4 formatos |
 | D | Formatos novos: envelope que abre, carta interativa, quiz do casal | ⬜ não começada |
 | E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada — **mexe em dinheiro** (plans.ts, checkout, seed); pedir aval antes |
 
