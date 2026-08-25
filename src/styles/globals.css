@@ -896,6 +896,102 @@
     color: rgb(var(--color-ink-muted));
   }
 
+  /* --- Carta em envelope (formato "carta interativa") ------------------- *
+   * Vive na página publicada, então usa os tokens da pele escolhida — funciona
+   * igual no papel e na câmara escura, sem regra saber de que cor é a pele. */
+  .letter-envelope {
+    display: flex;
+    justify-content: center;
+  }
+
+  .letter-envelope__seal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.75rem 1.5rem;
+    border-radius: var(--radius-lg);
+    background: rgb(var(--color-surface));
+    box-shadow: var(--shadow-card);
+    transition: transform var(--dur-base) var(--ease-out);
+  }
+
+  .letter-envelope__seal:hover {
+    transform: translateY(-2px);
+  }
+
+  .letter-envelope__seal[data-still]:hover {
+    transform: none;
+  }
+
+  /* A forma do envelope: aba triangular sobre um bolso sólido. O bolso é
+     retângulo cheio, não recorte em V — a lição da faixa da landing, onde o
+     recorte abria um vão entre as duas diagonais. Aqui não há nada atrás para
+     vazar, mas a forma sólida é a que lê melhor em tamanho pequeno. */
+  .letter-envelope__shape {
+    position: relative;
+    display: block;
+    width: 96px;
+    height: 64px;
+  }
+
+  .letter-envelope__body {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-accent)) 0%,
+      rgb(var(--color-accent) / 0.82) 100%
+    );
+  }
+
+  .letter-envelope__flap {
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 62%;
+    z-index: 1;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    background: rgb(var(--color-accent) / 0.72);
+  }
+
+  .letter-envelope__cue {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    text-align: center;
+  }
+
+  .letter-envelope__hint {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* Aberta, a carta é papel normal. O envelope era portão, não recipiente:
+     assim o texto pode ter o tamanho que precisar. */
+  .letter-envelope__paper {
+    width: 100%;
+    animation: letter-unfold var(--dur-slow) var(--ease-out) both;
+  }
+
+  .letter-envelope__paper[data-still] {
+    animation: none;
+  }
+
+  @keyframes letter-unfold {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
   /* --- Grade de temas do editor ---------------------------------------- *
    * Cada ladrilho carrega o próprio `data-skin`, e o theme.css já reescreve
    * os tokens para os descendentes desse atributo. Então o ladrilho se pinta

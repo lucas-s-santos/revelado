@@ -64,6 +64,7 @@ export function defaultBlocks(): Block[] {
       props: {
         text: "Escreva aqui o que você não conseguiria falar olhando nos olhos.",
         typewriter: false,
+        reveal: "plain" as const,
         signature: undefined,
       },
     }),
