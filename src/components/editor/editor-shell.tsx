@@ -5,6 +5,7 @@ import { useDeferredValue, useEffect, useState } from "react";
 
 import { Logo } from "@/components/chrome/logo";
 import { SaveIndicator } from "@/components/editor/save-indicator";
+import { StepFormat } from "@/components/editor/steps/step-format";
 import { StepMessage } from "@/components/editor/steps/step-message";
 import { StepMusic } from "@/components/editor/steps/step-music";
 import { StepPhotos } from "@/components/editor/steps/step-photos";
@@ -32,7 +33,11 @@ import { useEditorStore } from "@/stores/editor-store";
  */
 
 /**
- * Os nove passos.
+ * Os dez passos.
+ *
+ * O formato abre a sequência: ele decide QUAIS blocos a página tem, então
+ * escolher depois de preencher significaria remontar a moldura por cima do
+ * trabalho já feito.
  *
  * Eram cinco, e quatro dos que entraram não são divisão de tela: são conteúdo
  * que o produto renderizava e ninguém conseguia preencher. Música e linha do
@@ -47,6 +52,7 @@ import { useEditorStore } from "@/stores/editor-store";
  * ordem aqui, conserte lá.
  */
 const STEPS = [
+  { id: "formato", label: "Formato", Component: StepFormat },
   { id: "quem", label: "Quem", Component: StepWho },
   { id: "quando", label: "Quando", Component: StepWhen },
   { id: "fotos", label: "Fotos", Component: StepPhotos },

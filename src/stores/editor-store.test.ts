@@ -94,6 +94,69 @@ describe("editor store", () => {
     });
   });
 
+  describe("trocar de formato", () => {
+    const tipos = () =>
+      useEditorStore.getState().content?.blocks.map((b) => b.type) ?? [];
+
+    it("remonta a moldura sem apagar o que foi escrito", () => {
+      // A promessa inteira da ação está neste caso: reordenar não pode
+      // recriar bloco, senão o texto vai junto.
+      const letter = findBlock(useEditorStore.getState().content, "letter")!;
+      useEditorStore
+        .getState()
+        .patchBlockProps(letter.id, { text: "não me apaga" });
+
+      useEditorStore.getState().applyTemplate("linha-do-tempo");
+
+      expect(findBlock(useEditorStore.getState().content, "letter")?.props.text).toBe(
+        "não me apaga",
+      );
+    });
+
+    it("põe os blocos na ordem do preset", () => {
+      useEditorStore.getState().applyTemplate("linha-do-tempo");
+
+      const ordem = tipos();
+      expect(ordem[0]).toBe("hero");
+      expect(ordem.indexOf("timeline")).toBeLessThan(ordem.indexOf("gallery"));
+      expect(ordem.at(-1)).toBe("footer");
+    });
+
+    it("cria o bloco opcional que o formato pede e a página não tem", () => {
+      expect(tipos()).not.toContain("timeline");
+
+      useEditorStore.getState().applyTemplate("linha-do-tempo");
+
+      expect(tipos()).toContain("timeline");
+    });
+
+    it("mantém bloco que o formato não pede, antes do rodapé", () => {
+      useEditorStore.getState().addBlock("music");
+      // "linha-do-tempo" não inclui música: ela tem de sobreviver à troca.
+      useEditorStore.getState().applyTemplate("linha-do-tempo");
+
+      const ordem = tipos();
+      expect(ordem).toContain("music");
+      expect(ordem.indexOf("music")).toBeLessThan(ordem.indexOf("footer"));
+    });
+
+    it("aplica paleta, fonte e efeito do preset", () => {
+      useEditorStore.getState().applyTemplate("linha-do-tempo");
+
+      const theme = useEditorStore.getState().content?.theme;
+      expect(theme?.template).toBe("linha-do-tempo");
+      expect(theme?.palette).toBe("ambar");
+      expect(theme?.effect).toBe("none");
+    });
+
+    it("ignora formato desconhecido em vez de zerar a página", () => {
+      const antes = tipos();
+      useEditorStore.getState().applyTemplate("nao-existe");
+
+      expect(tipos()).toEqual(antes);
+    });
+  });
+
   it("guarda o tema no conteúdo", () => {
     useEditorStore.getState().setTheme({ palette: "ciano", effect: "stars" });
 

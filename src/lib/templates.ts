@@ -118,3 +118,24 @@ const TEMPLATE_BY_ID = new Map(
 export function getTemplate(id: string): TemplateSeed | undefined {
   return TEMPLATE_BY_ID.get(id);
 }
+
+/**
+ * O template é montável hoje?
+ *
+ * Dois presets citam blocos que ainda não têm componente (`reasons` em
+ * "Motivos", `capsule` em "Cápsula do tempo"). O renderer ignora bloco sem
+ * componente, então oferecer esses formatos no editor entregaria uma página
+ * onde o bloco principal simplesmente não aparece — sem erro, sem aviso.
+ *
+ * O filtro é por dado, não por lista à mão: quando `reasons` e `capsule`
+ * ganharem componente, os formatos aparecem sozinhos.
+ *
+ * Recebe os tipos prontos por parâmetro para este módulo não importar o
+ * registry: `templates.ts` alimenta o seed do banco, que roda fora do React.
+ */
+export function isTemplateReady(
+  template: TemplateSeed,
+  readyTypes: readonly BlockType[],
+): boolean {
+  return template.preset.blocks.every((type) => readyTypes.includes(type));
+}
