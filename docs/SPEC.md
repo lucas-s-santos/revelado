@@ -9,9 +9,16 @@
 > **templates globais** (`lib/templates.ts`). O schema dos blocos foi para a
 > **versão 2**, com migração de leitura em `lib/blocks/migrate.ts`.
 >
+> **v3 — identidade rosa, dois planos e editor em onze passos.** A pele clara
+> foi repintada: fundo rosado, tinta arroxeada e **dois** rosas de marca — um
+> que preenche, outro que escreve (ver 4.1). Os planos caíram de três para
+> dois, com entrada de impulso de 24 horas. O editor virou onze passos, com
+> escolha de formato no início e revisão no fim. Contraste virou verificação
+> automática: `pnpm contrast` mede 57 pares e falha o processo.
+>
 > **v2.1 — duas peles e cartão parcelado.** A "Câmara Escura" deixou de ser a
-> única pele: o padrão agora é a **clara** (creme, tinta quase-preta,
-> framboesa), e a escura virou escolha de quem monta a página
+> única pele: o padrão passou a ser a **clara**, e a escura virou escolha de
+> quem monta a página
 > (`theme.skin`). Os tokens de superfície passaram a dizer o papel
 > (`--color-bg`, `--color-surface`, `--color-ink`) em vez da cor. No checkout
 > entrou **cartão em até 12x** via Checkout Pro.
@@ -180,7 +187,9 @@ revelado/
 
 O vocabulário vem do laboratório fotográfico, mas ele agora se expressa em **duas peles**:
 
-- **clara** (padrão): creme quente, tinta quase-preta, framboesa. É a pele do produto — a landing, o editor e o checkout são sempre ela.
+- **clara** (padrão): fundo rosado (`#FFF5F8`), tinta arroxeada (`#1A1230`), rosa de marca. É a pele do produto — a landing, o editor e o checkout são sempre ela.
+
+  **Dois rosas, de propósito.** `--color-brand` (`#E01B7A`) preenche e carrega branco a 4,56:1; `--color-accent` escreve, escurecido para passar sobre o fundo claro; `--color-brand-bright` (`#FF2E93`) só brilha e faz gradiente — branco sobre ele dá **3,48:1** e nunca pode ficar atrás de texto. Foi a régua que separou os três: o rosa que a referência usa no botão não sustenta texto.
 - **escura** ("Câmara Escura"): preto arroxeado de darkroom, luz de segurança âmbar, magenta de filtro de ampliação. Deixou de ser a única e virou uma escolha de quem monta a página.
 
 **Por que a clara é o padrão:** o produto vende presente de casal para o público amplo, e o noir era um filtro na porta — bonito, autoral e estreito.
@@ -612,6 +621,10 @@ export const blockSchemas = {
     text: z.string().max(4000),
     typewriter: z.boolean().default(false),
     signature: z.string().max(60).optional(),
+    // v3 — "carta interativa": o texto começa fechado e quem recebe abre.
+    // É PROP, não bloco novo: o conteúdo é o mesmo, e como blocos separados
+    // trocar de formato levaria junto o texto já escrito.
+    reveal: z.enum(["plain","envelope"]).default("plain"),
   }),
   gallery: z.object({
     layout: z.enum(["carousel","grid","polaroid","stack"]).default("carousel"),
@@ -630,6 +643,20 @@ export const blockSchemas = {
       text: z.string().max(400).optional(),
       mediaId: z.string().optional(),
     })).max(24),
+  }),
+  // v3 — quiz do casal. É PRESENTE, NÃO PROVA: não guarda placar, errar não
+  // trava nada, e o recado do fim aparece para quem acertou tudo e para quem
+  // não acertou nada. `answer` é índice e o schema recusa quando ele aponta
+  // para fora de `options` — senão a pergunta fica sem resposta possível.
+  quiz: z.object({
+    title: z.string().max(60),
+    questions: z.array(z.object({
+      id: z.string().min(1),
+      text: z.string().max(160),
+      options: z.array(z.string().max(80)).min(2).max(4),
+      answer: z.number().int().min(0),
+    })).max(12),
+    reward: z.string().max(400).optional(),
   }),
   reasons: z.object({
     title: z.string().max(60),
@@ -691,8 +718,8 @@ Formato de cada tela: objetivo · layout · estados · componentes · aceite.
 5. "Como funciona" em três atos sticky.
 6. Grid dos **blocos** — o que vai dentro da página. Server Component, sem troca de accent.
 7. **Revelação** (assinatura): quatro fotos revelando conforme o scroll.
-8. Preços: três planos, o do meio destacado, order bump clicável, total recalculando.
-9. Prova social: três depoimentos em SpotlightCard.
+8. Preços: **dois** planos — 1 Dia (R$ 19,90, 24h) e Eterno (R$ 34,90, sem prazo) —, o segundo destacado, itens ausentes riscados no primeiro, order bump clicável, total recalculando.
+9. **Cenas de entrega**: as três formas de a página chegar (QR impresso, link, música), rotuladas como ilustração. Não são depoimentos — depoimento inventado é alegação falsa, e entra aqui só quando houver gente real com permissão.
 10. FAQ em acordeão (`grid-template-rows: 0fr → 1fr`).
 11. CTA final com glow e contagem regressiva.
 12. Rodapé.
@@ -732,7 +759,11 @@ Cinco templates **globais** (`lib/templates.ts`), não mais dois por ocasião. C
 **Layout desktop:** duas colunas. Esquerda (420px) = controles. Direita = `PhoneFrame` sticky com preview ao vivo.
 **Layout mobile:** preview fixo no topo (40vh), controles em folha deslizante embaixo, com abas.
 
-**Modo simples (padrão):** stepper de 5 passos — Quem · Quando · Fotos · Mensagem · Estilo. Um passo por tela, barra de progresso, botão voltar.
+**Modo simples (padrão):** stepper de **11 passos** — Formato · Quem · Quando · Fotos · Carta · Música · Momentos · Quiz · Tema · Letra · Revisão. Um passo por tela, barra com porcentagem, botão voltar.
+
+O **Formato** abre a sequência porque decide *quais* blocos a página tem: escolher depois de preencher seria remontar a moldura por cima do trabalho feito. A **Revisão** fecha usando o mesmo `validateForPublish` do checkout — checagem própria ali faria a tela dizer "tudo pronto" para uma página que o pagamento recusa em seguida.
+
+**Blocos opcionais precisam de porta de entrada E de saída.** `music`, `timeline` e `quiz` não vêm no rascunho novo: a validação exige faixa escolhida, ao menos uma data e ao menos uma pergunta quando o bloco existe, então incluí-los no preset faria todo rascunho nascer inválido. O passo oferece adicionar — e oferece tirar, senão um bloco vazio trava a publicação sem jeito de desfazer.
 **Modo avançado:** lista de blocos arrastáveis, adicionar/remover/reordenar, painel de props por bloco.
 
 **Comportamentos obrigatórios:**
@@ -756,7 +787,11 @@ O Pix cria um `Payment` direto e a gente já sai sabendo o id dele. O cartão cr
 
 **Parcela:** teto de 12x com piso de R$ 3 por parcela (`lib/plans.ts`). Prometer na vitrine o que o provedor recusa no checkout é o pior jeito de perder a venda, então a vitrine e a cobrança usam **a mesma função**. Arredonda para baixo: a soma das parcelas nunca passa do total.
 
-Resumo da página + três planos + order bump ("deixar para sempre, +R$ 9") + campo de cupom + e-mail (obrigatório — é onde a conta nasce) + Pix ou cartão.
+Resumo da página + **dois** planos + order bump ("deixar para sempre") + campo de cupom + e-mail (obrigatório — é onde a conta nasce) + Pix ou cartão.
+
+**O bump vale exatamente a diferença entre os planos** (R$ 15 = 3490 − 1990). Se não valer, um dos caminhos até "para sempre" sai mais barato que o outro, e a pessoa descobre depois — tem teste travando isso.
+
+**Ids de plano não se renomeiam.** `Order.planId` referencia `Plan.id`: trocar o id obrigaria a migrar todo pedido gravado. Por isso os ids seguem `simples` e `especial` embora os nomes na tela sejam **1 Dia** e **Eterno**. O plano `para-sempre` saiu da vitrine mas a linha continua no banco (o seed usa `upsert`), então quem comprou antes segue com a página no ar.
 
 **Fluxo Pix:** gerar cobrança → mostrar QR e código copiável na própria tela → polling a cada 3s **e** webhook. Ao confirmar: `Multi Step Loader` → publica → `Confetti` → redireciona para `/sucesso`.
 
@@ -905,7 +940,7 @@ As 12 seções da 8.1 · responsivo até 360px · funil no PostHog · `prefers-r
 **Aceite:** renderizar um `SiteContent` fixo em preview e em `/p/[slug]` com o mesmo componente e resultado idêntico.
 
 ### Fase 4 — Editor
-Store Zustand + undo/redo · modo simples (stepper de 5 passos) · autosave com debounce · upload comprimido para o R2 com progresso e retry · `FocusGrid` com Focus Cards + Lens + Glowing Effect · reordenação com dnd-kit · recuperação de rascunho · limites por plano com upsell.
+Store Zustand + undo/redo · modo simples (stepper de 11 passos) · autosave com debounce · upload comprimido para o R2 com progresso e retry · `FocusGrid` com Focus Cards + Lens + Glowing Effect · reordenação com dnd-kit · recuperação de rascunho · limites por plano com upsell.
 **Aceite:** montar uma página inteira do zero em menos de 5 minutos num celular real, fechar a aba, voltar e encontrar tudo salvo.
 
 ### Fase 5 — Checkout e publicação
