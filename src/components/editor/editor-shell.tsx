@@ -6,8 +6,12 @@ import { useDeferredValue, useEffect, useState } from "react";
 import { Logo } from "@/components/chrome/logo";
 import { SaveIndicator } from "@/components/editor/save-indicator";
 import { StepMessage } from "@/components/editor/steps/step-message";
+import { StepMusic } from "@/components/editor/steps/step-music";
 import { StepPhotos } from "@/components/editor/steps/step-photos";
-import { StepStyle } from "@/components/editor/steps/step-style";
+import { StepReview } from "@/components/editor/steps/step-review";
+import { StepTheme } from "@/components/editor/steps/step-theme";
+import { StepTimeline } from "@/components/editor/steps/step-timeline";
+import { StepType } from "@/components/editor/steps/step-type";
 import { StepWhen } from "@/components/editor/steps/step-when";
 import { StepWho } from "@/components/editor/steps/step-who";
 import { PhoneFrame } from "@/components/preview/phone-frame";
@@ -27,13 +31,52 @@ import { useEditorStore } from "@/stores/editor-store";
  * respondendo na hora e o mockup atualiza logo atrás, sem travar a digitação.
  */
 
+/**
+ * Os nove passos.
+ *
+ * Eram cinco, e quatro dos que entraram não são divisão de tela: são conteúdo
+ * que o produto renderizava e ninguém conseguia preencher. Música e linha do
+ * tempo tinham bloco no schema desde a fase 3 e nenhum editor. Revisão não
+ * existia — a pessoa ia para o pagamento sem saber o que faltava.
+ *
+ * A ordem segue a da página publicada, não a facilidade de implementar: quem
+ * monta vai preenchendo de cima para baixo e reconhece o que já viu no
+ * celular ao lado.
+ *
+ * `STEP_OF_BLOCK`, em `step-review.tsx`, aponta para estes índices. Mexeu na
+ * ordem aqui, conserte lá.
+ */
 const STEPS = [
   { id: "quem", label: "Quem", Component: StepWho },
   { id: "quando", label: "Quando", Component: StepWhen },
   { id: "fotos", label: "Fotos", Component: StepPhotos },
-  { id: "mensagem", label: "Mensagem", Component: StepMessage },
-  { id: "estilo", label: "Estilo", Component: StepStyle },
+  { id: "mensagem", label: "Carta", Component: StepMessage },
+  { id: "musica", label: "Música", Component: StepMusic },
+  { id: "linha", label: "Momentos", Component: StepTimeline },
+  { id: "tema", label: "Tema", Component: StepTheme },
+  { id: "letra", label: "Letra", Component: StepType },
+  { id: "revisao", label: "Revisão", Component: StepReview },
 ] as const;
+
+/**
+ * O quanto já andou, de 0 a 100.
+ *
+ * Divide por `length - 1` e não por `length`: no último passo a barra tem de
+ * chegar a 100%, senão a pessoa termina de montar a página olhando para uma
+ * barra que diz que falta coisa.
+ */
+function percentOf(step: number): number {
+  return Math.round((step / (STEPS.length - 1)) * 100);
+}
+
+/** O tom muda com o avanço. Nada de "Passo 3 de 9", que é linguagem de sistema. */
+function cheerOf(step: number): string {
+  if (step === 0) return "Vamos começar";
+  if (step >= STEPS.length - 1) return "Última olhada";
+  if (step >= STEPS.length - 3) return "Quase lá";
+  if (step >= 3) return "Indo bem";
+  return "Bom começo";
+}
 
 export function EditorShell({
   draftId,
@@ -120,10 +163,22 @@ export function EditorShell({
             ))}
           </nav>
 
-          <div className="editor__progress" aria-hidden>
-            <span
-              style={{ transform: `scaleX(${(step + 1) / STEPS.length})` }}
-            />
+          <div className="editor__progress-head">
+            <p className="editor__cheer">{cheerOf(step)}</p>
+            <p data-numeric className="editor__percent">
+              {percentOf(step)}%
+            </p>
+          </div>
+
+          <div
+            className="editor__progress"
+            role="progressbar"
+            aria-valuenow={percentOf(step)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Progresso da montagem"
+          >
+            <span style={{ transform: `scaleX(${percentOf(step) / 100})` }} />
           </div>
 
           <div className="editor__step-body">

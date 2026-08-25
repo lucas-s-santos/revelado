@@ -4,6 +4,7 @@ import { enableMapSet, produce } from "immer";
 import { create } from "zustand";
 import { temporal } from "zundo";
 
+import { optionalBlock } from "@/lib/blocks/defaults";
 import type {
   Block,
   BlockType,
@@ -48,6 +49,9 @@ export interface EditorState {
     patch: Partial<PropsOf<T>>,
   ) => void;
   setTheme: (patch: Partial<SiteContent["theme"]>) => void;
+  /** Liga um bloco opcional (música, linha do tempo). Idempotente. */
+  addBlock: (type: "music" | "timeline") => void;
+  removeBlock: (blockId: string) => void;
   addMedia: (mediaIds: string[]) => void;
   removeMedia: (mediaId: string) => void;
   reorderMedia: (mediaIds: string[]) => void;
@@ -111,6 +115,44 @@ export const useEditorStore = create<EditorState>()(
             const block = draft.blocks.find((item) => item.id === blockId);
             if (!block) return;
             Object.assign(block.props, patch);
+          });
+
+          return { content, saveState: "dirty" };
+        }),
+
+      /**
+       * Música e linha do tempo não vêm no rascunho novo: se viessem, todo
+       * rascunho nasceria inválido para publicar, porque a validação exige
+       * faixa escolhida e ao menos uma data quando o bloco existe.
+       *
+       * Entra antes do rodapé, que é sempre o último — no fim da lista o bloco
+       * apareceria DEPOIS da assinatura da página.
+       */
+      addBlock: (type) =>
+        set((state) => {
+          if (!state.content) return state;
+          if (state.content.blocks.some((item) => item.type === type)) {
+            return state;
+          }
+
+          const content = produce(state.content, (draft) => {
+            const footer = draft.blocks.findIndex(
+              (item) => item.type === "footer",
+            );
+            const at = footer === -1 ? draft.blocks.length : footer;
+            draft.blocks.splice(at, 0, optionalBlock(type));
+          });
+
+          return { content, saveState: "dirty" };
+        }),
+
+      removeBlock: (blockId) =>
+        set((state) => {
+          if (!state.content) return state;
+
+          const content = produce(state.content, (draft) => {
+            const at = draft.blocks.findIndex((item) => item.id === blockId);
+            if (at !== -1) draft.blocks.splice(at, 1);
           });
 
           return { content, saveState: "dirty" };

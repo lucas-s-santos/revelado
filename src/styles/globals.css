@@ -2539,8 +2539,29 @@
     color: rgb(var(--color-bg));
   }
 
+  /* Cabeçalho da barra: o tom à esquerda, a porcentagem à direita. Os dígitos
+     usam tabular-nums, senão o número dança a cada passo. */
+  .editor__progress-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .editor__cheer {
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .editor__percent {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8rem;
+    color: rgb(var(--color-accent));
+  }
+
   .editor__progress {
-    height: 2px;
+    height: 4px;
     border-radius: var(--radius-pill);
     background: rgb(var(--color-ink) / 0.08);
     overflow: hidden;
@@ -2552,6 +2573,100 @@
     transform-origin: 0 50%;
     background: rgb(var(--color-accent));
     transition: transform var(--dur-base) var(--ease-out);
+  }
+
+  /* --- Avisos dentro de um passo --------------------------------------- */
+  .step__ok {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-success) / 0.1);
+    color: rgb(var(--color-success));
+    font-size: 0.88rem;
+  }
+
+  /* Tela vazia é convite, não recado triste (SPEC 11). */
+  .step__empty {
+    padding: 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgb(var(--color-ink) / 0.18);
+    color: rgb(var(--color-ink-muted));
+    font-size: 0.9rem;
+  }
+
+  /* --- Momentos da linha do tempo --------------------------------------- */
+  .moments {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .moment {
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.9rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-surface-2) / 0.5);
+  }
+
+  .moment__grid {
+    display: grid;
+    gap: 0.7rem;
+  }
+
+  @media (min-width: 460px) {
+    .moment__grid {
+      grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+    }
+  }
+
+  .moment__remove {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    align-self: flex-start;
+    font-size: 0.78rem;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .moment__remove:hover {
+    color: rgb(var(--color-danger));
+  }
+
+  /* --- Pendências da revisão -------------------------------------------- */
+  .issues {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* A pendência é um botão porque ela LEVA ao passo que a resolve. Apontar o
+     problema sem apontar o caminho é metade do trabalho. */
+  .issue {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgb(var(--color-danger) / 0.28);
+    background: rgb(var(--color-danger) / 0.06);
+    text-align: left;
+    font-size: 0.88rem;
+    transition: background var(--dur-fast) var(--ease-out);
+  }
+
+  .issue:hover:not(:disabled) {
+    background: rgb(var(--color-danger) / 0.12);
+  }
+
+  .issue__icon {
+    flex: none;
+    margin-top: 0.1rem;
+    color: rgb(var(--color-danger));
   }
 
   .editor__step-body {

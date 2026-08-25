@@ -89,3 +89,30 @@ export function defaultContent(template = DEFAULT_TEMPLATE): SiteContent {
     blocks: defaultBlocks(),
   };
 }
+
+/**
+ * Blocos que o rascunho NÃO ganha de nascença.
+ *
+ * Música e linha do tempo são opcionais de propósito. Se viessem no preset,
+ * todo rascunho novo nasceria inválido para publicar — `validateForPublish`
+ * exige faixa escolhida e ao menos uma data quando o bloco existe. Então eles
+ * entram por escolha, no passo correspondente do editor, e saem do mesmo jeito.
+ *
+ * O id é o próprio tipo, como nos demais: no modo simples existe no máximo um
+ * bloco de cada.
+ */
+export function optionalBlock(type: "music" | "timeline"): Block {
+  if (type === "music") {
+    return block({
+      id: "music",
+      type: "music",
+      props: { provider: "spotify" as const, trackId: "", autoplay: false },
+    });
+  }
+
+  return block({
+    id: "timeline",
+    type: "timeline",
+    props: { items: [] },
+  });
+}
