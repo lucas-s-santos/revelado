@@ -25,6 +25,7 @@ const STEP_OF_BLOCK: Partial<Record<BlockType, number>> = {
   letter: 4,
   music: 5,
   timeline: 6,
+  quiz: 7,
 };
 
 export function StepReview() {

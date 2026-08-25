@@ -9,6 +9,7 @@ import { StepFormat } from "@/components/editor/steps/step-format";
 import { StepMessage } from "@/components/editor/steps/step-message";
 import { StepMusic } from "@/components/editor/steps/step-music";
 import { StepPhotos } from "@/components/editor/steps/step-photos";
+import { StepQuiz } from "@/components/editor/steps/step-quiz";
 import { StepReview } from "@/components/editor/steps/step-review";
 import { StepTheme } from "@/components/editor/steps/step-theme";
 import { StepTimeline } from "@/components/editor/steps/step-timeline";
@@ -33,7 +34,7 @@ import { useEditorStore } from "@/stores/editor-store";
  */
 
 /**
- * Os dez passos.
+ * Os onze passos.
  *
  * O formato abre a sequência: ele decide QUAIS blocos a página tem, então
  * escolher depois de preencher significaria remontar a moldura por cima do
@@ -59,6 +60,7 @@ const STEPS = [
   { id: "mensagem", label: "Carta", Component: StepMessage },
   { id: "musica", label: "Música", Component: StepMusic },
   { id: "linha", label: "Momentos", Component: StepTimeline },
+  { id: "quiz", label: "Quiz", Component: StepQuiz },
   { id: "tema", label: "Tema", Component: StepTheme },
   { id: "letra", label: "Letra", Component: StepType },
   { id: "revisao", label: "Revisão", Component: StepReview },

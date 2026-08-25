@@ -992,6 +992,162 @@
     }
   }
 
+  /* --- Quiz na página publicada ----------------------------------------- *
+   * Tokens da pele escolhida: funciona igual no papel e na câmara escura. */
+  .block-quiz {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 1.5rem 1.25rem;
+    text-align: center;
+  }
+
+  .block-quiz__title {
+    font-family: var(--font-display);
+    font-size: clamp(1.4rem, 5vw, 2rem);
+  }
+
+  .block-quiz__count {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.68rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .block-quiz__question {
+    font-size: 1.08rem;
+    line-height: 1.45;
+    text-wrap: balance;
+  }
+
+  .block-quiz__options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 26rem;
+    margin-inline: auto;
+  }
+
+  .block-quiz__option {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 2px solid rgb(var(--color-ink) / 0.12);
+    background: rgb(var(--color-surface));
+    font-size: 0.95rem;
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out);
+  }
+
+  .block-quiz__option:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+
+  /* A certa se revela em verde. A escolhida que não era a certa fica em
+     accent, NUNCA em `--color-danger`: vermelho diz "você errou", e isto aqui
+     é presente, não prova. */
+  .block-quiz__option[data-right] {
+    border-color: rgb(var(--color-success));
+  }
+
+  .block-quiz__option[data-chosen]:not([data-right]) {
+    border-color: rgb(var(--color-accent));
+  }
+
+  .block-quiz__after {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+  }
+
+  .block-quiz__react {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 1.05rem;
+  }
+
+  .block-quiz__next {
+    padding: 0.6rem 1.4rem;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-accent));
+    color: rgb(var(--color-on-brand));
+    font-size: 0.9rem;
+  }
+
+  .block-quiz__reward {
+    max-width: 34rem;
+    margin-inline: auto;
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 4vw, 1.4rem);
+    line-height: 1.4;
+    text-wrap: balance;
+  }
+
+  /* --- Editor do quiz --------------------------------------------------- */
+  .quiz-edit {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .quiz-edit__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.9rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-surface-2) / 0.5);
+  }
+
+  .quiz-edit__options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .quiz-edit__option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .quiz-edit__option .input {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* O alvo de clique tem 24px — marcar a resposta certa é a ação principal
+     deste passo e precisa ser fácil de acertar no dedo. */
+  .quiz-edit__mark {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    border: 2px solid rgb(var(--color-ink) / 0.22);
+    background: transparent;
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .quiz-edit__mark[aria-pressed="true"] {
+    border-color: rgb(var(--color-success));
+    background: rgb(var(--color-success));
+    box-shadow: inset 0 0 0 3px rgb(var(--color-surface));
+  }
+
+  .quiz-edit__drop {
+    flex: none;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .quiz-edit__drop:hover {
+    color: rgb(var(--color-danger));
+  }
+
   /* --- Escolha de formato (primeiro passo do editor) -------------------- */
   .formats {
     display: grid;

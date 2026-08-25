@@ -4,6 +4,7 @@ import { GalleryBlock } from "@/components/blocks/gallery-block";
 import { HeroBlock } from "@/components/blocks/hero-block";
 import { LetterBlock } from "@/components/blocks/letter-block";
 import { MusicBlock } from "@/components/blocks/music-block";
+import { QuizBlock } from "@/components/blocks/quiz-block";
 import { TimelineBlock } from "@/components/blocks/timeline-block";
 import { blockTypes, type BlockType } from "@/lib/blocks/schema";
 import type { PlanId } from "@/lib/plans";
@@ -73,6 +74,14 @@ export const registry: Record<BlockType, BlockDefinition> = {
     plan: "especial",
     ready: true,
     component: TimelineBlock,
+  },
+  quiz: {
+    label: "Quiz do casal",
+    icon: "help-circle",
+    plan: "para-sempre",
+    unique: true,
+    ready: true,
+    component: QuizBlock,
   },
   footer: {
     label: "Rodapé",
