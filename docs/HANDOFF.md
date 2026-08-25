@@ -99,6 +99,35 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
 
 ---
 
+### Plano é chave estrangeira — não se renomeia id
+
+`Order.planId` referencia `Plan.id`. Trocar um id obrigaria a migrar todo
+pedido já gravado, e pedido órfão é dinheiro sem origem rastreável. Por isso
+os ids seguem `simples` e `especial` embora os nomes na tela sejam **1 Dia**
+e **Eterno** — o que a pessoa lê é `name`, o id nunca aparece.
+
+`para-sempre` saiu da vitrine mas a linha continua no banco: o seed usa
+`upsert`, que não apaga. Quem comprou antes segue com a página no ar.
+
+Duas coisas que decorrem disso:
+
+- **O order bump vale exatamente a diferença entre os planos.** Se não valer,
+  um dos caminhos até "para sempre" fica mais barato que o outro. Tem teste.
+- **Nada de string fixa para prazo.** A copy dizia "por 1 ano no ar" para
+  qualquer plano com prazo e virou mentira quando o prazo mudou para 24h. O
+  rótulo sai de `durationLabel(plan)`, derivado do dado.
+
+### O mascote tinha os olhos vazados
+
+O `nimbo-3d.png` de origem vem com as órbitas **transparentes**. Sobre fundo
+escuro isso passa; sobre a pele clara — que é o padrão do site — elas viram
+dois ovais da cor da página e ele fica cego.
+
+`scripts/prepare-nimbo.mjs` resolve: acha os furos varrendo a partir das
+bordas (o fundo encosta na borda, o furo não), desenha o olhar e exporta
+AVIF/WebP em duas larguras. **De 1.164 KB para 42 KB.** Rode-o de novo se
+trocar o PNG de origem — os arquivos em `public/nimbo*` são gerados.
+
 ### O quiz é presente, não prova
 
 Vale para qualquer coisa avaliativa que entre depois. O quiz **não tem
@@ -214,7 +243,7 @@ el.evaluate((n) => getComputedStyle(n).color)
 | B | Landing seção por seção | ✅ **completa** — Revelation com envelope, BlocksGrid nos 4 tons, cenas de entrega, CTA em cartão rosa |
 | C | Editor: passos, barra de %, preview fixo, 12 temas com trava VIP | ✅ **completa** — 12 temas, **onze** passos (formato no início, quiz junto do conteúdo), barra de % |
 | D | Formatos novos | ✅ **completa** — carta interativa, passo de escolha de formato, quiz do casal |
-| E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada — **mexe em dinheiro** (plans.ts, checkout, seed); pedir aval antes |
+| E | Planos e docs | 🟡 parcial — dois planos ✅ (1 Dia R$ 19,90 · Eterno R$ 34,90), mascote no hero e no CTA ✅; faltam CLAUDE.md e SPEC atualizados para a identidade nova |
 
 ### O mascote (decisão pendente)
 
