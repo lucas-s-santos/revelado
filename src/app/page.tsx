@@ -3,6 +3,7 @@ import { Nav } from "@/components/chrome/nav";
 import { PromoBar } from "@/components/chrome/promo-bar";
 import { ScrollProgress } from "@/components/chrome/scroll-progress";
 import { BlocksGrid } from "@/components/marketing/blocks-grid";
+import { Comparison } from "@/components/marketing/comparison";
 import { Faq } from "@/components/marketing/faq";
 import { FinalCta } from "@/components/marketing/final-cta";
 import { Hero } from "@/components/marketing/hero";
@@ -62,6 +63,7 @@ export default function Home() {
         <HowItWorks />
         <Testimonials />
         <Pricing />
+        <Comparison />
         <Faq />
         <FinalCta
           deadline={celebration.date.toISOString()}

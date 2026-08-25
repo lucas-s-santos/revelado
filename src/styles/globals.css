@@ -1124,6 +1124,95 @@
     text-decoration-color: rgb(var(--color-ink-muted) / 0.5);
   }
 
+  /* --- Comparação entre os planos --------------------------------------- */
+  .compare__scroll {
+    /* `min-width: 0` é o que faz o overflow funcionar. `.section` é um flex
+       column, e item de flex tem min-width: auto — ele se recusa a encolher
+       abaixo do conteúdo, a tabela empurra a largura para fora e quem rola de
+       lado é o CORPO DA PÁGINA, não a tabela. */
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+    border-radius: var(--radius-lg);
+    background: rgb(var(--color-surface));
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Sem `min-width`. Ele era escolha arbitrária minha e era o que empurrava
+     a largura: três colunas com células curtas cabem em 375px, e forçar 30rem
+     fazia o CORPO da página rolar de lado — medido, 74px de estouro. */
+  .compare {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+
+  .compare th,
+  .compare td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.08);
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  .compare tbody tr:last-child th,
+  .compare tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* A coluna do recurso é o assunto da linha: alinha à esquerda e não
+     centraliza como as marcas. */
+  .compare tbody th[scope="row"] {
+    text-align: left;
+    font-weight: 400;
+  }
+
+  /* A coluna do recurso leva o espaço que sobra; as duas de valor ficam no
+     tamanho do conteúdo, que é curto. */
+  .compare tbody th[scope="row"] {
+    width: 100%;
+  }
+
+  .compare thead th:not(:first-child),
+  .compare tbody td {
+    width: 1%;
+  }
+
+  .compare thead th {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* A coluna do Eterno ganha um fundo tênue — é a mesma ênfase que o card
+     dele tem na vitrine, para as duas telas contarem a mesma história. */
+  .compare__best {
+    background: rgb(var(--color-accent) / 0.045);
+  }
+
+  .compare thead .compare__best {
+    color: rgb(var(--color-accent));
+  }
+
+  .compare__yes {
+    display: inline-block;
+    color: rgb(var(--color-success));
+  }
+
+  /* Traço, não X vermelho: o plano barato é escolha legítima, e pintá-lo de
+     erro empurraria a pessoa para o caro pelo constrangimento. */
+  .compare__no {
+    display: inline-block;
+    color: rgb(var(--color-ink-muted) / 0.5);
+  }
+
+  .compare__text {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+
   /* --- Aviso de saída do editor ----------------------------------------- */
   .leave {
     position: fixed;

@@ -208,6 +208,18 @@ export const copy = {
     peek: "Nossa história começou numa terça que não tinha nada de especial.",
   },
 
+  // Ocupa o lugar do "nós contra as outras plataformas". Comparar com
+  // concorrente exige verificar o produto dele; ninguém verifica, e a tabela
+  // vira alegação solta. A dúvida de quem chegou aqui é qual dos dois levar.
+  comparison: {
+    eyebrow: "lado a lado",
+    title: "Qual dos dois é o de vocês?",
+    lede: "A página é a mesma nos dois. O que muda é quanto tempo ela fica e o que cabe dentro.",
+    columns: { simples: "1 Dia", especial: "Eterno" },
+    yes: "incluído",
+    no: "não incluído",
+  },
+
   // Dois planos. O barato é de impulso: sai por menos que um buquê e vale um
   // dia — quem quiser guardar sobe para o Eterno, pela diferença exata.
   //

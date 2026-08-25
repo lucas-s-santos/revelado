@@ -2,12 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   bestInstallment,
+  durationLabel,
   FOREVER_BUMP_CENTS,
   getPlan,
   MAX_INSTALLMENTS,
   maxInstallments,
   MIN_INSTALLMENT_CENTS,
   orderTotalCents,
+  planComparison,
   PLANS,
 } from "@/lib/plans";
 
@@ -51,6 +53,41 @@ describe("plans", () => {
   it("só o Eterno fica no ar sem prazo", () => {
     expect(getPlan("simples")!.durationDays).toBe(1);
     expect(getPlan("especial")!.durationDays).toBeNull();
+  });
+});
+
+describe("tabela de comparação", () => {
+  const linhas = planComparison();
+  const acha = (trecho: string) =>
+    linhas.find((l) => l.label.toLowerCase().includes(trecho))!;
+
+  it("os números saem dos planos, não de texto solto", () => {
+    // É isto que impede a tabela de anunciar "10 fotos" no dia em que o plano
+    // passar a dar 15. Toda a copy desta sessão que quebrou, quebrou assim.
+    const fotos = acha("fotos na galeria");
+    expect(fotos.simples).toContain(String(getPlan("simples")!.maxPhotos));
+    expect(fotos.especial).toContain(String(getPlan("especial")!.maxPhotos));
+  });
+
+  it("o prazo bate com a duração real de cada plano", () => {
+    const tempo = acha("quanto tempo");
+    expect(tempo.simples).toBe(durationLabel(getPlan("simples")!));
+    expect(tempo.especial).toBe(durationLabel(getPlan("especial")!));
+  });
+
+  it("o Eterno nunca tem menos que o 1 Dia", () => {
+    // Uma linha marcada só no plano barato seria erro de digitação com cara de
+    // regra de negócio.
+    for (const linha of linhas) {
+      if (linha.simples === true) expect(linha.especial).toBe(true);
+    }
+  });
+
+  it("há diferença de verdade entre os dois", () => {
+    // Tabela em que tudo bate nos dois lados não ajuda ninguém a escolher.
+    expect(linhas.some((l) => l.simples === false && l.especial === true)).toBe(
+      true,
+    );
   });
 
   it("aplica cupom antes do bump e nunca fica negativo", () => {
