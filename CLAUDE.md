@@ -48,11 +48,17 @@ Postgres · Cloudflare R2 · Mercado Pago · Inngest · pnpm.
 
 ## Identidade visual
 
-**Duas peles.** O padrão é a **clara**: creme quente (`#FFF8F5`), tinta
-quase-preta (`#2A1B22`), framboesa (`#C63454`). Landing, editor e checkout são
-sempre ela. A **escura** é a "Câmara Escura" original — preto arroxeado de
+**Duas peles.** O padrão é a **clara**: fundo rosado (`#FFF5F8`), tinta
+arroxeada quase-preta (`#1A1230`), rosa de marca. Landing, editor e checkout
+são sempre ela. A **escura** é a "Câmara Escura" original — preto arroxeado de
 laboratório, luz de segurança âmbar, magenta de ampliação — e hoje é escolha de
 quem monta a página (`theme.skin`), não o padrão do site.
+
+**Dois rosas, e é de propósito.** `--color-brand` (`#E01B7A`) é o rosa que
+**preenche** — botão, selo, cartão do CTA — e ainda carrega texto branco a
+4,56:1. `--color-accent` é o rosa que **escreve**, escurecido até passar sobre
+o fundo claro. `--color-brand-bright` (`#FF2E93`) existe só para brilho e
+gradiente: branco sobre ele dá 3,48:1 e **nunca** pode ficar atrás de texto.
 
 Os tokens de superfície dizem o papel, nunca a cor: `--color-bg`,
 `--color-surface`, `--color-surface-2`, `--color-ink`, `--color-ink-muted`.
@@ -60,6 +66,17 @@ Nenhuma regra de CSS deve saber de que cor é a pele. O mesmo vale para o vidro
 (`--glass-*`), a sombra e a vinheta.
 Tipografia: Instrument Serif (display, com parcimônia) + Inter (corpo) +
 JetBrains Mono (contadores e labels, sempre com tabular-nums).
+
+**Camada vence especificidade.** `.eyebrow` e `.display-italic` moram em
+`@layer utilities`; o CSS das seções mora em `@layer components`, que o
+Tailwind emite antes. Variante dessas duas classes escrita junto da seção é
+emitida, aparece no CSS servido e **não se aplica** — sem erro nenhum. Toda
+variante delas entra no bloco de `utilities`, depois da classe que modifica.
+
+**Mascote.** `nimbo-3d.png` é a origem; o que vai para tela são os arquivos
+gerados por `scripts/prepare-nimbo.mjs` (`public/nimbo*`). O PNG original vem
+com as órbitas dos olhos transparentes — sobre a pele clara elas viram buraco.
+Trocou a origem, roda o script de novo.
 
 Não empilhar efeitos: máximo dois efeitos ambientais por tela. Se a tela começar a
 parecer landing genérica de startup de IA, remova um efeito.
