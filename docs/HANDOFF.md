@@ -99,6 +99,21 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
 
 ---
 
+### O quiz é presente, não prova
+
+Vale para qualquer coisa avaliativa que entre depois. O quiz **não tem
+placar**, errar não trava nada, e o recado do fim aparece para quem acertou
+tudo e para quem não acertou nada. No CSS, a opção escolhida que não era a
+certa fica em `--color-accent` e **nunca** em `--color-danger` — vermelho ali
+diria "você errou" para alguém que acabou de ganhar um presente.
+
+Duas armadilhas técnicas do bloco, ambas cobertas por teste:
+
+- **`answer` é índice e pode apontar para fora da lista.** O schema recusa,
+  senão a pergunta fica sem resposta possível e o quiz trava no meio.
+- **Remover uma opção no editor recalcula o índice.** Apagar a opção certa
+  sem isso deixaria o rascunho inválido e o autosave falharia calado.
+
 ### Dois formatos estavam quebrados desde a fase 3
 
 "Motivos" pede o bloco `reasons` e "Cápsula do tempo" pede `capsule`. Os dois
@@ -197,8 +212,8 @@ el.evaluate((n) => getComputedStyle(n).color)
 |---|---|---|
 | A | Pele: tokens + régua de contraste | ✅ completa |
 | B | Landing seção por seção | ✅ **completa** — Revelation com envelope, BlocksGrid nos 4 tons, cenas de entrega, CTA em cartão rosa |
-| C | Editor: passos, barra de %, preview fixo, 12 temas com trava VIP | ✅ **completa** — 12 temas, **dez** passos (o formato virou o primeiro), barra de % |
-| D | Formatos novos | 🟡 parcial — carta interativa ✅, passo de escolha de formato ✅; falta o quiz do casal |
+| C | Editor: passos, barra de %, preview fixo, 12 temas com trava VIP | ✅ **completa** — 12 temas, **onze** passos (formato no início, quiz junto do conteúdo), barra de % |
+| D | Formatos novos | ✅ **completa** — carta interativa, passo de escolha de formato, quiz do casal |
 | E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada — **mexe em dinheiro** (plans.ts, checkout, seed); pedir aval antes |
 
 ### O mascote (decisão pendente)
