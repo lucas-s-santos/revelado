@@ -208,15 +208,21 @@ export const copy = {
     peek: "Nossa história começou numa terça que não tinha nada de especial.",
   },
 
+  // Dois planos. O barato é de impulso: sai por menos que um buquê e vale um
+  // dia — quem quiser guardar sobe para o Eterno, pela diferença exata.
+  //
+  // `perYear` saiu: era string fixa dizendo "por 1 ano no ar" para qualquer
+  // plano com prazo, e virou mentira no dia em que o prazo mudou. O rótulo
+  // agora sai da duração real do plano (ver `durationLabel` em plans.ts).
   pricing: {
-    eyebrow: "preços",
-    title: "Pague uma vez. Sem mensalidade.",
-    lede: "Escolha pelo tanto de foto que vocês têm.",
+    eyebrow: "preços · a partir de R$ 19,90",
+    title: "Quanto vale a cara que ela vai fazer?",
+    lede: "Menos que um buquê, e não murcha em três dias. Um pagamento só, sem assinatura.",
     highlight: "mais escolhido",
-    perYear: "por 1 ano no ar",
-    forever: "para sempre",
+    forever: "pagamento único",
+    badges: ["Pix na hora", "Cartão em até 12x", "Sem mensalidade"],
     bumpLabel: "Deixar nossa página no ar para sempre",
-    bumpHint: "sem renovação, sem prazo",
+    bumpHint: "vira o Eterno, pela diferença exata",
     totalLabel: "total",
     cta: "Criar nossa página",
     guarantee: "7 dias de garantia. Não gostou, devolvemos o valor.",

@@ -4,12 +4,25 @@
  * durationDays null = vitalício.
  */
 
-export const PLAN_IDS = ["simples", "especial", "para-sempre"] as const;
+/**
+ * IDS ANTIGOS, NOMES NOVOS — e é de propósito.
+ *
+ * `Order.planId` referencia `Plan.id` no banco. Trocar os ids obrigaria a
+ * migrar todo pedido já gravado, e um pedido órfão é dinheiro sem origem
+ * rastreável. Então "simples" virou o 1 Dia e "especial" virou o Eterno,
+ * mantendo a chave. O que a pessoa lê é `name`; o id nunca aparece na tela.
+ *
+ * "para-sempre" saiu da vitrine. A linha dele CONTINUA no banco — o seed usa
+ * upsert e não apaga —, então quem comprou antes continua com a página no ar.
+ */
+export const PLAN_IDS = ["simples", "especial"] as const;
 export type PlanId = (typeof PLAN_IDS)[number];
 
 export interface PlanSeed {
   id: PlanId;
   name: string;
+  /** uma linha, para o card da vitrine */
+  hint: string;
   priceCents: number;
   /** Preço "de", riscado na vitrine. */
   listCents: number;
@@ -18,61 +31,78 @@ export interface PlanSeed {
   /** Plano destacado no meio da grade de preços (SPEC 8.1 seção 8). */
   highlight: boolean;
   features: string[];
+  /** o que este plano NÃO tem — riscado no card, para a diferença ficar clara */
+  missing?: string[];
 }
 
 export const PLANS: readonly PlanSeed[] = [
   {
     id: "simples",
-    name: "Simples",
+    name: "1 Dia",
+    hint: "para entregar hoje",
     priceCents: 1990,
     listCents: 3990,
-    durationDays: 365,
-    maxPhotos: 5,
+    // 24 horas no ar. É o produto de impulso: barato, imediato e sem
+    // compromisso — quem quiser guardar sobe para o Eterno.
+    durationDays: 1,
+    maxPhotos: 10,
     highlight: false,
     features: [
-      "1 ano no ar",
-      "Até 5 fotos",
+      "1 página no ar por 24 horas",
+      "Até 10 fotos",
       "Contador ao vivo",
+      "Música do Spotify ou YouTube",
       "Link + QR Code em PNG",
     ],
+    missing: ["Fica no ar para sempre", "Linha do tempo e quiz"],
   },
   {
     id: "especial",
-    name: "Especial",
+    name: "Eterno",
+    hint: "para não acabar nunca",
     priceCents: 3490,
     listCents: 6990,
-    durationDays: 365,
-    maxPhotos: 30,
+    durationDays: null,
+    // O schema limita a galeria em 60 (blocks/schema.ts). Prometer "ilimitado"
+    // seria alegar o que o sistema recusa na hora de salvar.
+    maxPhotos: 60,
     highlight: true,
     features: [
-      "1 ano no ar",
-      "Até 30 fotos",
+      "1 página no ar para sempre",
+      "Até 60 fotos",
+      "Contador ao vivo",
       "Música do Spotify ou YouTube",
-      "Linha do tempo e carta",
+      "Linha do tempo e quiz do casal",
+      "Carta em envelope",
       "QR Code em PNG, SVG e cartão A6 em PDF",
       "Senha na página",
     ],
   },
-  {
-    id: "para-sempre",
-    name: "Para sempre",
-    priceCents: 5990,
-    listCents: 9990,
-    durationDays: null,
-    maxPhotos: 60,
-    highlight: false,
-    features: [
-      "No ar para sempre",
-      "Até 60 fotos",
-      "Todos os blocos",
-      "Mural de recados",
-      "Cartão A6 em PDF e aviso de primeira visita",
-    ],
-  },
 ] as const;
 
-/** Order bump do checkout: "deixar para sempre, +R$ 9" (SPEC 8.5). */
-export const FOREVER_BUMP_CENTS = 900;
+/**
+ * O rótulo de prazo, tirado da duração real.
+ *
+ * Existia uma string fixa na copy dizendo "por 1 ano no ar" para qualquer
+ * plano com prazo. No dia em que o prazo virou 24 horas, a vitrine passou a
+ * anunciar um ano e a cobrança a entregar um dia — o tipo de divergência que
+ * ninguém nota até virar reclamação.
+ */
+export function durationLabel(plan: PlanSeed): string {
+  if (plan.durationDays === null) return "fica para sempre";
+  if (plan.durationDays === 1) return "24 horas no ar";
+  return `${plan.durationDays} dias no ar`;
+}
+
+/**
+ * Order bump: "deixar para sempre" a partir do 1 Dia (SPEC 8.5).
+ *
+ * Vale exatamente a diferença entre os dois planos (3490 − 1990). Assim subir
+ * pelo bump e comprar o Eterno direto custam o mesmo — sem caminho esperto que
+ * saia mais barato que o outro, que é o tipo de coisa que a pessoa descobre
+ * depois e sente como pegadinha.
+ */
+export const FOREVER_BUMP_CENTS = 1500;
 
 /**
  * Parcelamento no cartão — SPEC 8.5.

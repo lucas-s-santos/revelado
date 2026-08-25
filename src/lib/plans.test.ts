@@ -25,15 +25,32 @@ describe("plans", () => {
   });
 
   it("soma o order bump só em plano com validade", () => {
-    const especial = getPlan("especial")!;
-    expect(orderTotalCents({ planId: "especial", bumpForever: true })).toBe(
-      especial.priceCents + FOREVER_BUMP_CENTS,
+    // O 1 Dia expira: "deixar para sempre" tem o que cobrar.
+    const dia = getPlan("simples")!;
+    expect(orderTotalCents({ planId: "simples", bumpForever: true })).toBe(
+      dia.priceCents + FOREVER_BUMP_CENTS,
     );
 
-    const forever = getPlan("para-sempre")!;
-    expect(orderTotalCents({ planId: "para-sempre", bumpForever: true })).toBe(
-      forever.priceCents,
+    // O Eterno já é para sempre: cobrar o bump seria vender duas vezes a
+    // mesma coisa.
+    const eterno = getPlan("especial")!;
+    expect(orderTotalCents({ planId: "especial", bumpForever: true })).toBe(
+      eterno.priceCents,
     );
+  });
+
+  it("o bump custa exatamente a diferença entre os dois planos", () => {
+    // Sem isto, um dos dois caminhos até "para sempre" fica mais barato que o
+    // outro — e a pessoa descobre depois, o que soa a pegadinha.
+    const dia = getPlan("simples")!;
+    const eterno = getPlan("especial")!;
+
+    expect(dia.priceCents + FOREVER_BUMP_CENTS).toBe(eterno.priceCents);
+  });
+
+  it("só o Eterno fica no ar sem prazo", () => {
+    expect(getPlan("simples")!.durationDays).toBe(1);
+    expect(getPlan("especial")!.durationDays).toBeNull();
   });
 
   it("aplica cupom antes do bump e nunca fica negativo", () => {

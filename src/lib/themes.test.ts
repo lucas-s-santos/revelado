@@ -44,6 +44,11 @@ describe("trava de plano", () => {
 
   it("plano melhor nunca perde o que o de baixo já tinha", () => {
     // A regressão clássica: comparar id por igualdade em vez de por ordem.
-    expect(isThemeUnlocked(travado, "para-sempre")).toBe(true);
+    // Com dois planos, o caso se prova pelo lado de baixo — um tema que exige
+    // o plano barato tem de abrir também no caro. Por igualdade, falharia.
+    const exigeBarato = { ...travado, minPlan: "simples" as const };
+
+    expect(isThemeUnlocked(exigeBarato, "simples")).toBe(true);
+    expect(isThemeUnlocked(exigeBarato, "especial")).toBe(true);
   });
 });
