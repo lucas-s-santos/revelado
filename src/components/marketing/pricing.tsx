@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useState } from "react";
 
 import { startDraft } from "@/app/actions/start-draft";
@@ -9,13 +9,7 @@ import { NumberTicker } from "@/components/ui/number-ticker";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { track } from "@/lib/analytics";
 import { copy } from "@/lib/copy";
-import {
-  bestInstallment,
-  FOREVER_BUMP_CENTS,
-  orderTotalCents,
-  PLANS,
-  type PlanId,
-} from "@/lib/plans";
+import { bestInstallment, durationLabel, FOREVER_BUMP_CENTS, orderTotalCents, type PlanId, PLANS } from "@/lib/plans";
 import { cn, formatBRL } from "@/lib/utils";
 
 /**
@@ -86,11 +80,10 @@ export function Pricing() {
                   <strong data-numeric>
                     {formatBRL(candidate.priceCents)}
                   </strong>
-                  <small>
-                    {candidate.durationDays === null
-                      ? copy.pricing.forever
-                      : copy.pricing.perYear}
-                  </small>
+                  {/* O prazo sai da duração do plano, não de uma string
+                      fixa: foi assim que a vitrine já anunciou "1 ano" para
+                      um plano de 24 horas. */}
+                  <small>{durationLabel(candidate)}</small>
 
                   {/* A parcela é calculada pela mesma função do checkout: a
                       vitrine não pode prometer um número que a cobrança recusa. */}
@@ -110,6 +103,21 @@ export function Pricing() {
                       className="mt-1 shrink-0 text-[rgb(var(--color-accent))]"
                     />
                     {feature}
+                  </li>
+                ))}
+
+                {/* O que o plano NÃO tem, riscado. Sem isto os dois cards
+                    parecem quase iguais e a diferença de preço fica sem
+                    explicação — o barato precisa dizer o que ele não faz. */}
+                {candidate.missing?.map((item) => (
+                  <li key={item} className="pricing__missing">
+                    <X
+                      size={15}
+                      strokeWidth={2}
+                      aria-hidden
+                      className="mt-1 shrink-0"
+                    />
+                    {item}
                   </li>
                 ))}
               </ul>

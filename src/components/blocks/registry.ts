@@ -78,7 +78,7 @@ export const registry: Record<BlockType, BlockDefinition> = {
   quiz: {
     label: "Quiz do casal",
     icon: "help-circle",
-    plan: "para-sempre",
+    plan: "especial",
     unique: true,
     ready: true,
     component: QuizBlock,
@@ -96,13 +96,13 @@ export const registry: Record<BlockType, BlockDefinition> = {
   reasons: {
     label: "Motivos",
     icon: "list",
-    plan: "para-sempre",
+    plan: "especial",
     ready: false,
   },
   guestbook: {
     label: "Mural de recados",
     icon: "message-square",
-    plan: "para-sempre",
+    plan: "especial",
     unique: true,
     ready: false,
   },
@@ -111,7 +111,7 @@ export const registry: Record<BlockType, BlockDefinition> = {
   capsule: {
     label: "Cápsula do tempo",
     icon: "lock",
-    plan: "para-sempre",
+    plan: "especial",
     ready: false,
   },
   stats: { label: "Números", icon: "hash", ready: false },

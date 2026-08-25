@@ -55,3 +55,6 @@ next-env.d.ts
 /.drafts/
 # o mesmo, isolado para a suíte de testes (ver vitest.config.ts)
 /.drafts-test/
+
+# prova de conferência do mascote, regerada por scripts/prepare-nimbo.mjs
+/assets/nimbo-prova.png

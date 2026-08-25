@@ -54,6 +54,23 @@ export function FinalCta({
 
           <p className="final-cta__note">{copy.finalCta.note}</p>
         </div>
+
+        {/* Mesmo asset do hero, na largura pequena: no fim da página ele é
+            companhia, não o assunto — e assim não paga download de novo. */}
+        <div aria-hidden className="final-cta__mascot">
+          <picture>
+            <source type="image/avif" srcSet="/nimbo-240.avif" />
+            <source type="image/webp" srcSet="/nimbo-240.webp" />
+            <img
+              src="/nimbo-240.webp"
+              alt=""
+              width={240}
+              height={256}
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+        </div>
       </div>
     </section>
   );
