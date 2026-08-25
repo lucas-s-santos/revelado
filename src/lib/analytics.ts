@@ -29,7 +29,13 @@ export type AuxEvent =
   | "site_published"
   | "site_first_viewed"
   | "share_clicked"
-  | "qr_downloaded";
+  | "qr_downloaded"
+  /**
+   * A pessoa levou o mouse para fora pelo topo dentro do editor — o gesto de
+   * quem vai fechar a aba. Mede quantos pensam em sair e, cruzado com
+   * `editor_completed`, quantos voltam depois de ver o aviso.
+   */
+  | "editor_leave_intent";
 
 export type AnalyticsEvent = FunnelEvent | AuxEvent;
 

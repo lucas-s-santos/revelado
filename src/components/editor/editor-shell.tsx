@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useDeferredValue, useEffect, useState } from "react";
 
 import { Logo } from "@/components/chrome/logo";
+import { LeaveGuard } from "@/components/editor/leave-guard";
 import { SaveIndicator } from "@/components/editor/save-indicator";
 import { StepFormat } from "@/components/editor/steps/step-format";
 import { StepMessage } from "@/components/editor/steps/step-message";
@@ -143,6 +144,10 @@ export function EditorShell({
           mudar alguma coisa, use o painel.
         </p>
       ) : null}
+
+      {/* Só depois de o rascunho carregar: avisar que "está salvo" antes de
+          haver o que salvar seria promessa vazia. */}
+      {ready ? <LeaveGuard draftId={draftId} /> : null}
 
       <div className="editor__body">
         <section className="editor__preview" aria-label="Prévia da página">
