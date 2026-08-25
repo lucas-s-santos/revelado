@@ -79,21 +79,45 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
    `public/hero-*` ainda são da paleta antiga. Precisam ser regerados.
 4. **`moments-marquee.tsx` saiu da landing** mas o arquivo continua no repo.
    Decidir se volta em outro lugar ou se sai de vez.
-5. **Lighthouse ainda não medido.** A conferência visual em 375px e 1280px
+5. **`TypewriterText` não existe.** O comentário em `letter-block.tsx` dizia
+   que a prop `typewriter` era tratada por um componente cliente carregado sob
+   demanda. Esse componente nunca foi escrito — a prop está no schema e não faz
+   nada. Ou implementa, ou tira do schema.
+6. **Lighthouse ainda não medido.** A conferência visual em 375px e 1280px
    passou a ser feita com Playwright contra o dev server: sem rolagem
    horizontal e sem erro de console nos dois. Falta a medição de performance.
-6. **Dev server e `next build` disputam o mesmo `.next`.** Rodar os dois ao
+7. **Dev server e `next build` disputam o mesmo `.next`.** Rodar os dois ao
    mesmo tempo quebra o build com `Cannot find module for page: /_not-found`
    ou `MODULE_NOT_FOUND`. Encerre o servidor antes de buildar. E `rm -rf
    .next` seguido de build falha na **primeira** tentativa com alguma
    frequência neste drive, sempre passando na segunda — build incremental
    (sem apagar) não tem esse problema.
-7. **`/termos` e `/privacidade` não existem.** O rodapé aponta para as duas
+8. **`/termos` e `/privacidade` não existem.** O rodapé aponta para as duas
    e o Next faz prefetch quando ele entra em tela: dois 404 em toda visita.
    Não é só link quebrado — são páginas que um site que cobra precisa ter.
    O texto é jurídico e específico do negócio, então não inventei nenhum.
 
 ---
+
+### Formato é prop, não bloco novo
+
+A referência vende "Carta de Amor" e "Carta Interativa" como produtos
+distintos. Aqui os dois são a **mesma carta** com `reveal` diferente
+(`plain` | `envelope`) — mesmo texto, mesma assinatura.
+
+O motivo não é economia de código: como blocos separados, trocar de formato
+trocaria de bloco e **levaria junto o texto já escrito**. Num editor cujo
+requisito acima de todos é nunca perder o trabalho, isso não se paga.
+
+Vale para os formatos que ainda faltam: antes de criar bloco novo, pergunte
+se o conteúdo é o mesmo. Se for, é prop.
+
+Duas consequências práticas:
+
+- **Prop nova em bloco existente precisa de default e de teste do default.**
+  Sem isso, todo conteúdo já salvo muda de comportamento sozinho.
+- **Construção literal de bloco** (`fixtures.ts`, `defaults.ts`) não recebe o
+  default do zod: o tipo de saída exige o campo, e o typecheck cobra.
 
 ### Bloco opcional precisa de porta de entrada E de saída
 
@@ -158,7 +182,7 @@ el.evaluate((n) => getComputedStyle(n).color)
 | A | Pele: tokens + régua de contraste | ✅ completa |
 | B | Landing seção por seção | ✅ **completa** — Revelation com envelope, BlocksGrid nos 4 tons, cenas de entrega, CTA em cartão rosa |
 | C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | 🟡 parcial — 12 temas ✅, 9 passos ✅, barra de % ✅; faltam os 4 formatos de presente (viraram fase D) |
-| D | Formatos novos: envelope que abre, carta interativa, quiz do casal | ⬜ não começada |
+| D | Formatos novos | 🟡 parcial — carta interativa (envelope) ✅; falta o quiz do casal e o passo de escolha de formato |
 | E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada — **mexe em dinheiro** (plans.ts, checkout, seed); pedir aval antes |
 
 ### O mascote (decisão pendente)
