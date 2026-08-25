@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { temporal } from "zundo";
 
 import { optionalBlock } from "@/lib/blocks/defaults";
+import { getTemplate } from "@/lib/templates";
 import type {
   Block,
   BlockType,
@@ -51,6 +52,8 @@ export interface EditorState {
   setTheme: (patch: Partial<SiteContent["theme"]>) => void;
   /** Liga um bloco opcional (música, linha do tempo). Idempotente. */
   addBlock: (type: "music" | "timeline") => void;
+  /** Troca o formato: remonta a moldura sem tocar no que foi escrito. */
+  applyTemplate: (templateId: string) => void;
   removeBlock: (blockId: string) => void;
   addMedia: (mediaIds: string[]) => void;
   removeMedia: (mediaId: string) => void;
@@ -141,6 +144,65 @@ export const useEditorStore = create<EditorState>()(
             );
             const at = footer === -1 ? draft.blocks.length : footer;
             draft.blocks.splice(at, 0, optionalBlock(type));
+          });
+
+          return { content, saveState: "dirty" };
+        }),
+
+      /**
+       * Trocar de formato REMONTA A MOLDURA, nunca apaga o conteúdo.
+       *
+       * Três regras, e todas existem para proteger o que a pessoa escreveu:
+       *
+       * 1. Os blocos existentes são REORDENADOS na ordem do preset. Nenhum é
+       *    recriado, então texto, fotos e datas seguem intactos.
+       * 2. Bloco que o preset pede e a página não tem entra vazio — mas só
+       *    música e linha do tempo, que são os opcionais. Os demais (capa,
+       *    contador, galeria, carta, rodapé) vêm no rascunho desde o início;
+       *    se algum faltar, é estado torto que não se conserta adivinhando
+       *    props.
+       * 3. Bloco que a página tem e o preset não pede FICA, no fim, antes do
+       *    rodapé. Sumir com ele apagaria trabalho — e é a pessoa quem tira,
+       *    no passo dele.
+       */
+      applyTemplate: (templateId) =>
+        set((state) => {
+          if (!state.content) return state;
+
+          const template = getTemplate(templateId);
+          if (!template) return state;
+
+          const { preset } = template;
+
+          const content = produce(state.content, (draft) => {
+            draft.theme.template = template.id;
+            draft.theme.palette = preset.palette;
+            draft.theme.font = preset.font;
+            draft.theme.effect = preset.effect;
+
+            const restantes = [...draft.blocks];
+            const ordenados: typeof draft.blocks = [];
+
+            for (const type of preset.blocks) {
+              const at = restantes.findIndex((item) => item.type === type);
+
+              if (at !== -1) {
+                ordenados.push(restantes.splice(at, 1)[0]!);
+                continue;
+              }
+
+              if (type === "music" || type === "timeline") {
+                ordenados.push(optionalBlock(type));
+              }
+            }
+
+            // O que sobrou entra antes do rodapé, para não cair depois da
+            // assinatura da página.
+            const footer = ordenados.findIndex((item) => item.type === "footer");
+            const at = footer === -1 ? ordenados.length : footer;
+            ordenados.splice(at, 0, ...restantes);
+
+            draft.blocks = ordenados;
           });
 
           return { content, saveState: "dirty" };

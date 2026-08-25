@@ -19,12 +19,12 @@ import { useEditorStore } from "@/stores/editor-store";
 
 /** Onde cada tipo de bloco é editado, para o atalho da pendência. */
 const STEP_OF_BLOCK: Partial<Record<BlockType, number>> = {
-  hero: 0,
-  counter: 1,
-  gallery: 2,
-  letter: 3,
-  music: 4,
-  timeline: 5,
+  hero: 1,
+  counter: 2,
+  gallery: 3,
+  letter: 4,
+  music: 5,
+  timeline: 6,
 };
 
 export function StepReview() {

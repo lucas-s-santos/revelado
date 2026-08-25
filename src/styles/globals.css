@@ -992,6 +992,73 @@
     }
   }
 
+  /* --- Escolha de formato (primeiro passo do editor) -------------------- */
+  .formats {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .format {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    padding: 0.9rem 1rem;
+    text-align: left;
+    border-radius: var(--radius-md);
+    border: 2px solid rgb(var(--color-ink) / 0.1);
+    background: rgb(var(--color-surface));
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out);
+  }
+
+  .format:hover {
+    transform: translateY(-1px);
+  }
+
+  .format[aria-pressed="true"] {
+    border-color: rgb(var(--color-accent));
+  }
+
+  .format__head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .format__name {
+    font-size: 0.98rem;
+    font-weight: 500;
+  }
+
+  .format__mark {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    margin-left: auto;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-accent));
+    color: rgb(var(--color-on-brand));
+  }
+
+  .format__hint {
+    font-size: 0.85rem;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* A lista de peças, em mono: é dado, não prosa. */
+  .format__blocks {
+    margin-top: 0.3rem;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--color-accent));
+  }
+
   /* --- Grade de temas do editor ---------------------------------------- *
    * Cada ladrilho carrega o próprio `data-skin`, e o theme.css já reescreve
    * os tokens para os descendentes desse atributo. Então o ladrilho se pinta
