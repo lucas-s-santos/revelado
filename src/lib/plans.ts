@@ -81,6 +81,52 @@ export const PLANS: readonly PlanSeed[] = [
 ] as const;
 
 /**
+ * A tabela de comparação entre os dois planos.
+ *
+ * Ocupa o lugar do "nós contra as outras plataformas" que esse tipo de página
+ * costuma ter. A troca é deliberada: afirmar o que um concorrente não faz
+ * exige verificar o produto dele, e ninguém verifica — então vira alegação
+ * solta. A dúvida real de quem está nessa altura da página é outra, e é esta:
+ * qual dos dois eu levo.
+ *
+ * As linhas com número saem de `PLANS` (ver o teste que amarra as duas): assim
+ * a tabela não pode dizer "10 fotos" no dia em que o plano passar a dar 15.
+ */
+export interface ComparisonRow {
+  label: string;
+  simples: boolean | string;
+  especial: boolean | string;
+}
+
+export function planComparison(): readonly ComparisonRow[] {
+  const dia = PLAN_BY_ID.get("simples")!;
+  const eterno = PLAN_BY_ID.get("especial")!;
+
+  return [
+    {
+      label: "Quanto tempo fica no ar",
+      simples: durationLabel(dia),
+      especial: durationLabel(eterno),
+    },
+    {
+      label: "Fotos na galeria",
+      simples: `até ${dia.maxPhotos}`,
+      especial: `até ${eterno.maxPhotos}`,
+    },
+    { label: "Contador ao vivo", simples: true, especial: true },
+    { label: "Música do Spotify ou YouTube", simples: true, especial: true },
+    { label: "Preview completo antes de pagar", simples: true, especial: true },
+    { label: "Pagamento único, sem mensalidade", simples: true, especial: true },
+    { label: "Link e QR Code para imprimir", simples: true, especial: true },
+    { label: "Carta em envelope", simples: false, especial: true },
+    { label: "Linha do tempo", simples: false, especial: true },
+    { label: "Quiz do casal", simples: false, especial: true },
+    { label: "Senha na página", simples: false, especial: true },
+    { label: "QR em SVG e cartão A6 em PDF", simples: false, especial: true },
+  ];
+}
+
+/**
  * O rótulo de prazo, tirado da duração real.
  *
  * Existia uma string fixa na copy dizendo "por 1 ano no ar" para qualquer
