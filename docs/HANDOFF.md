@@ -99,6 +99,22 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
 
 ---
 
+### Dois formatos estavam quebrados desde a fase 3
+
+"Motivos" pede o bloco `reasons` e "Cápsula do tempo" pede `capsule`. Os dois
+estão no registry como `ready: false`, e **o renderer ignora bloco sem
+componente em silêncio** — sem erro, sem aviso. Quem escolhesse esses
+formatos receberia uma página sem a peça principal.
+
+O editor agora filtra por `isTemplateReady(template, readyBlockTypes)`, que é
+dado e não lista à mão: no dia em que `reasons` e `capsule` ganharem
+componente, os formatos voltam a aparecer sozinhos. O teste em
+`templates.test.ts` trava os dois lados e **falha de propósito** nesse dia —
+é o lembrete para mover os ids de um caso para o outro.
+
+A lição geral: `ready: false` no registry não impede nada por si só. Qualquer
+lugar que ofereça blocos precisa filtrar.
+
 ### Formato é prop, não bloco novo
 
 A referência vende "Carta de Amor" e "Carta Interativa" como produtos
@@ -181,8 +197,8 @@ el.evaluate((n) => getComputedStyle(n).color)
 |---|---|---|
 | A | Pele: tokens + régua de contraste | ✅ completa |
 | B | Landing seção por seção | ✅ **completa** — Revelation com envelope, BlocksGrid nos 4 tons, cenas de entrega, CTA em cartão rosa |
-| C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | 🟡 parcial — 12 temas ✅, 9 passos ✅, barra de % ✅; faltam os 4 formatos de presente (viraram fase D) |
-| D | Formatos novos | 🟡 parcial — carta interativa (envelope) ✅; falta o quiz do casal e o passo de escolha de formato |
+| C | Editor: passos, barra de %, preview fixo, 12 temas com trava VIP | ✅ **completa** — 12 temas, **dez** passos (o formato virou o primeiro), barra de % |
+| D | Formatos novos | 🟡 parcial — carta interativa ✅, passo de escolha de formato ✅; falta o quiz do casal |
 | E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada — **mexe em dinheiro** (plans.ts, checkout, seed); pedir aval antes |
 
 ### O mascote (decisão pendente)
