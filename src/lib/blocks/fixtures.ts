@@ -50,6 +50,7 @@ export const demoContent: SiteContent = {
       props: {
         text: "Eu não lembro do filme.\n\nLembro que você riu de uma coisa que eu falei sem graça nenhuma, e que eu passei o resto da semana tentando ser engraçado de novo. Cinco anos depois ainda estou tentando.\n\nObrigado por continuar rindo.",
         typewriter: false,
+        reveal: "plain" as const,
         signature: "Téo",
       },
     },

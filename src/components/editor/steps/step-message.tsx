@@ -3,7 +3,20 @@
 import { Field } from "@/components/editor/field";
 import { findBlock, useEditorStore } from "@/stores/editor-store";
 
-/** Passo 4 — Mensagem. A carta (SPEC 8.4). */
+/** Passo da carta — texto, assinatura e como ela se revela (SPEC 8.4). */
+
+const REVEALS = [
+  {
+    id: "plain" as const,
+    label: "Direta",
+    hint: "o texto já aparece",
+  },
+  {
+    id: "envelope" as const,
+    label: "Em envelope",
+    hint: "fechada; quem recebe abre",
+  },
+];
 export function StepMessage() {
   const content = useEditorStore((state) => state.content);
   const patch = useEditorStore((state) => state.patchBlockProps);
@@ -29,6 +42,26 @@ export function StepMessage() {
           Escreva como você fala. Uma linha pula parágrafo, duas separam blocos.
         </p>
       </header>
+
+      {/* Formato é prop da mesma carta, não outro bloco: trocar aqui nunca
+          apaga o que já foi escrito. */}
+      <fieldset className="fieldset">
+        <legend className="field__label">Como ela aparece</legend>
+        <div className="chips">
+          {REVEALS.map((reveal) => (
+            <button
+              key={reveal.id}
+              type="button"
+              onClick={() => patch(letter.id, { reveal: reveal.id })}
+              aria-pressed={letter.props.reveal === reveal.id}
+              className="chip"
+            >
+              <span>{reveal.label}</span>
+              <small>{reveal.hint}</small>
+            </button>
+          ))}
+        </div>
+      </fieldset>
 
       <Field
         label="Sua mensagem"

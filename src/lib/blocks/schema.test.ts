@@ -37,6 +37,52 @@ describe("schema dos blocos", () => {
     expect(parsed.data.theme.effect).toBe("none");
   });
 
+  it("abre carta antiga, sem reveal, como carta direta", () => {
+    // A garantia da fase D: `reveal` entrou como prop nova na carta, e
+    // rascunho salvo antes dela não traz o campo. Se o default falhasse, toda
+    // carta já escrita passaria a abrir em envelope sem ninguém pedir.
+    const parsed = parseSiteContent({
+      ...base,
+      blocks: [
+        { id: "l", type: "letter", props: { text: "Oi", typewriter: false } },
+      ],
+    });
+
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+
+    const letter = parsed.data.blocks[0];
+    if (letter?.type !== "letter") throw new Error("esperava uma carta");
+
+    expect(letter.props.reveal).toBe("plain");
+  });
+
+  it("aceita a carta em envelope", () => {
+    const parsed = parseSiteContent({
+      ...base,
+      blocks: [
+        {
+          id: "l",
+          type: "letter",
+          props: { text: "Oi", reveal: "envelope" },
+        },
+      ],
+    });
+
+    expect(parsed.success).toBe(true);
+  });
+
+  it("recusa formato de revelação que não existe", () => {
+    const parsed = parseSiteContent({
+      ...base,
+      blocks: [
+        { id: "l", type: "letter", props: { text: "Oi", reveal: "fogos" } },
+      ],
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
   it("recusa bloco de tipo desconhecido", () => {
     const parsed = parseSiteContent({
       ...base,

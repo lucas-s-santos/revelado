@@ -1,11 +1,16 @@
+import { EnvelopeLetter } from "@/components/blocks/envelope-letter";
 import type { PropsOf } from "@/lib/blocks/schema";
 
 /**
  * Carta — SPEC 7.2. Sem `"use client"`: é texto.
  *
- * O `typewriter` do schema é intencionalmente ignorado aqui e tratado no
- * `TypewriterText` (client), carregado só quando ligado — quem não usa não paga
- * o JS (SPEC 10).
+ * Dois formatos, um conteúdo. `reveal: "envelope"` embrulha o MESMO texto no
+ * portão interativo; `plain` entrega direto. Manter os dois como um bloco só é
+ * o que garante que trocar de formato nunca apague o que a pessoa escreveu —
+ * como blocos separados, a troca perderia a carta (SPEC 8.4).
+ *
+ * Só o embrulho é cliente. Quem usa a carta comum não carrega JavaScript
+ * nenhum por causa deste bloco (SPEC 10).
  */
 export function LetterBlock({ props }: { props: PropsOf<"letter"> }) {
   const paragraphs = props.text
@@ -13,7 +18,7 @@ export function LetterBlock({ props }: { props: PropsOf<"letter"> }) {
     .map((paragraph) => paragraph.trim())
     .filter(Boolean);
 
-  return (
+  const corpo = (
     <section className="block-letter">
       <div className="block-letter__body">
         {paragraphs.map((paragraph, index) => (
@@ -26,4 +31,10 @@ export function LetterBlock({ props }: { props: PropsOf<"letter"> }) {
       ) : null}
     </section>
   );
+
+  if (props.reveal === "envelope") {
+    return <EnvelopeLetter props={props}>{corpo}</EnvelopeLetter>;
+  }
+
+  return corpo;
 }

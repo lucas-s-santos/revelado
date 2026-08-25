@@ -54,6 +54,18 @@ export const blockProps = {
     text: z.string().max(4000),
     typewriter: z.boolean().default(false),
     signature: z.string().max(60).optional(),
+    /**
+     * Como a carta se revela.
+     *
+     * `envelope` é o formato "carta interativa": o texto começa fechado e quem
+     * recebe abre. É **prop**, e não bloco novo, porque o conteúdo é o mesmo —
+     * mesmo texto, mesma assinatura. Como bloco separado, trocar de formato
+     * apagaria o que a pessoa escreveu, que é justamente o que não pode
+     * acontecer num editor (SPEC 8.4).
+     *
+     * Default `plain`: carta que já existe continua abrindo igual.
+     */
+    reveal: z.enum(["plain", "envelope"]).default("plain"),
   }),
 
   gallery: z.object({
