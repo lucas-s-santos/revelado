@@ -95,6 +95,23 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
 
 ---
 
+### Bloco opcional precisa de porta de entrada E de saída
+
+`music` e `timeline` **não** entram no rascunho novo, e não podem entrar:
+`validateForPublish` exige faixa escolhida e ao menos uma data quando o bloco
+existe, então incluí-los no preset faria todo rascunho nascer inválido para
+publicar.
+
+A consequência é que o passo do editor precisa de **duas** ações: adicionar
+o bloco quando ele não existe, e removê-lo. Só a primeira não basta — um
+bloco vazio trava a publicação e a pessoa fica presa nele.
+
+Quem faz isso é `addBlock`/`removeBlock` no store, e `optionalBlock()` em
+`lib/blocks/defaults.ts` guarda as props padrão. O bloco entra **antes do
+rodapé**, nunca no fim da lista, senão aparece depois da assinatura da página.
+
+O mesmo vale para qualquer bloco opcional novo (mural, cápsula, mapa).
+
 ### A régua tem dois pontos cegos — conheça os dois
 
 `pnpm contrast` mede **pares de tokens sólidos**. Ela não vê:
@@ -140,7 +157,7 @@ el.evaluate((n) => getComputedStyle(n).color)
 |---|---|---|
 | A | Pele: tokens + régua de contraste | ✅ completa |
 | B | Landing seção por seção | ✅ **completa** — Revelation com envelope, BlocksGrid nos 4 tons, cenas de entrega, CTA em cartão rosa |
-| C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | 🟡 parcial — 12 temas com trava ✅; faltam os 9 passos, a barra de % e os 4 formatos |
+| C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | 🟡 parcial — 12 temas ✅, 9 passos ✅, barra de % ✅; faltam os 4 formatos de presente (viraram fase D) |
 | D | Formatos novos: envelope que abre, carta interativa, quiz do casal | ⬜ não começada |
 | E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada — **mexe em dinheiro** (plans.ts, checkout, seed); pedir aval antes |
 
