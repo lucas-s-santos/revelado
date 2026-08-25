@@ -102,12 +102,25 @@ export function defaultContent(template = DEFAULT_TEMPLATE): SiteContent {
  * O id é o próprio tipo, como nos demais: no modo simples existe no máximo um
  * bloco de cada.
  */
-export function optionalBlock(type: "music" | "timeline"): Block {
+export function optionalBlock(type: "music" | "timeline" | "quiz"): Block {
   if (type === "music") {
     return block({
       id: "music",
       type: "music",
       props: { provider: "spotify" as const, trackId: "", autoplay: false },
+    });
+  }
+
+  if (type === "quiz") {
+    return block({
+      id: "quiz",
+      type: "quiz",
+      props: {
+        // Nasce com título, não vazio: o campo em branco no editor pareceria
+        // erro, e este texto já é um convite pronto (SPEC 11).
+        title: "O quanto você me conhece?",
+        questions: [],
+      },
     });
   }
 

@@ -51,7 +51,7 @@ export interface EditorState {
   ) => void;
   setTheme: (patch: Partial<SiteContent["theme"]>) => void;
   /** Liga um bloco opcional (música, linha do tempo). Idempotente. */
-  addBlock: (type: "music" | "timeline") => void;
+  addBlock: (type: "music" | "timeline" | "quiz") => void;
   /** Troca o formato: remonta a moldura sem tocar no que foi escrito. */
   applyTemplate: (templateId: string) => void;
   removeBlock: (blockId: string) => void;
@@ -191,7 +191,7 @@ export const useEditorStore = create<EditorState>()(
                 continue;
               }
 
-              if (type === "music" || type === "timeline") {
+              if (type === "music" || type === "timeline" || type === "quiz") {
                 ordenados.push(optionalBlock(type));
               }
             }

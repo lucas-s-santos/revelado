@@ -83,6 +83,57 @@ describe("schema dos blocos", () => {
     expect(parsed.success).toBe(false);
   });
 
+  describe("quiz", () => {
+    const comQuiz = (props: unknown) =>
+      parseSiteContent({
+        ...base,
+        blocks: [{ id: "q", type: "quiz", props }],
+      });
+
+    it("aceita uma pergunta bem formada", () => {
+      expect(
+        comQuiz({
+          title: "O quanto você me conhece?",
+          questions: [
+            { id: "a", text: "Onde?", options: ["Aqui", "Ali"], answer: 1 },
+          ],
+        }).success,
+      ).toBe(true);
+    });
+
+    it("recusa resposta certa que aponta para opção inexistente", () => {
+      // O caso perigoso: sem esta checagem o bloco salvaria e a pergunta
+      // ficaria sem resposta possível, travando o quiz no meio.
+      expect(
+        comQuiz({
+          title: "T",
+          questions: [
+            { id: "a", text: "Onde?", options: ["Aqui", "Ali"], answer: 2 },
+          ],
+        }).success,
+      ).toBe(false);
+    });
+
+    it("recusa pergunta com uma opção só", () => {
+      expect(
+        comQuiz({
+          title: "T",
+          questions: [{ id: "a", text: "Onde?", options: ["Aqui"], answer: 0 }],
+        }).success,
+      ).toBe(false);
+    });
+
+    it("não publica quiz sem pergunta nenhuma", () => {
+      const parsed = comQuiz({ title: "T", questions: [] });
+      expect(parsed.success).toBe(true);
+      if (!parsed.success) return;
+
+      expect(validateForPublish(parsed.data)).toContainEqual(
+        expect.objectContaining({ blockId: "q" }),
+      );
+    });
+  });
+
   it("recusa bloco de tipo desconhecido", () => {
     const parsed = parseSiteContent({
       ...base,

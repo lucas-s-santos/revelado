@@ -139,6 +139,41 @@ export const blockProps = {
       .max(6),
   }),
 
+  /**
+   * Quiz do casal — perguntas sobre vocês dois, respondidas por quem recebe.
+   *
+   * É PRESENTE, não prova. O bloco não guarda nota nem reprova ninguém: a
+   * resposta certa serve para reagir ("essa você sabia"), e o recado do fim
+   * aparece de qualquer jeito. Um presente que diz "você errou" para quem o
+   * recebeu é um presente ruim.
+   *
+   * As perguntas moram no JSON do bloco, como todo o resto do conteúdo — nada
+   * de tabela nova (regra 1).
+   */
+  quiz: z.object({
+    title: z.string().max(60),
+    questions: z
+      .array(
+        z
+          .object({
+            id: z.string().min(1),
+            text: z.string().max(160),
+            options: z.array(z.string().max(80)).min(2).max(4),
+            /** índice da resposta certa dentro de `options` */
+            answer: z.number().int().min(0),
+          })
+          // Índice fora da lista deixaria a pergunta sem resposta certa
+          // possível, e o bloco travaria em silêncio no meio do quiz.
+          .refine((q) => q.answer < q.options.length, {
+            message: "a resposta certa aponta para uma opção que não existe",
+            path: ["answer"],
+          }),
+      )
+      .max(12),
+    /** o que aparece no fim, para todo mundo */
+    reward: z.string().max(400).optional(),
+  }),
+
   footer: z.object({
     text: z.string().max(120),
   }),
@@ -168,6 +203,7 @@ export const blockSchema = z.discriminatedUnion("type", [
   variant("video"),
   variant("capsule"),
   variant("stats"),
+  variant("quiz"),
   variant("footer"),
 ]);
 
@@ -265,6 +301,22 @@ export function validateForPublish(content: SiteContent): PublishIssue[] {
           issues.push({
             blockId: block.id,
             message: "Escolha a música ou remova o bloco.",
+          });
+        }
+        break;
+
+      case "quiz":
+        if (block.props.questions.length === 0) {
+          issues.push({
+            blockId: block.id,
+            message: "O quiz está sem perguntas — escreva uma ou remova o bloco.",
+          });
+        } else if (
+          block.props.questions.some((q) => q.text.trim().length === 0)
+        ) {
+          issues.push({
+            blockId: block.id,
+            message: "Uma das perguntas do quiz está em branco.",
           });
         }
         break;
