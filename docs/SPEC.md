@@ -238,11 +238,17 @@ Tudo que depende da pele mora em token, inclusive o vidro (`--glass-*`), a sombr
 
 | Papel | Fonte | Uso |
 |---|---|---|
-| Display | **Instrument Serif** (400 + itálico) | H1, H2, preços, nomes na página publicada. Usar com parcimônia |
-| Corpo | **Inter** (300/400/500) | Todo o resto. Peso 300 em textos longos |
-| Utilidade | **JetBrains Mono** (400/500) | Contadores, eyebrows, labels, dados, timestamps |
+| Display | **Fraunces** (variável + itálico, eixos SOFT/WONK/opsz) | H1, H2, preços, nomes na página publicada. Usar com parcimônia |
+| Corpo | **Plus Jakarta Sans** (variável) | Todo o resto. Peso 300 em textos longos |
+| Utilidade | **DM Mono** (400/500) | Contadores, eyebrows, labels, dados, timestamps |
 
 Carregar via `next/font/google` com `display: 'swap'` e `variable`.
+
+A classe `.variable` de cada uma vai no **`<html>`**, não no `<body>`: o
+`@theme` declara os três papéis no `:root`, e `var()` dentro de uma custom
+property resolve no elemento que declara. Definidas no `<body>`, as famílias
+ficam fora do alcance do `:root` e os papéis viram inválidos — o site renderiza
+em fonte de sistema sem acusar erro.
 
 **Regras:**
 - Contadores e valores numéricos: `font-variant-numeric: tabular-nums` obrigatório (senão o dígito pula a cada segundo).
@@ -1026,8 +1032,16 @@ Postgres · Cloudflare R2 · Mercado Pago · Inngest · pnpm.
 ## Identidade visual
 Conceito "Câmara Escura": preto arroxeado de laboratório fotográfico, luz de
 segurança âmbar, magenta de filtro de ampliação, ciano só para estados vivos.
-Tipografia: Instrument Serif (display, com parcimônia) + Inter (corpo) +
-JetBrains Mono (contadores e labels, sempre com tabular-nums).
+Tipografia: Fraunces (display, com parcimônia; variável, com os eixos SOFT,
+WONK e opsz) + Plus Jakarta Sans (corpo) + DM Mono (contadores e labels,
+sempre com tabular-nums).
+
+**As classes do `next/font` vão no `<html>`, nunca no `<body>`.** O `@theme`
+declara `--font-display`/`--font-sans`/`--font-mono` no `:root`, e a
+substituição de uma custom property acontece no elemento que a declara. Com as
+famílias definidas no `<body>`, o `var()` do `:root` não tinha o que resolver,
+os três papéis viravam inválidos e o site inteiro caía na fonte do sistema —
+sem erro nenhum, em silêncio.
 
 Não empilhar efeitos: máximo dois efeitos ambientais por tela. Se a tela começar a
 parecer landing genérica de startup de IA, remova um efeito.

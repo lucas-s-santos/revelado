@@ -18,8 +18,16 @@ tarefa. Se algo divergir dele, pergunte em vez de improvisar.
 ## Stack
 
 Next.js 15 (App Router) · React 19 · TypeScript strict · Tailwind v4 · Motion
-(`motion/react`) · shadcn/ui + Magic UI + Aceternity · Zustand · Zod · Prisma +
+(`motion/react`) · GSAP (coreografia de entrada) · ogl (o campo de ondas do
+hero) · shadcn/ui + Magic UI + Aceternity · Zustand · Zod · Prisma +
 Postgres · Cloudflare R2 · Mercado Pago · Inngest · pnpm.
+
+Sobre WebGL: `ogl`, e não three.js. A landing tem orçamento de 220 KB gzip
+(SPEC 10) e hoje está em 217,7 — o ogl no caminho crítico custa ~15 KB, o
+three.js passa de 150. Componente de biblioteca que pede three (LightPillar,
+img2threejs) não entra: ou vira CSS, ou fica de fora. **A folga atual é de
+2,3 KB**, então a próxima coisa que entrar na landing provavelmente exige
+tirar outra.
 
 ## Regras invioláveis
 
@@ -64,8 +72,16 @@ Os tokens de superfície dizem o papel, nunca a cor: `--color-bg`,
 `--color-surface`, `--color-surface-2`, `--color-ink`, `--color-ink-muted`.
 Nenhuma regra de CSS deve saber de que cor é a pele. O mesmo vale para o vidro
 (`--glass-*`), a sombra e a vinheta.
-Tipografia: Instrument Serif (display, com parcimônia) + Inter (corpo) +
-JetBrains Mono (contadores e labels, sempre com tabular-nums).
+Tipografia: Fraunces (display, com parcimônia; variável, com os eixos SOFT,
+WONK e opsz) + Plus Jakarta Sans (corpo) + DM Mono (contadores e labels,
+sempre com tabular-nums).
+
+**As classes do `next/font` vão no `<html>`, nunca no `<body>`.** O `@theme`
+declara `--font-display`/`--font-sans`/`--font-mono` no `:root`, e a
+substituição de uma custom property acontece no elemento que a declara. Com as
+famílias definidas no `<body>`, o `var()` do `:root` não tinha o que resolver,
+os três papéis viravam inválidos e o site inteiro caía na fonte do sistema —
+sem erro nenhum, em silêncio.
 
 **Camada vence especificidade.** `.eyebrow` e `.display-italic` moram em
 `@layer utilities`; o CSS das seções mora em `@layer components`, que o

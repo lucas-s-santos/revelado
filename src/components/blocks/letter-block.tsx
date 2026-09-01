@@ -20,15 +20,27 @@ export function LetterBlock({ props }: { props: PropsOf<"letter"> }) {
 
   const corpo = (
     <section className="block-letter">
-      <div className="block-letter__body">
-        {paragraphs.map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
-        ))}
-      </div>
+      {/* O papel.
+       *
+       * A carta era um parágrafo alinhado à esquerda sobre o mesmo rosa de
+       * todas as outras seções — o item mais importante da página, e o único
+       * sem forma própria. Numa página que é presente, a carta precisa
+       * parecer uma carta: uma folha, com margem, pousada sobre a página.
+       *
+       * O papel também resolve a medida de leitura. Solto, o texto ia de
+       * ponta a ponta da tela e, no desktop, virava linha de 90 caracteres —
+       * o dobro do confortável. */}
+      <article className="block-letter__paper">
+        <div className="block-letter__body">
+          {paragraphs.map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+        </div>
 
-      {props.signature ? (
-        <p className="block-letter__signature">— {props.signature}</p>
-      ) : null}
+        {props.signature ? (
+          <p className="block-letter__signature">— {props.signature}</p>
+        ) : null}
+      </article>
     </section>
   );
 
