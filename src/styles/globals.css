@@ -282,11 +282,15 @@
   /* --- ScrollProgress (SPEC 6.3) --------------------------------------
    * scaleX(var(--scroll)) — o driver escreve, o CSS desenha. */
   .scroll-progress {
-    position: fixed;
+    position: absolute;
+    /* No topo do chrome, não embaixo: a nav agora é uma ilha com folga dos
+       dois lados, e um fio de largura inteira embaixo dela ficava solto,
+       sublinhando nada. Na borda de cima ele é o que sempre foi — a régua de
+       quanto falta da página. */
     inset: 0 0 auto 0;
-    z-index: 60;
     height: 2px;
     pointer-events: none;
+    z-index: 1;
   }
 
   .scroll-progress__fill {
@@ -337,15 +341,28 @@
     list-style: none;
   }
 
-  /* Cada ato acende quando --p cruza a faixa dele. Sem JS, sem classe. */
+  /* Cada ato acende quando --p cruza a faixa dele. Sem JS, sem classe.
+   *
+   * O quanto está aceso vira variável porque agora DUAS coisas leem esse
+   * valor com pisos diferentes: o ato inteiro (que carrega a prosa e por isso
+   * quase não pode apagar) e o título (36px, texto grande, que pode). Ver a
+   * conta nos comentários de --act-floor no theme.css. */
   .sticky-acts__act {
+    --aceso: clamp(
+      0,
+      (var(--p, 0) - var(--from)) / (var(--to) - var(--from)) + 0.35,
+      1
+    );
     opacity: calc(
-      var(--act-dim, 0.3) + (1 - var(--act-dim, 0.3)) *
-        clamp(
-          0,
-          (var(--p, 0) - var(--from)) / (var(--to) - var(--from)) + 0.35,
-          1
-        )
+      var(--act-floor, 0.9) + (1 - var(--act-floor, 0.9)) * var(--aceso)
+    );
+    transition: opacity var(--dur-base) var(--ease-out);
+  }
+
+  /* O recuo visível mora aqui. Multiplica com a opacidade do ato: 0.9 × 0.58. */
+  .sticky-acts__title {
+    opacity: calc(
+      var(--act-dim, 0.3) + (1 - var(--act-dim, 0.3)) * var(--aceso)
     );
     transition: opacity var(--dur-base) var(--ease-out);
   }
@@ -445,11 +462,264 @@
     color: rgb(var(--color-ink-on-deep));
   }
 
-  /* --- Barra de promoção (SPEC 8.1 §1) --------------------------------- */
-  .promo-bar {
+  /* --- O portal (SPEC 8.8, primeiro frame) -------------------------------
+   *
+   * Cobertura, não substituição: os blocos continuam no DOM por baixo. Por isso
+   * é `fixed` com fundo opaco, e não um `display: none` no conteúdo.
+   *
+   * O escuro aqui é proposital mesmo na pele clara. A página publicada pode ser
+   * clara ou escura conforme quem montou escolheu, mas o portal é sempre noite:
+   * é o que faz a abertura parecer uma luz acendendo, e é o que garante que o
+   * primeiro frame seja o mesmo para todo mundo, independente do tema de dentro.
+   */
+  .portal {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    padding: 2rem 1.5rem;
+    background:
+      radial-gradient(
+        120% 80% at 50% 42%,
+        rgb(var(--color-deep-2)) 0%,
+        rgb(var(--color-deep)) 55%,
+        rgb(10 7 17) 100%
+      );
+    opacity: 1;
+    transition:
+      opacity var(--dur-slow) var(--ease-out),
+      transform var(--dur-slow) var(--ease-out);
+  }
+
+  /* A saída: some subindo de leve, como quem levanta a tampa. */
+  .portal[data-saindo] {
+    opacity: 0;
+    transform: translateY(-1.5%) scale(1.04);
+    pointer-events: none;
+  }
+
+  .portal__palco {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.75rem;
+    text-align: center;
+  }
+
+  .portal__linha {
+    margin: 0;
+    max-width: 26ch;
+    color: rgb(var(--color-muted-on-deep));
+    font-size: clamp(0.95rem, 3.4vw, 1.05rem);
+    line-height: 1.5;
+    text-wrap: balance;
+  }
+
+  /* --- o envelope fechado --- */
+  .portal__envelope {
+    position: relative;
+    display: block;
+    width: min(210px, 56vw);
+    aspect-ratio: 3 / 2;
+    /* A respiração. Só transform e opacity; o kill-switch global de
+       prefers-reduced-motion no fim do arquivo congela isto no primeiro
+       quadro, que é o envelope parado em tamanho normal. */
+    animation: portal-respira 4.2s var(--ease-in-out) infinite;
+  }
+
+  @keyframes portal-respira {
+    0%,
+    100% {
+      transform: scale(1) translateY(0);
+    }
+    50% {
+      transform: scale(1.035) translateY(-6px);
+    }
+  }
+
+  /* O corpo do envelope. Mesma construção da seção da landing: o bolso é
+     retângulo sólido e o V é desenho por cima, nunca recorte — como recorte
+     sobra um vão entre as duas diagonais. */
+  /* O bolso e o envelope INTEIRO, nao a metade de baixo.
+     Ele ocupava 64% da altura, e a aba nascia no topo da caixa -- 36% acima
+     dele. Uma aba que se projeta para fora do corpo e uma aba dobrada para
+     TRAS: e por isso que o desenho lia como caixa aberta mesmo com o V no
+     lugar certo. Num envelope lacrado visto de frente, aba e bolso dividem o
+     mesmo retangulo; a aba e um triangulo DENTRO dele. */
+  .portal__envelope-corpo {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-brand)) 0%,
+      rgb(var(--color-rose)) 100%
+    );
+    box-shadow:
+      inset 0 1px 0 rgb(var(--color-ink-on-deep) / 0.26),
+      0 -9px 16px -8px rgb(0 0 0 / 0.6),
+      0 30px 46px -24px rgb(0 0 0 / 0.75);
+  }
+
+  .portal__envelope-corpo::before,
+  .portal__envelope-corpo::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50%;
+  }
+
+  .portal__envelope-corpo::before {
+    left: 0;
+    background: linear-gradient(
+      to bottom right,
+      transparent calc(50% - 1px),
+      rgb(var(--color-deep) / 0.26) 50%,
+      transparent calc(50% + 1px)
+    );
+  }
+
+  .portal__envelope-corpo::after {
+    right: 0;
+    background: linear-gradient(
+      to bottom left,
+      transparent calc(50% - 1px),
+      rgb(var(--color-deep) / 0.26) 50%,
+      transparent calc(50% + 1px)
+    );
+  }
+
+  /* A ABA VAI POR CIMA DO BOLSO. Este z-index e a diferenca entre um envelope
+     lacrado e uma caixa aberta.
+     Ela ficava em z-index 1, atras do corpo (z-index 2). Como o corpo comeca
+     em 36% da altura e a aba desce ate 62%, o V era coberto justo onde ele se
+     fecha: sobrava um trapezio, largo em cima e cortado reto no meio, que o
+     olho le como tampa levantada. Numa tela que convida a ABRIR, o desenho
+     dizia que ja estava aberto. */
+  .portal__envelope-aba {
+    position: absolute;
+    inset: 0 0 auto 0;
+    /* 58%: o bico do V para pouco abaixo do meio, que e onde a aba de um
+       envelope de papel alcanca. Descendo mais, vira guardanapo dobrado. */
+    height: 58%;
+    z-index: 3;
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-brand-bright)) 0%,
+      rgb(var(--color-brand)) 100%
+    );
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    /* drop-shadow e não box-shadow: box-shadow desenha a sombra da caixa e
+       ignora o clip-path, então sairia um retângulo atrás de um triângulo. */
+    filter: drop-shadow(0 5px 7px rgb(0 0 0 / 0.45));
+  }
+
+  /* O vinco. Uma dobra de papel nao e uma aresta limpa: ela pega luz de um
+     lado e sombra do outro. Sem esta linha, aba e bolso sao dois rosas
+     encostados e o envelope volta a parecer adesivo. */
+  .portal__envelope-aba::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-ink-on-deep) / 0.16) 0,
+      transparent 14%
+    );
+  }
+
+  /* O destinatario, escrito na frente.
+     Fica no bolso e ABAIXO da aba (z-index 2 contra 3), na parte do envelope
+     que a aba nao cobre -- que e onde se escreve num envelope de papel. Em
+     display italico, como letra a mao, e nao no mono da interface: e uma coisa
+     escrita por uma pessoa, nao um rotulo do sistema. */
+  .portal__envelope-para {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: 9%;
+    z-index: 2;
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: clamp(0.85rem, 3.4vw, 1.05rem);
+    line-height: 1.2;
+    text-align: center;
+    color: rgb(var(--color-ink-on-deep) / 0.92);
+    /* Uma linha so. O corte com reticencias e a rede de seguranca do teto de
+       28 caracteres la no servidor. */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* O lacre fecha o bico do V, que agora esta visivel em 62% da altura --
+     antes ele boiava em 46%, no meio de um trapezio, e lia como botao. */
+  .portal__envelope-lacre {
+    position: absolute;
+    top: 58%;
+    left: 50%;
+    width: 34px;
+    height: 34px;
+    margin: -17px 0 0 -17px;
+    z-index: 4;
+    border-radius: var(--radius-pill);
+    background: radial-gradient(
+      circle at 36% 30%,
+      rgb(var(--color-ink-on-deep)) 0%,
+      rgb(var(--color-ink-on-deep) / 0.9) 42%,
+      rgb(var(--color-muted-on-deep)) 100%
+    );
+    box-shadow:
+      inset 0 -2px 4px rgb(var(--color-deep) / 0.4),
+      0 6px 14px -6px rgb(0 0 0 / 0.6);
+  }
+
+  /* --- o toque --- */
+  .portal__botao {
+    padding: 0.85rem 1.9rem;
+    border-radius: var(--radius-pill);
+    border: 0;
+    background: rgb(var(--color-ink-on-deep));
+    color: rgb(var(--color-deep));
+    font-size: 0.98rem;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 14px 34px -14px rgb(var(--color-brand) / 0.75);
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .portal__botao:hover {
+    transform: translateY(-2px);
+  }
+
+  .portal__botao:active {
+    transform: translateY(0);
+  }
+
+  /* --- Chrome do topo --------------------------------------------------
+   *
+   * Promo, nav e barra de progresso são UM sticky só, não três.
+   *
+   * Antes cada um se colava sozinho em `top: 0`: os três disputavam o mesmo
+   * ponto e o de z-index maior tapava o resto. A promo (z-70) cobria a nav
+   * (z-65), que sobrava como uma fatia de 19px com o logo cortado ao meio, e
+   * a barra de progresso (z-60, 2px de altura) nunca chegou a ser vista.
+   * Empilhados aqui dentro eles se somam em vez de competir, e a promo pode
+   * ser dispensada sem que a nav mude de lugar. */
+  .site-chrome {
     position: sticky;
     top: 0;
     z-index: 70;
+  }
+
+  /* --- Barra de promoção (SPEC 8.1 §1) --------------------------------- */
+  .promo-bar {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -505,30 +775,65 @@
   }
 
   /* --- Nav (SPEC 8.1 §2) ----------------------------------------------- */
+  /*
+   * A nav é uma ILHA, não uma faixa.
+   *
+   * A faixa de largura inteira tinha dois problemas que não eram de estilo. Um:
+   * atravessando a seção vinho ela precisava de um fundo opaco para os links
+   * não sumirem, e aí virava um tampo cinza cortando a página em duas. Dois:
+   * faixa colada no topo é a nav de qualquer SaaS.
+   *
+   * Como cápsula ela lê como objeto apoiado sobre a página — o conteúdo passa
+   * por baixo e continua visível nas beiradas, e sobre o vinho ela é um cartão
+   * claro, que é uma coisa que faz sentido existir ali.
+   *
+   * A faixa em si não intercepta ponteiro: só a cápsula recebe clique, senão
+   * uma tira invisível de largura inteira roubaria o hover do conteúdo.
+   */
   .site-nav {
-    position: sticky;
-    top: 0;
-    z-index: 65;
-    transition:
-      background-color var(--dur-base) var(--ease-out),
-      border-color var(--dur-base) var(--ease-out);
-    border-bottom: 1px solid transparent;
+    position: relative;
+    padding: 0.7rem 1.25rem;
+    pointer-events: none;
   }
 
-  /* Exceção consciente à regra "não animar cor de fundo": é a nav
-   * solidificando, dura 320ms, não roda por frame e não causa layout. */
-  .site-nav[data-solid] {
-    background: rgb(var(--color-bg) / 0.72);
-    backdrop-filter: blur(14px);
-    border-bottom-color: rgb(var(--color-ink) / 0.08);
-  }
-
+  /* Exceção consciente à regra "não animar cor de fundo": é a ilha
+   * materializando, dura 320ms, não roda por frame e não causa layout.
+   *
+   * No topo da página ela é invisível — os links flutuam soltos sobre o hero.
+   * Ao rolar, o vidro aparece. É o mesmo data-solid de antes; mudou só onde a
+   * superfície é pintada. */
   .site-nav__inner {
+    pointer-events: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding-block: 0.85rem;
+    width: 100%;
+    /* Mais estreita que a --maxw do conteúdo: é o afastamento das bordas que
+       faz a diferença entre "ilha" e "faixa com cantos arredondados". */
+    max-width: 68rem;
+    margin-inline: auto;
+    padding: 0.45rem 0.5rem 0.45rem 1.1rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid transparent;
+    transition:
+      background-color var(--dur-base) var(--ease-out),
+      border-color var(--dur-base) var(--ease-out),
+      box-shadow var(--dur-base) var(--ease-out);
+  }
+
+  .site-nav[data-solid] .site-nav__inner {
+    /* 0.92: a ilha atravessa a faixa vinho. Abaixo disso o escuro sobe
+       por baixo e a cápsula lê como cinza sujo, com os links em tinta escura
+       por cima. Cartão flutuante tem que parecer papel, não fumaça. */
+    background: rgb(var(--color-surface) / 0.92);
+    backdrop-filter: blur(18px) saturate(1.4);
+    border-color: rgb(var(--color-ink) / 0.07);
+    /* Contato curto + queda longa: é o que dá a leitura de "apoiado sobre",
+       em vez de "desenhado em cima". */
+    box-shadow:
+      0 1px 2px rgb(var(--color-deep) / 0.06),
+      0 14px 34px -16px rgb(var(--color-deep) / 0.3);
   }
 
   .site-nav__links {
@@ -668,17 +973,218 @@
     height: auto;
   }
 
-  /* O halo é o único efeito ambiental que sobrou aqui, junto da safelight. */
-  .hero__mascot-glow {
+  /* --- Campo de ondas atras do hero -------------------------------------
+   *
+   * O GradientWaves do React Bits, desenhado em ogl. O componente cuida do
+   * shader; daqui sai so onde ele fica e quanto da dobra ele ocupa.
+   *
+   * SUBSTITUI o pilar de luz que morava atras do mascote. Os dois eram
+   * gradiente rosa-violeta na mesma dobra e se anulavam; e com a safelight
+   * seriam tres efeitos ambientais numa tela onde o teto e dois.
+   *
+   * `pointer-events: none` porque isto e cenario: o clique atravessa para o
+   * botao que estiver por cima. E `z-index: 0` contra o `z-index: 1` do
+   * conteudo do hero -- fundo, nunca por cima do texto.
+   */
+  .gradient-waves {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  /* ONDE as ondas podem existir. Isto nao e enquadramento, e a regra 15.
+   *
+   * A primeira versao cobria o hero inteiro e confiava numa mascara para
+   * proteger o texto. A medicao dos pixels reais reprovou: a lede desktop deu
+   * 2,43:1 contra os 4,5 exigidos, e o eyebrow do celular, 1,61:1. Mascara
+   * atenua; ela nao zera. Sobre um degrade suave sempre sobra pixel denso o
+   * bastante para derrubar o contraste.
+   *
+   * A correcao nao e mascara melhor: e o canvas nao estar la. As caixas abaixo
+   * saem da geometria medida do hero, nao de palpite --
+   *
+   *   celular  (390x815): mascote 6%-35% da altura, texto a partir de 40%
+   *   desktop (1440x677): texto ate 49% da largura, mascote a partir de 54%
+   *
+   * As mascaras que sobraram servem so para dissolver a borda do canvas, que
+   * do contrario e uma linha reta visivel contra o fundo. */
+
+  /* Celular: faixa de cima, atras do mascote. Morre em 38% da altura do hero,
+     dois pontos percentuais antes da primeira linha de texto. */
+  .hero__ondas {
     position: absolute;
-    inset: 12% -6% -4% -6%;
-    border-radius: var(--radius-pill);
-    background: radial-gradient(
-      circle at 50% 55%,
-      rgb(var(--color-brand) / 0.16) 0%,
-      rgb(var(--color-brand) / 0.07) 45%,
-      transparent 72%
+    inset: 0 0 auto 0;
+    height: 38%;
+    z-index: 0;
+    mask-image: linear-gradient(
+      to bottom,
+      transparent 0,
+      black 24%,
+      black 60%,
+      transparent 96%
     );
+  }
+
+  /* Desktop: coluna da direita. Comeca em 52% da largura -- depois do texto,
+     antes do mascote -- e so fica opaco a 22% da propria largura, ja bem
+     dentro da coluna dele. */
+  @media (min-width: 1000px) {
+    .hero__ondas {
+      inset: 8% 0 0 52%;
+      /* `.gradient-waves` declara `width: 100%` e `height: 100%`, e com left e
+         right os dois definidos a largura declarada vence o offset: a caixa
+         comecava em 52% e continuava com a largura inteira do hero, vazando
+         691px para fora (aparados pelo `overflow: hidden`). `auto` devolve o
+         calculo para o inset. */
+      width: auto;
+      height: auto;
+      mask-image:
+        linear-gradient(to bottom, transparent 0, black 20%, black 76%, transparent),
+        linear-gradient(to right, transparent 0, black 22%);
+      mask-composite: intersect;
+    }
+  }
+
+  /* --- A gravação dentro do celular (SPEC 8.1 §3) -----------------------
+   *
+   * Mesma moldura do mockup que estava aqui — vinho, sombra em três camadas,
+   * raio concêntrico — porque a moldura estava certa. O que mudou foi o que
+   * ela emoldura: antes um mockup montado em HTML, agora a gravação da página
+   * de verdade.
+   */
+  .phone-demo {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: min(320px, 78vw);
+    padding-block: 1rem;
+  }
+
+  /* Em tela grande o aparelho cresce ate a largura de um celular de verdade.
+     Nao e vaidade: o documento la dentro e responsivo e se ajusta a largura
+     que receber, entao a 300px ele renderiza mais estreito do que qualquer
+     telefone existente -- e a pessoa julga o produto por uma versao dele que
+     ninguem vai ver. A 360px de tela util, e o que ela vai receber. */
+  @media (min-width: 900px) {
+    .phone-demo {
+      width: 380px;
+    }
+  }
+
+  .phone-demo__device {
+    position: relative;
+    width: 100%;
+    padding: 10px;
+    border-radius: 38px;
+    background: linear-gradient(
+      165deg,
+      rgb(var(--color-deep-2)),
+      rgb(var(--color-deep))
+    );
+    border: 1px solid rgb(var(--color-ink) / 0.18);
+    box-shadow:
+      0 1px 2px rgb(var(--color-deep) / 0.5),
+      0 16px 28px -16px rgb(var(--color-deep) / 0.45),
+      0 44px 72px -34px rgb(var(--color-deep) / 0.55);
+  }
+
+  /* A tela: recorta o documento de dentro no raio concentrico da moldura.
+     `aspect-ratio` fixa a altura desde o primeiro quadro. Sem ela a caixa
+     nasce com zero e a secao inteira pula quando o iframe chega -- o CLS que
+     a SPEC 8.1 proibe. */
+  .phone-demo__screen {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 480 / 1040;
+    overflow: hidden;
+    /* 38 da moldura menos os 10 de padding: raio concentrico. */
+    border-radius: 28px;
+    background: rgb(var(--color-bg));
+    /* Sem contexto proprio, o retangulo do iframe vaza por cima do raio no
+       Safari. */
+    isolation: isolate;
+  }
+
+  .phone-demo__frame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    /* O documento de dentro pinta o proprio fundo; este e so o que aparece
+       enquanto ele nao chegou. */
+    background: rgb(var(--color-bg));
+    color-scheme: normal;
+  }
+
+  /* O convite a tocar, por cima da tela inteira. Some no primeiro toque e nao
+     volta: dali em diante o celular e a pagina, com tudo que ela faz. */
+  .phone-demo__wake {
+    position: absolute;
+    inset: 10px;
+    /* Embaixo, nao no meio. Centralizada, a pilula caia exatamente sobre o
+       nome do casal -- o convite tapava justamente o que ele convida a ver. */
+    display: grid;
+    place-content: end center;
+    padding: 0 0 26px;
+    border: 0;
+    border-radius: 28px;
+    cursor: pointer;
+    /* Um veu so no rodape, e leve. A versao anterior escurecia a tela inteira
+       e apagava a foto: numa secao cujo argumento e a pagina ser bonita,
+       escurecer a pagina custa mais do que qualquer contraste que se ganhe.
+       A pilula tem fundo solido e nao depende deste gradiente para ler. */
+    background: linear-gradient(
+      to bottom,
+      transparent 55%,
+      rgb(var(--color-deep) / 0.22)
+    );
+  }
+
+  .phone-demo__wake-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1.1rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgb(var(--color-ink) / 0.08);
+    /* Par surface/ink: o mesmo do botao de play que estava aqui, e ja medido
+       pelo check-contrast. */
+    background: rgb(var(--color-surface));
+    color: rgb(var(--color-ink));
+    font-size: 0.82rem;
+    white-space: nowrap;
+    box-shadow: 0 10px 24px -12px rgb(var(--color-deep) / 0.5);
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .phone-demo__wake:hover .phone-demo__wake-pill {
+    transform: translateY(-2px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .phone-demo__wake-pill {
+      transition: none;
+    }
+
+    .phone-demo__wake:hover .phone-demo__wake-pill {
+      transform: none;
+    }
+  }
+
+  /* A saida para quem o iframe nao serve: extensao que bloqueia, navegador
+     antigo, leitor de tela que prefere o documento inteiro. */
+  .phone-demo__full {
+    margin-top: 0.9rem;
+    font-size: 0.82rem;
+    color: rgb(var(--color-ink-muted));
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .phone-demo__full:hover {
+    color: rgb(var(--color-accent));
   }
 
   /* --- Mockup de celular (SPEC 8.1 §3) --------------------------------- */
@@ -687,6 +1193,10 @@
     display: grid;
     place-items: center;
     padding-block: 1rem;
+    /* A caixa tem a largura do APARELHO, não a do palco. O cartão de QR é
+       posicionado contra ela, e ancorado no palco (1200px de largura) ele caía
+       longe do celular em tela grande e por cima do texto em tela pequena. */
+    width: min(320px, 78vw);
   }
 
   /* Parallax: profundidades diferentes, dirigidas por --p. */
@@ -694,29 +1204,65 @@
     transform: translateY(calc((var(--p, 0.5) - 0.5) * -26px));
   }
 
+  /*
+   * O cartão de QR.
+   *
+   * No estreito ele entra em fluxo, embaixo do celular. Sobreposto ali ele
+   * cortava a carta no meio de uma frase ("...minha parte favorita d|") e
+   * tapava a fileira de fotos — as duas coisas que a seção existe para
+   * mostrar. Não há largura de tela pequena em que ele caiba por cima sem
+   * cobrir conteúdo, então no estreito ele simplesmente não sobrepõe.
+   */
   .hero-phone__qr {
-    position: absolute;
-    right: 4%;
-    bottom: 2%;
-    transform: translateY(calc((var(--p, 0.5) - 0.5) * 46px)) rotate(7deg);
+    margin-top: 1.25rem;
+    transform: rotate(7deg);
   }
 
+  /* No largo sobra palco de sobra dos dois lados: o cartão sai de cima do
+     aparelho e vira um objeto apoiado ao lado dele. */
+  @media (min-width: 860px) {
+    .hero-phone__qr {
+      position: absolute;
+      right: -104px;
+      bottom: 76px;
+      margin-top: 0;
+      transform: translateY(calc((var(--p, 0.5) - 0.5) * 46px)) rotate(7deg);
+    }
+  }
+
+  /*
+   * A moldura.
+   *
+   * Era creme sobre creme, com uma borda a 10% e a sombra padrão: o aparelho
+   * tinha praticamente a cor da página e desaparecia. A seção se chama "é isto
+   * que ela vai abrir" e não dava para ver o que abria.
+   *
+   * O vinho é o mesmo par --color-deep da faixa escura, então o celular vira
+   * objeto sem que entre cor nova no sistema. A sombra é em três camadas —
+   * contato, corpo e chão — porque uma sombra só, larga e fraca, é exatamente
+   * o que fazia o aparelho flutuar sem peso.
+   */
   .hero-phone__device {
-    width: min(280px, 74vw);
+    width: 100%;
     padding: 10px;
-    border-radius: 34px;
+    border-radius: 38px;
     background: linear-gradient(
       165deg,
-      rgb(var(--color-surface-2)),
-      rgb(var(--color-surface))
+      rgb(var(--color-deep-2)),
+      rgb(var(--color-deep))
     );
-    border: 1px solid rgb(var(--color-ink) / 0.1);
-    box-shadow: var(--shadow-card);
+    border: 1px solid rgb(var(--color-ink) / 0.18);
+    box-shadow:
+      0 1px 2px rgb(var(--color-deep) / 0.5),
+      0 16px 28px -16px rgb(var(--color-deep) / 0.45),
+      0 44px 72px -34px rgb(var(--color-deep) / 0.55);
   }
 
   .hero-phone__screen {
     overflow: hidden;
-    border-radius: 26px;
+    /* 38 da moldura menos os 10 de padding: raio concêntrico, senão sobra uma
+       meia-lua de moldura em cada canto. */
+    border-radius: 28px;
     background: rgb(var(--color-bg));
   }
 
@@ -786,14 +1332,42 @@
     margin-top: 0.35rem;
   }
 
+  /*
+   * A fileira de fotos do mockup.
+   *
+   * Eram três retângulos de degradê cinza. Ao lado de uma capa lavada isso
+   * passava; com a capa regraduada e cheia de cor, três placeholders vazios
+   * embaixo dela leem como galeria que não carregou — defeito, bem no lugar
+   * onde a seção promete "é isto que ela vai abrir".
+   *
+   * São as mesmas fotos da página de exemplo (`public/demo/`, geradas por
+   * scripts/prepare-demo.mjs): recortes do mesmo pôr do sol, que é o que o
+   * projeto tem para ilustrar sem inventar retrato de ninguém. O degradê fica
+   * de fundo, para o caso de a imagem não chegar.
+   */
   .hero-phone__thumbs span {
     aspect-ratio: 1/1;
     border-radius: var(--radius-sm);
-    background: linear-gradient(
+    background-color: rgb(var(--color-surface-2));
+    background-image: linear-gradient(
       145deg,
       rgb(var(--color-ink) / 0.14),
       rgb(var(--color-ink) / 0.04)
     );
+    background-size: cover;
+    background-position: center;
+  }
+
+  .hero-phone__thumbs span:nth-child(1) {
+    background-image: url("/demo/demo-2.webp");
+  }
+
+  .hero-phone__thumbs span:nth-child(2) {
+    background-image: url("/demo/demo-3.webp");
+  }
+
+  .hero-phone__thumbs span:nth-child(3) {
+    background-image: url("/demo/demo-4.webp");
   }
 
   .hero-phone__qr {
@@ -821,6 +1395,457 @@
 
   .hero-phone__qr-grid span[data-on] {
     background: rgb(var(--color-qr-ink));
+  }
+
+  /* --- Bloco: motivos ---------------------------------------------------
+   * O número é o presente: ninguém escreve cem motivos por engano. Por isso a
+   * contagem vem grande no cabeçalho e cada item é numerado. */
+  .block-reasons {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .block-reasons__head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  .block-reasons__count {
+    margin: 0;
+    font-size: clamp(2.2rem, 9vw, 3.4rem);
+    line-height: 0.9;
+    color: rgb(var(--color-accent));
+  }
+
+  .block-reasons__title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 400;
+    font-size: clamp(1.1rem, 4vw, 1.5rem);
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  /* A numeração sai do contador do CSS, não do JSX: o leitor de tela já
+     anuncia "item 3 de 100" pela semântica do <ol>, e um número escrito na
+     marra faria a leitura sair duplicada. */
+  .block-reasons__list {
+    counter-reset: motivo;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .block-reasons__item {
+    counter-increment: motivo;
+    display: flex;
+    gap: 0.75rem;
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.07);
+    line-height: 1.5;
+  }
+
+  .block-reasons__item:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+  }
+
+  .block-reasons__item::before {
+    content: counter(motivo);
+    flex: none;
+    min-width: 2ch;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.78rem;
+    line-height: 1.9;
+    text-align: right;
+    color: rgb(var(--color-accent) / 0.7);
+  }
+
+  .block-reasons.is-empty {
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgb(var(--color-ink) / 0.15);
+  }
+
+  .block-reasons__empty {
+    margin: 0;
+    text-align: center;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* --- Editor: lista de motivos ----------------------------------------- */
+  .motivos {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .motivos__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .motivos__n {
+    flex: none;
+    min-width: 2.2ch;
+    font-size: 0.78rem;
+    text-align: right;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .motivos__campo {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .motivos__remover {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border-radius: var(--radius-sm);
+    color: rgb(var(--color-ink-muted));
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .motivos__remover:hover {
+    color: rgb(var(--color-danger));
+  }
+
+  /* --- Bloco: video -----------------------------------------------------
+   *
+   * A capa nao carrega miniatura do YouTube de proposito. Buscar a imagem ja
+   * seria uma requisicao a terceiro antes de a pessoa pedir o video -- o
+   * mesmo que o bloco de musica evita. Entao a capa e desenhada aqui: a cor
+   * da pagina, o botao e o rotulo.
+   */
+  .block-video {
+    padding: var(--ar, 2.5rem) var(--margem, 1.25rem);
+  }
+
+  .block-video__capa,
+  .block-video__frame {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: var(--radius-md);
+  }
+
+  .block-video__capa {
+    position: relative;
+    display: grid;
+    place-content: center;
+    gap: 0.7rem;
+    justify-items: center;
+    padding: 0;
+    border: 1px solid rgb(var(--color-accent) / 0.22);
+    background: linear-gradient(
+      150deg,
+      rgb(var(--color-surface-2)),
+      rgb(var(--color-accent) / 0.09)
+    );
+    cursor: pointer;
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .block-video__capa:hover {
+    border-color: rgb(var(--color-accent) / 0.45);
+  }
+
+  .block-video__play {
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-brand));
+    /* Par ja medido: texto/icone claro sobre `--color-brand` da 4,56:1. */
+    color: rgb(var(--color-on-brand));
+    box-shadow: 0 14px 30px -14px rgb(var(--color-brand) / 0.7);
+    /* O triangulo tem peso visual a esquerda do proprio centro: sem este
+       empurrao ele parece descentralizado dentro do circulo. */
+    padding-left: 3px;
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  .block-video__capa:hover .block-video__play {
+    transform: scale(1.06);
+  }
+
+  .block-video__label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .block-video__frame {
+    border: 0;
+    background: rgb(var(--color-deep));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .block-video__play,
+    .block-video__capa {
+      transition: none;
+    }
+
+    .block-video__capa:hover .block-video__play {
+      transform: none;
+    }
+  }
+
+  /* --- Bloco: numeros ---------------------------------------------------
+   *
+   * Mesma caixa, mesmo mono e mesmo acento do `.block-counter`. Sao dois
+   * blocos que dizem a mesma coisa por caminhos diferentes -- um mede o tempo
+   * sozinho, o outro guarda o que nao tem relogio -- e se parecessem de sites
+   * diferentes a pagina inteira perderia.
+   */
+  /* Fecha o par: colado no contador em cima, ar normal embaixo. */
+  .block-stats {
+    container-type: inline-size;
+    display: grid;
+    place-items: center;
+    padding: var(--ar-junto, 1rem) var(--margem, 1.25rem) var(--ar, 2.5rem);
+  }
+
+  /* Duas colunas no celular, tres a partir do tablet. Nunca seis numa linha:
+     o rotulo aqui e uma frase ("paises onde a gente se perdeu"), nao a
+     unidade de uma palavra do contador, e em seis colunas ele quebraria em
+     quatro linhas de duas silabas. */
+  .block-stats__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin: 0;
+    width: 100%;
+    max-width: 30rem;
+  }
+
+  /* Um item sozinho nao vira uma coluna de duas: ele ocupa a largura toda e
+     le como declaracao. */
+  .block-stats__grid[data-itens="1"] {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 16rem;
+  }
+
+  /* O ORFAO. Com numero impar de itens, o ultimo sobra sozinho numa linha e
+     encosta na esquerda, como se a grade tivesse dado errado. Ele passa a
+     ocupar as duas colunas e volta a ficar centrado -- deliberado em vez de
+     acidental.
+     `:last-child` sozinho nao serve: com numero par nao ha orfao nenhum e a
+     regra alargaria um item que esta certo. Dai a lista de casos impares. */
+  .block-stats__grid[data-itens="3"] .block-stats__cell:last-child,
+  .block-stats__grid[data-itens="5"] .block-stats__cell:last-child {
+    grid-column: span 2;
+  }
+
+  @container (min-width: 560px) {
+    .block-stats__grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      max-width: 40rem;
+    }
+
+    /* Quatro itens em tres colunas deixariam um orfao na segunda linha.
+       Em duas colunas eles fecham 2x2. */
+    .block-stats__grid[data-itens="4"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      max-width: 28rem;
+    }
+
+    /* Em tres colunas, 3 fecha a linha e 5 fecha 3+2 centrado pelo `auto-fit`
+       do span. So o span de 3 precisa sair -- ele alargaria um item que ja
+       estava no lugar certo. */
+    .block-stats__grid[data-itens="3"] .block-stats__cell:last-child {
+      grid-column: auto;
+    }
+  }
+
+  /* PARENTES DO CONTADOR, NAO GEMEOS.
+   *
+   * Estas celulas nasceram identicas as do contador -- mesmo preenchimento,
+   * mesmo mono, mesma caixa. Coladas uma secao na outra pelo ritmo novo, o
+   * resultado foi uma grade unica de onze caixas iguais, e a pagina perdia a
+   * fronteira entre "ha quanto tempo" e "quantas coisas".
+   *
+   * A diferenca e de peso, nao de familia: mesmo raio, mesmo acento, mas
+   * contorno em vez de preenchimento. O contador e o bloco cheio porque ele
+   * corre; estes sao fatos parados. */
+  .block-stats__cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 1.1rem 0.9rem;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    border: 1px solid rgb(var(--color-accent) / 0.28);
+    text-align: center;
+  }
+
+  .block-stats__value {
+    margin: 0;
+    font-size: clamp(1.6rem, 5vw, 2.1rem);
+    line-height: 1;
+    color: rgb(var(--color-accent));
+  }
+
+  /* O rotulo aqui e FRASE, nao unidade.
+   *
+   * O contador diz "ANOS", "MESES" -- uma palavra, e caixa alta em mono cai
+   * bem. Aqui diz "paises onde a gente se perdeu": em versalete espacado, uma
+   * frase dessas vira placa de transito. Sans, caixa baixa, entrelinha de
+   * leitura. E o que separa uma legenda de um dado. */
+  .block-stats__label {
+    font-family: var(--font-sans);
+    font-size: 0.82rem;
+    line-height: 1.4;
+    letter-spacing: 0;
+    text-transform: none;
+    text-wrap: balance;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .block-stats.is-empty {
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    border: 1px dashed rgb(var(--color-ink) / 0.15);
+  }
+
+  .block-stats__empty {
+    margin: 0;
+    text-align: center;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* --- Editor: numeros --------------------------------------------------
+   * Cada item tem DOIS campos, entao a linha do editor de motivos (input
+   * unico) nao serve: aqui e uma grade de "numero curto + rotulo longo", com
+   * a lixeira ancorada no fim. */
+  .numeros {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .numeros__item {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr) 30px;
+    align-items: end;
+    gap: 0.5rem;
+  }
+
+  .numeros__valor {
+    font-family: var(--font-mono);
+    text-align: center;
+  }
+
+  .numeros__remover {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    color: rgb(var(--color-ink-muted));
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .numeros__remover:hover {
+    color: rgb(var(--color-danger));
+  }
+
+  /* --- Bloco: cápsula do tempo ------------------------------------------
+   * Fechada ela é um objeto lacrado; aberta, é só texto. São dois estados
+   * bem diferentes de propósito — o contraste entre eles é o recurso. */
+  .block-capsule {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    padding: var(--ar, 2.5rem) var(--margem, 1.25rem);
+    border-radius: var(--radius-lg);
+    border: 1px dashed rgb(var(--color-accent) / 0.35);
+    background: rgb(var(--color-accent) / 0.05);
+    text-align: center;
+  }
+
+  .block-capsule__lacre {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-accent) / 0.12);
+    color: rgb(var(--color-accent));
+  }
+
+  .block-capsule__aviso {
+    margin: 0;
+    max-width: 34ch;
+    color: rgb(var(--color-ink-muted));
+    font-size: 0.95rem;
+    line-height: 1.5;
+    text-wrap: balance;
+  }
+
+  .block-capsule__contador {
+    display: flex;
+    gap: 0.9rem;
+    margin: 0;
+  }
+
+  .block-capsule__unidade {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+  }
+
+  .block-capsule__unidade strong {
+    font-size: 1.5rem;
+    font-weight: 400;
+    line-height: 1;
+    color: rgb(var(--color-accent));
+  }
+
+  .block-capsule__unidade small {
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* Aberta: sem lacre, sem borda tracejada. O que sobra é a carta. */
+  .block-capsule.is-aberta {
+    border-style: solid;
+    border-color: rgb(var(--color-accent) / 0.2);
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .block-capsule__texto {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    color: rgb(var(--color-ink));
   }
 
   /* --- Chips de momento do casal --------------------------------------- */
@@ -1314,73 +2339,94 @@
     }
   }
 
-  /* --- Escolha de formato (primeiro passo do editor) -------------------- */
+  /* --- Escolha de formato (primeiro passo do editor) ---------------------
+   *
+   * Grade de cartões com ícone, e não uma pilha de textos. O formato é a
+   * primeira decisão de quem monta, e uma lista de rótulos ("Capa · Contador ·
+   * Galeria") pede que a pessoa imagine o resultado. O ícone dá a ela alguma
+   * coisa para reconhecer antes de ler. */
   .formats {
     display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
     gap: 0.6rem;
   }
 
   .format {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.25rem;
-    padding: 0.9rem 1rem;
+    gap: 0.3rem;
+    padding: 0.9rem;
     text-align: left;
     border-radius: var(--radius-md);
-    border: 2px solid rgb(var(--color-ink) / 0.1);
+    border: 1.5px solid rgb(var(--color-ink) / 0.09);
     background: rgb(var(--color-surface));
+    cursor: pointer;
     transition:
       border-color var(--dur-fast) var(--ease-out),
       transform var(--dur-fast) var(--ease-out);
   }
 
   .format:hover {
-    transform: translateY(-1px);
+    transform: translateY(-2px);
   }
 
   .format[aria-pressed="true"] {
     border-color: rgb(var(--color-accent));
+    background: rgb(var(--color-accent) / 0.05);
   }
 
-  .format__head {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
+  .format__icone {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    margin-bottom: 0.25rem;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-accent) / 0.1);
+    color: rgb(var(--color-accent));
   }
 
   .format__name {
-    font-size: 0.98rem;
     font-weight: 500;
+    line-height: 1.2;
+  }
+
+  .format__hint {
+    font-size: 0.78rem;
+    line-height: 1.35;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* O selo usa a luz de segurança e a tinta que passa sobre ela — o par está
+     medido no check-contrast, então não é âmbar escolhido a olho. */
+  .format__plano {
+    align-self: flex-start;
+    padding: 0.1rem 0.4rem;
+    margin-bottom: 0.15rem;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-safelight) / 0.9);
+    color: rgb(var(--color-on-safelight));
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .format__mark {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
     display: grid;
     place-items: center;
     width: 20px;
     height: 20px;
-    margin-left: auto;
     border-radius: var(--radius-pill);
     background: rgb(var(--color-accent));
     color: rgb(var(--color-on-brand));
   }
-
-  .format__hint {
-    font-size: 0.85rem;
-    color: rgb(var(--color-ink-muted));
-  }
-
-  /* A lista de peças, em mono: é dado, não prosa. */
-  .format__blocks {
-    margin-top: 0.3rem;
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgb(var(--color-accent));
-  }
-
   /* --- Grade de temas do editor ---------------------------------------- *
    * Cada ladrilho carrega o próprio `data-skin`, e o theme.css já reescreve
    * os tokens para os descendentes desse atributo. Então o ladrilho se pinta
@@ -1812,6 +2858,26 @@
       rgb(var(--color-brand)) 0%,
       rgb(var(--color-accent)) 100%
     );
+    /*
+     * Três sombras, três trabalhos. Sem elas a aba e o bolso eram uma mancha
+     * rosa chapada só: a tonalidade já estava certa (a aba mais clara, porque
+     * pega a luz de cima; o bolso mais fundo, porque está em sombra), mas nada
+     * marcava ONDE uma termina e a outra começa.
+     *
+     * 1. a aresta acesa: a lip do bolso, que é a dobra do papel virada para
+     *    a luz;
+     * 2. a sombra para cima: o bolso está em z-4 e a aba em z-3, então esta
+     *    sombra cai sobre a aba e é ela que separa os dois planos;
+     * 3. o chão: sem isso o envelope flutuava sobre o vinho sem peso.
+     *
+     * Preto puro nas sombras segue o que o resto deste componente já fazia
+     * (.envelope__card e .envelope__seal) — sobre a faixa escura nenhum token
+     * de cor é mais fundo que o próprio fundo.
+     */
+    box-shadow:
+      inset 0 1px 0 rgb(var(--color-ink-on-deep) / 0.24),
+      0 -9px 16px -8px rgb(0 0 0 / 0.55),
+      0 26px 40px -22px rgb(0 0 0 / 0.65);
   }
 
   /* O V da frente do envelope é DESENHO, não recorte. Como recorte ele abria
@@ -1863,6 +2929,10 @@
     );
     clip-path: polygon(0 0, 100% 0, 50% 100%);
     border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    /* drop-shadow e não box-shadow: box-shadow desenha a sombra da CAIXA e
+       ignora o clip-path, então sairia um retângulo de sombra atrás de um
+       triângulo. O filtro segue a forma recortada. */
+    filter: drop-shadow(0 5px 7px rgb(0 0 0 / 0.4));
   }
 
   .envelope[data-open] .envelope__flap {
@@ -1878,8 +2948,18 @@
     margin: -17px 0 0 -17px;
     z-index: 5;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-ink-on-deep));
-    box-shadow: 0 6px 14px -6px rgb(0 0 0 / 0.6);
+    /* Era um disco branco chapado. Lacre é cera: abaulado, com o brilho fora
+       do centro e a borda caindo para a sombra. O gradiente radial deslocado
+       para 36%/30% põe a luz no mesmo canto de onde ela vem na aba. */
+    background: radial-gradient(
+      circle at 36% 30%,
+      rgb(var(--color-ink-on-deep)) 0%,
+      rgb(var(--color-ink-on-deep) / 0.9) 42%,
+      rgb(var(--color-muted-on-deep)) 100%
+    );
+    box-shadow:
+      inset 0 -2px 4px rgb(var(--color-deep) / 0.4),
+      0 6px 14px -6px rgb(0 0 0 / 0.6);
   }
 
   .envelope[data-open] .envelope__seal {
@@ -2094,11 +3174,24 @@
 
   @media (min-width: 800px) {
     .pricing__grid {
-      grid-template-columns: repeat(3, 1fr);
+      /* auto-fit, e não um número fixo de colunas.
+       *
+       * Era `repeat(3, 1fr)`, de quando havia três planos. Com dois, a
+       * terceira coluna continuava reservada: o par ficava encostado à
+       * esquerda e sobrava um vazio de quase 400px à direita, que lia como
+       * cartão que faltou carregar. O auto-fit colapsa a trilha vazia, então
+       * a grade serve dois planos hoje e três sem tocar em nada.
+       *
+       * O max-width segura a largura dos cartões: soltos numa seção de 1200px
+       * dois cartões viram dois painéis, e preço quer cara de etiqueta. */
+      grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+      max-width: 56rem;
+      width: 100%;
+      margin-inline: auto;
       align-items: start;
     }
 
-    /* O do meio destacado (SPEC 8.1 §8). */
+    /* O destacado cresce (SPEC 8.1 §8). */
     .pricing__card.is-highlight {
       transform: scale(1.03);
     }
@@ -2118,6 +3211,22 @@
     border: 1px solid rgb(var(--color-ink) / 0.08);
     box-shadow: var(--shadow-card);
     transition: border-color var(--dur-base) var(--ease-out);
+  }
+
+  /*
+   * O mais escolhido tem que PARECER o mais escolhido.
+   *
+   * Vem ANTES do [data-active] de propósito: as duas regras têm a mesma
+   * especificidade, e é o data-active que precisa vencer na borda — ela é o
+   * estado de seleção do radiogroup, e o usuário tem que ver o que escolheu.
+   * O destaque fica por conta da elevação e do brilho de marca, que o
+   * data-active não toca, então os dois sinais convivem sem se apagar.
+   */
+  .pricing__card.is-highlight {
+    border-color: rgb(var(--color-brand) / 0.34);
+    box-shadow:
+      0 1px 2px rgb(var(--color-deep) / 0.06),
+      0 22px 48px -24px rgb(var(--color-brand) / 0.42);
   }
 
   .pricing__card[data-active] {
@@ -2503,7 +3612,26 @@
     text-align: center;
   }
 
+  /* --- Ritmo vertical da pagina publicada -------------------------------
+   *
+   * Cada bloco tinha o proprio padding avulso: 2.5rem aqui, 1.75 ali,
+   * `1rem 1.25rem 2.5rem` acola. Somados, davam uma pagina onde tudo respira
+   * igual -- e uma pagina onde tudo respira igual nao tem ritmo, so tem
+   * espacamento. O olho nao sabe onde termina um assunto e comeca o outro.
+   *
+   * Sao tres medidas, e a escolha entre elas e semantica, nao estetica:
+   *   --ar        o padrao, entre dois assuntos diferentes
+   *   --ar-solto  em volta do que fica sozinho e pede pausa (a carta)
+   *   --ar-junto  entre dois blocos que sao UM assunto (contador e numeros
+   *               sao os dois "quanto"; separa-los como estranhos quebrava
+   *               a leitura)
+   */
   .blocks {
+    --ar: clamp(2.5rem, 8vw, 3.75rem);
+    --ar-solto: clamp(3.5rem, 11vw, 5.5rem);
+    --ar-junto: clamp(1rem, 3.5vw, 1.75rem);
+    --margem: 1.25rem;
+
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -2578,12 +3706,42 @@
     padding: 2.5rem 1.25rem;
   }
 
+  /* Grade, não quebra livre. Com flex-wrap os seis blocos caíam 5 + 1 e o
+     "seg" ficava órfão numa segunda linha — o contador é a peça que a pessoa
+     encara primeiro, e desequilíbrio ali lê como defeito. Três por linha no
+     estreito; tudo numa linha quando cabe. */
+  /* Contexto de container. Estes dois blocos mudam de grade conforme a largura
+     DISPONIVEL, e `@media` mede a janela -- que na previa e a do desktop, nao
+     a do celular de 296px onde o bloco esta sendo desenhado. Resultado: num
+     monitor de 1440px a previa aplicava a regra de seis colunas dentro do
+     telefone e as celulas se sobrepunham. A previa mentia sobre a pagina
+     publicada, que e a promessa do produto.
+     `container-type: inline-size` aqui e `@container` nas regras fazem o bloco
+     medir a si mesmo. O escopo e a secao, e nao `.published`: `container-type`
+     implica `contain: layout`, que transformaria o ancestral em bloco
+     contentor de tudo que for absoluto ou fixo la dentro. */
+  /* O contador abre o par "quanto tempo / quantas coisas": ar normal em cima,
+     ar curto embaixo, porque os numeros vem logo atras e sao o mesmo assunto. */
+  .block-counter {
+    padding: var(--ar, 2.5rem) var(--margem, 1.25rem) var(--ar-junto, 1rem);
+    container-type: inline-size;
+  }
+
   .block-counter__grid {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     justify-content: center;
     gap: 0.5rem;
     margin: 0;
+    width: 100%;
+    max-width: 22rem;
+  }
+
+  @container (min-width: 560px) {
+    .block-counter__grid {
+      grid-template-columns: repeat(6, minmax(0, auto));
+      max-width: none;
+    }
   }
 
   .block-counter__cell {
@@ -2614,30 +3772,66 @@
   }
 
   /* --- letter ---------------------------------------------------------- */
+  /* --- Bloco: carta ------------------------------------------------------
+   *
+   * A secao inteira ganha uma faixa de superficie um tom acima da pagina.
+   * Nao e enfeite: a pagina publicada eram oito secoes no mesmo rosa chapado,
+   * sem nada dizendo onde uma terminava e a outra comecava. A faixa da a ela
+   * um capitulo -- e o capitulo certo e este, que e o que a pessoa veio ler.
+   */
   .block-letter {
-    padding: 1.5rem 1.5rem 2.5rem;
+    display: grid;
+    place-items: center;
+    padding: var(--ar-solto, 3.5rem) var(--margem, 1.25rem);
+    background: rgb(var(--color-surface-2) / 0.5);
   }
+
+  /* A folha. */
+  .block-letter__paper {
+    position: relative;
+    width: 100%;
+    max-width: 34rem;
+    padding: clamp(1.75rem, 7vw, 3rem) clamp(1.5rem, 6vw, 2.75rem);
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.06);
+    box-shadow: var(--shadow-card);
+  }
+
+  /* Sem ornamento no alto da folha, e de proposito. Havia um fio de acento
+     ali; posicionado corretamente, ele ainda lia como sujeira na tela -- um
+     tracinho rosa solto na quina de um cartao branco. A folha, a medida de
+     leitura e a assinatura a direita ja dizem "carta" sozinhas. Ornamento que
+     precisa ser explicado nao esta funcionando. */
 
   .block-letter__body {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.15rem;
     font-family: var(--block-body-font, var(--font-display));
-    font-size: 1.15rem;
-    line-height: 1.55;
+    font-size: clamp(1.05rem, 3.6vw, 1.2rem);
+    /* 1.7 e nao 1.55: em texto longo de leitura corrida a entrelinha curta
+       aperta, e esta e a unica parte da pagina que se le do inicio ao fim. */
+    line-height: 1.7;
+    text-wrap: pretty;
     color: rgb(var(--color-ink) / 0.92);
   }
 
+  /* A assinatura fica a direita, como numa carta de papel -- e nao colada no
+     ultimo paragrafo: o espaco antes dela e o que a faz ler como assinatura e
+     nao como mais uma linha. */
   .block-letter__signature {
-    margin-top: 1.25rem;
+    margin-top: 2rem;
+    text-align: right;
     font-family: var(--font-display);
     font-style: italic;
+    font-size: 1.05rem;
     color: rgb(var(--color-accent));
   }
 
   /* --- gallery --------------------------------------------------------- */
   .block-gallery {
-    padding: 1rem 0 2.5rem;
+    padding: var(--ar, 2.5rem) 0;
   }
 
   .block-gallery__list {
@@ -2664,6 +3858,45 @@
 
   .block-gallery.is-carousel .block-gallery__item {
     scroll-snap-align: center;
+  }
+
+  /* A borda direita apagando avisa que ha mais foto adiante. Sem isso o
+     carrossel corta a proxima imagem numa linha reta, e o corte le como erro
+     de layout em vez de convite a arrastar. A mascara nao intercepta toque:
+     e pintura, nao camada. */
+  .block-gallery.is-carousel .block-gallery__list {
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black 1.25rem,
+      black calc(100% - 2.5rem),
+      transparent 100%
+    );
+  }
+
+  /* O PASSE-PARTOUT.
+   *
+   * A galeria era o unico bloco sem forma propria: fotos soltas boiando no
+   * rosa da pagina, encostadas umas nas outras. A moldura de dentro
+   * (`.frame`) sempre esteve certa -- o que faltava era o suporte.
+   *
+   * Uma borda de papel em volta de cada foto, com sombra de contato, e o que
+   * transforma "imagem numa pagina" em "copia impressa pousada sobre a
+   * pagina". E a mesma folha da carta, na mesma familia: os dois blocos que
+   * carregam memoria passam a usar o mesmo material.
+   *
+   * So no carrossel e na grade. Polaroid ja tem moldura propria (e seria
+   * moldura sobre moldura) e a pilha depende das bordas se tocarem. */
+  .block-gallery.is-carousel .block-gallery__item,
+  .block-gallery.is-grid .block-gallery__item {
+    padding: 0.5rem;
+    /* Raio de fora maior que o de dentro pela largura da borda: concentrico.
+       Iguais, a margem do papel parece mais fina nos cantos. */
+    border-radius: calc(var(--radius-md) + 0.5rem);
+    background: rgb(var(--color-surface));
+    box-shadow:
+      0 1px 2px rgb(var(--color-deep) / 0.16),
+      0 14px 30px -20px rgb(var(--color-deep) / 0.5);
   }
 
   .block-gallery.is-grid .block-gallery__list {
@@ -2700,7 +3933,7 @@
     flex-direction: column;
     align-items: center;
     gap: 0.5rem;
-    padding: 1rem 1.25rem 2.5rem;
+    padding: var(--ar, 2.5rem) var(--margem, 1.25rem);
   }
 
   .block-music__play {
@@ -2793,7 +4026,7 @@
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    padding: 2rem 1.25rem 3rem;
+    padding: var(--ar, 2.5rem) var(--margem, 1.25rem) var(--ar-solto, 3.5rem);
     border-top: 1px solid rgb(var(--color-ink) / 0.07);
     text-align: center;
   }
@@ -2812,25 +4045,73 @@
     color: rgb(var(--color-ink-muted));
   }
 
-  /* --- PhoneFrame (SPEC 5.3 / 8.4) ------------------------------------- */
+  /* --- PhoneFrame (SPEC 5.3 / 8.4) -------------------------------------
+   *
+   * A previa ESCALA, ela nao ENCOLHE. A diferenca decide se o preview diz a
+   * verdade.
+   *
+   * Antes a escala saia da largura em CSS: `width: calc(390px * 0.36)` dava um
+   * aparelho de 140px, e a pagina la dentro refluia como se o telefone tivesse
+   * 140px de largura -- uma largura que nao existe. As celulas do contador,
+   * com `min-width: 3.6rem`, nao cabiam em tres e se atropelavam. O preview
+   * mostrava um defeito que a pagina publicada nao tem, e escondia o layout
+   * que ela tem de verdade.
+   *
+   * Agora o aparelho e sempre 390x720 -- exatamente um telefone -- e o que
+   * muda e o `transform: scale`. O conteudo reflui na largura certa; so o
+   * tamanho de exibicao encolhe.
+   *
+   * Efeito colateral bem-vindo: `transform` cria bloco contentor, entao o
+   * `position: fixed` do premio do quiz passa a ficar preso dentro do
+   * telefone. Sem transform ele escapava e cobria o editor inteiro.
+   */
   .phone-frame {
-    width: calc(390px * var(--phone-scale, 1));
+    position: relative;
+    /* 412 = 390 da tela + 20 de padding da moldura + 2 de borda.
+       742 = 720 + 20 + 2. E o espaco que a caixa precisa reservar, ja que
+       elemento transformado continua ocupando o tamanho original no layout. */
+    width: calc(412px * var(--phone-scale, 1));
+    height: calc(742px * var(--phone-scale, 1));
     max-width: 100%;
   }
 
+  /*
+   * A moldura do preview.
+   *
+   * Era creme sobre creme, com a sombra padrão: sobre o fundo rosado do editor
+   * o aparelho tinha quase a cor da página e o preview lia como "uma área do
+   * formulário", não como um celular. É o mesmo conserto já feito no mockup da
+   * landing, e pelo mesmo motivo — quem monta precisa enxergar um telefone
+   * para acreditar que aquilo é a página que a outra pessoa vai abrir.
+   *
+   * A sombra é em três camadas — contato, corpo e chão. Uma sombra só, larga e
+   * fraca, é exatamente o que fazia o aparelho flutuar sem peso.
+   */
   .phone-frame__device {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Tamanho real, sempre. Quem encolhe e o transform. */
+    width: 412px;
+    transform: scale(var(--phone-scale, 1));
+    transform-origin: top left;
     padding: 10px;
     border-radius: 42px;
     background: linear-gradient(
       165deg,
-      rgb(var(--color-surface-2)),
-      rgb(var(--color-surface))
+      rgb(var(--color-deep-2)),
+      rgb(var(--color-deep))
     );
-    border: 1px solid rgb(var(--color-ink) / 0.1);
-    box-shadow: var(--shadow-card);
+    border: 1px solid rgb(var(--color-ink) / 0.18);
+    box-shadow:
+      0 1px 2px rgb(var(--color-deep) / 0.5),
+      0 16px 28px -16px rgb(var(--color-deep) / 0.45),
+      0 44px 72px -34px rgb(var(--color-deep) / 0.55);
   }
 
+  /* O recorte é parte da moldura, então é da cor dela. Antes era da cor do
+     fundo da página, o que sobre a moldura escura viraria uma pastilha clara
+     boiando no topo da tela. */
   .phone-frame__notch {
     position: absolute;
     top: 18px;
@@ -2839,14 +4120,19 @@
     width: 78px;
     height: 22px;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-bg));
+    background: rgb(var(--color-deep));
     z-index: 2;
   }
 
   .phone-frame__screen {
-    height: calc(720px * var(--phone-scale, 1));
+    /* Largura de telefone de verdade: e ela que faz a pagina refluir igual a
+       publicada. */
+    width: 390px;
+    height: 720px;
     overflow: hidden;
-    border-radius: 34px;
+    /* 42 da moldura menos os 10 de padding: raio concêntrico, senão sobra uma
+       meia-lua de moldura em cada canto. */
+    border-radius: 32px;
     background: rgb(var(--color-bg));
   }
 
@@ -2919,6 +4205,14 @@
     display: flex;
     flex-direction: column;
     min-height: 100dvh;
+    /* O que sobra de altura para o preview, depois da barra do topo, da faixa
+       de progresso, do rótulo "prévia em tempo real" e da barra de ação. Uma
+       variável e não quatro `calc` espalhados: quando uma dessas faixas muda
+       de altura, muda aqui.
+       Foi de 15 para 17rem quando o rótulo entrou: com 15 o pé do aparelho
+       ficava cortado pela borda do preview, e é justo ali que o conteúdo novo
+       aparece. */
+    --editor-cromo: 17rem;
   }
 
   .editor__bar {
@@ -2961,16 +4255,47 @@
     z-index: 5;
     display: grid;
     place-items: center;
-    height: 40vh;
-    padding: 0.75rem;
-    background: rgb(var(--color-bg));
+    /* 32vh, nao 40. Somada ao cromo, a faixa de 40vh empurrava o primeiro
+       campo para 492px dos 844 da tela -- o formulario nascia abaixo da dobra
+       num aparelho onde 90% do publico monta a pagina. */
+    height: 32vh;
+    padding: 0.5rem;
+    /* Superfície levemente distinta do painel: dá ao celular um chão onde
+       pousar, em vez de deixá-lo boiando no mesmo rosa do formulário. */
+    background: rgb(var(--color-surface-2) / 0.5);
     border-bottom: 1px solid rgb(var(--color-ink) / 0.08);
     overflow: hidden;
   }
 
-  /* O mockup inteiro cabe na faixa de 40vh. */
+  /* O mockup inteiro cabe na faixa de 40vh -- e "inteiro" e a palavra.
+   *
+   * A 0,42 ele nao cabia: 720px de tela vezes 0,42 dao 302, mais o rotulo
+   * "PREVIA EM TEMPO REAL" e o respiro da faixa, contra os 337 de 40vh num
+   * aparelho de 844. Faltavam poucos pixels, e o `overflow: hidden` cortava
+   * a base da moldura numa linha reta -- um celular sem a quina de baixo, que
+   * le como bug e nao como recorte.
+   *
+   * Como no desktop, a escala desce em degraus conforme a altura da janela:
+   * um valor fixo serve para uma altura so. */
   .editor__phone {
-    --phone-scale: 0.42;
+    /* 0,36 e nao 0,42 nem 0,40. A conta que eu vinha fazendo estava errada: o
+       aparelho nao mede `720 x escala`, porque a moldura soma o proprio
+       padding em volta da tela. Medido no navegador a 0,40 ele da 310px de
+       altura contra 299 disponiveis -- 11px estourando, que e o corte reto na
+       base. A 0,36 sao 279px, com folga para o rotulo e para o respiro. */
+    --phone-scale: 0.29;
+  }
+
+  @media (max-height: 760px) {
+    .editor__phone {
+      --phone-scale: 0.25;
+    }
+  }
+
+  @media (max-height: 680px) {
+    .editor__phone {
+      --phone-scale: 0.22;
+    }
   }
 
   .editor__panel {
@@ -2981,93 +4306,351 @@
   }
 
   @media (min-width: 1000px) {
+    /*
+     * Controles e celular andam JUNTOS, centralizados na página.
+     *
+     * Antes o preview era `flex: 1` e engolia toda a largura que sobrasse: em
+     * tela larga o aparelho ficava sozinho no meio de uma coluna vazia, a um
+     * palmo dos controles. Quem edita olha para os dois ao mesmo tempo — o
+     * campo e o efeito dele —, e essa distância obrigava a varrer a tela a
+     * cada tecla.
+     *
+     * Agora o par tem largura própria e é o conjunto que se centraliza. A
+     * borda também sumiu: separar duas coisas que são a mesma tarefa era
+     * dividir o que precisava ler junto.
+     */
     .editor__body {
       flex-direction: row-reverse; /* preview à direita (SPEC 8.4) */
       align-items: flex-start;
+      justify-content: center;
+      gap: 2.5rem;
+      width: 100%;
+      max-width: 78rem;
+      margin-inline: auto;
+      padding-inline: 1.5rem;
+    }
+
+    /* No desktop a previa e uma coluna ao lado: nao disputa altura com o
+       formulario, entao nao ha o que recolher. O botao some e o estado do
+       celular e ignorado. */
+    .editor__preview-label {
+      pointer-events: none;
+    }
+
+    .editor__preview-seta {
+      display: none;
+    }
+
+    .editor__preview[data-recolhida] {
+      height: calc(100dvh - var(--editor-cromo));
+      padding: 0;
+    }
+
+    .editor__preview[data-recolhida] .editor__preview-palco {
+      display: block;
     }
 
     .editor__preview {
       position: sticky;
       top: 3.5rem;
-      flex: 1;
-      height: calc(100dvh - 3.5rem);
+      flex: none;
+      height: calc(100dvh - var(--editor-cromo));
+      align-content: center;
+      padding: 0;
+      background: transparent;
       border-bottom: 0;
-      border-left: 1px solid rgb(var(--color-ink) / 0.08);
     }
 
+    /*
+     * A escala do aparelho segue a ALTURA da janela, não um número fixo.
+     *
+     * A conta é direta: a tela do mockup tem 720px, a moldura soma 20 de
+     * padding, e o cromo do editor (faixa de progresso + barra de ação) come
+     * cerca de 260. Então cabe (altura − 260) ÷ 720.
+     *
+     * Um valor fixo servia para uma altura só: a 0,92 o celular ficava ótimo
+     * num monitor de 950px e invadia a barra de ação em 72px num notebook de
+     * 800 — medido. Não dá para resolver isso em `calc`, porque CSS não
+     * divide comprimento por comprimento para gerar número puro; então são
+     * degraus por media query de altura, cada um com folga sobre a conta.
+     */
     .editor__phone {
-      --phone-scale: 0.78;
+      --phone-scale: 0.92;
+    }
+
+    /* Cada faixa é dimensionada pela MENOR altura que ela cobre, não pela
+       maior: `max-height: 820px` vale também para 741px, e escalar pelo teto
+       da faixa foi o que deixou o aparelho invadir a barra em 1024x768. */
+    @media (max-height: 960px) {
+      .editor__phone {
+        --phone-scale: 0.84;
+      }
+    }
+
+    @media (max-height: 900px) {
+      .editor__phone {
+        --phone-scale: 0.76;
+      }
+    }
+
+    @media (max-height: 840px) {
+      .editor__phone {
+        --phone-scale: 0.68;
+      }
+    }
+
+    @media (max-height: 780px) {
+      .editor__phone {
+        --phone-scale: 0.6;
+      }
+    }
+
+    @media (max-height: 720px) {
+      .editor__phone {
+        --phone-scale: 0.52;
+      }
     }
 
     .editor__panel {
-      width: 420px;
+      width: 34rem;
       flex-shrink: 0;
-      min-height: calc(100dvh - 3.5rem);
-      padding: 1.75rem 1.5rem 2.5rem;
+      min-height: calc(100dvh - var(--editor-cromo));
+      /* Centraliza a pergunta na altura, como no alto de uma página em branco:
+         o passo tem pouca coisa, e ancorá-lo no topo deixava um vazio grande
+         embaixo que lia como conteúdo faltando. */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 1.75rem 0 2.5rem;
     }
   }
 
-  /* --- passos ---------------------------------------------------------- */
-  /* Quebra em duas linhas em vez de esconder passos atrás de scroll — o 5º
-   * passo sumindo da vista é passo que ninguém acha. */
-  .editor__steps {
+  /* --- Extras: os três opcionais numa etapa só --------------------------
+   * Cada um separado por uma linha, não por cartão: cartão dentro de cartão
+   * dentro do passo vira caixa demais para uma tela de celular. */
+  .extras {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
+    flex-direction: column;
+    gap: 1.75rem;
+    width: 100%;
   }
 
-  .editor__step {
-    display: flex;
+  /* Sem filete entre os itens. Ele existia quando cada extra era uma barra
+     rosa de largura cheia e era preciso dizer onde um terminava. Agora que
+     sao cartoes com contorno proprio, a linha separa o que ja estava
+     separado -- e duas fronteiras a 8px uma da outra le como sujeira. */
+  .extras {
+    gap: 0.9rem;
+  }
+
+  /* Aninhado, o passo perde a largura máxima e a centralização próprias:
+     quem centraliza é o passo de fora, e duas centralizações empilhadas
+     estreitariam o conteúdo pela metade. */
+  .extras__item .step {
+    max-width: none;
+    align-items: stretch;
+    text-align: left;
+    gap: 1rem;
+  }
+
+  /* O "adicionar" de cada extra deixa de ser botão primário.
+   *
+   * Cada passo aninhado trazia o proprio `.btn-primary`, e empilhados viravam
+   * cinco barras rosa de largura cheia -- uma tela que grita cinco vezes com o
+   * mesmo peso da acao principal, que e "Continuar", ali embaixo. Primario e
+   * um por tela.
+   *
+   * Aqui eles viram cartoes de escolha: contorno, texto alinhado a esquerda e
+   * o icone na frente. Continuam sendo o mesmo <button> do mesmo componente --
+   * o que muda e o peso, e o peso e a informacao. */
+  .extras__item .btn-primary {
+    justify-content: flex-start;
+    gap: 0.6rem;
+    width: 100%;
+    padding: 0.9rem 1.1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgb(var(--color-accent) / 0.28);
+    background: rgb(var(--color-surface));
+    color: rgb(var(--color-ink));
+    box-shadow: none;
+    font-weight: 500;
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .extras__item .btn-primary:hover {
+    border-color: rgb(var(--color-accent) / 0.55);
+    background: rgb(var(--color-accent) / 0.05);
+    transform: none;
+  }
+
+  /* O icone ganha o disco rosa: e ele que carrega a cor da marca agora que o
+     botao inteiro deixou de carregar. */
+  .extras__item .btn-primary > svg {
+    flex: none;
+    box-sizing: content-box;
+    padding: 0.42rem;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-accent) / 0.1);
+    color: rgb(var(--color-accent));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .extras__item .btn-primary {
+      transition: none;
+    }
+  }
+
+  /* --- Pular, nas etapas opcionais --------------------------------------
+   * Discreto de propósito: é uma saída, não um convite. Se competir com o
+   * botão de adicionar, vira o caminho fácil e a página sai vazia. */
+  .pular {
+    display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    padding: 0.4rem 0.7rem;
+    padding: 0.5rem 1rem;
     border-radius: var(--radius-pill);
-    font-size: 0.8rem;
-    white-space: nowrap;
     color: rgb(var(--color-ink-muted));
+    font-size: 0.85rem;
     cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-out);
   }
 
-  .editor__step span {
+  .pular:hover {
+    color: rgb(var(--color-ink));
+  }
+
+  /* --- Corações do fundo do editor --------------------------------------
+   *
+   * Decoração, e ESTÁTICA de propósito. O CLAUDE.md proíbe motion ambiental no
+   * painel e no admin; o editor não está na lista, mas é onde a pessoa passa
+   * oito minutos digitando, e coisa se mexendo no canto do olho enquanto se
+   * escreve uma carta é ruído, não charme. Parados eles dão a mesma textura
+   * sem disputar atenção com o campo.
+   *
+   * `aria-hidden` e `pointer-events: none`: não são conteúdo nem alvo.
+   */
+  .editor__coracoes {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .editor__coracoes span {
+    position: absolute;
+    color: rgb(var(--color-accent) / 0.09);
+    font-size: 1rem;
+    line-height: 1;
+    user-select: none;
+  }
+
+  /* Tudo acima dos corações. Sem isto o `fixed` deles cobriria os campos. */
+  .editor__progresso,
+  .editor__body,
+  .editor__actions {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* --- a faixa de progresso, no topo -------------------------------------
+   *
+   * Antes o índice ficava dentro do painel, como 14 pílulas nomeadas
+   * empilhadas em três linhas: a primeira coisa que a pessoa via era o
+   * tamanho do trabalho pela frente. Como bolinhas, a régua inteira cabe numa
+   * linha, continua clicável e para de intimidar. O nome de cada etapa não
+   * some — ele vive no aria-label de cada bolinha. */
+  .editor__progresso {
+    display: flex;
+    flex-direction: column;
+    /* Centralizada: a régua é a única coisa naquela faixa, e encostada à
+       esquerda ela lia como um rodapé do cabeçalho em vez de um marcador de
+       onde a pessoa está. */
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    /* Largura cheia, como o corpo logo abaixo. Com um max-width aqui a régua
+       flutuava no meio enquanto o formulário começava na borda esquerda, e as
+       duas coisas pareciam de páginas diferentes. */
+    /* Menos respiro no celular: cada pixel aqui e um pixel a menos de
+       formulario acima da dobra. */
+    padding: 0.7rem 1.25rem 0.65rem;
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.06);
+  }
+
+  /* A régua acompanha a barra de progresso logo acima: mesma largura, mesmos
+     extremos. Espalhar as bolinhas por 1400px faria a distância entre elas
+     perder relação com o quanto já andou. */
+  .editor__dots {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.3rem;
+    width: 100%;
+    max-width: 34rem;
+  }
+
+  /* Área de toque de 24px em volta de um ponto de 8px: no celular ninguém
+     acerta um alvo de 8 pixels, e aumentar o ponto estragaria a leitura da
+     régua. */
+  .editor__dot {
+    flex: 1;
+    max-width: 24px;
+    height: 24px;
     display: grid;
     place-items: center;
-    width: 18px;
-    height: 18px;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+  }
+
+  .editor__dot::before {
+    content: "";
+    width: 8px;
+    height: 8px;
     border-radius: var(--radius-pill);
-    background: rgb(var(--color-ink) / 0.1);
-    font-size: 0.65rem;
+    background: rgb(var(--color-ink) / 0.15);
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      transform var(--dur-fast) var(--ease-out);
   }
 
-  .editor__step[data-done] span {
-    background: rgb(var(--color-accent) / 0.3);
-    color: rgb(var(--color-ink));
+  .editor__dot[data-done]::before {
+    background: rgb(var(--color-accent) / 0.45);
   }
 
-  .editor__step[data-current] {
-    background: rgb(var(--color-accent) / 0.12);
-    color: rgb(var(--color-ink));
-  }
-
-  .editor__step[data-current] span {
+  .editor__dot[data-current]::before {
     background: rgb(var(--color-accent));
-    color: rgb(var(--color-bg));
+    transform: scale(1.5);
   }
 
   /* Cabeçalho da barra: o tom à esquerda, a porcentagem à direita. Os dígitos
      usam tabular-nums, senão o número dança a cada passo. */
-  .editor__progress-head {
+  /* Incentivo, barra e porcentagem na mesma linha. A barra cresce; os dois
+     textos ficam do tamanho que precisam. */
+  .editor__progress-row {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 34rem;
+  }
+
+  .editor__progress-row .editor__progress {
+    flex: 1;
+    min-width: 0;
   }
 
   .editor__cheer {
+    flex: none;
     font-size: 0.85rem;
     font-weight: 500;
+    white-space: nowrap;
   }
 
   .editor__percent {
+    flex: none;
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
     font-size: 0.8rem;
@@ -3075,6 +4658,8 @@
   }
 
   .editor__progress {
+    width: 100%;
+    max-width: 34rem;
     height: 4px;
     border-radius: var(--radius-pill);
     background: rgb(var(--color-ink) / 0.08);
@@ -3085,7 +4670,15 @@
     display: block;
     height: 100%;
     transform-origin: 0 50%;
-    background: rgb(var(--color-accent));
+    /* Degradê e não cor chapada: a barra é a única peça da tela que celebra o
+       avanço, e o brilho no fim dela é o que faz 38% parecer progresso em vez
+       de saldo. Usa o rosa de brilho, que existe para isso e nunca carrega
+       texto. */
+    background: linear-gradient(
+      90deg,
+      rgb(var(--color-accent)),
+      rgb(var(--color-brand-bright))
+    );
     transition: transform var(--dur-base) var(--ease-out);
   }
 
@@ -3108,6 +4701,15 @@
     border: 1px dashed rgb(var(--color-ink) / 0.18);
     color: rgb(var(--color-ink-muted));
     font-size: 0.9rem;
+  }
+
+  /* Nota explicativa: por que um controle NAO esta ali. Sem borda, porque
+     nao e estado vazio nem erro — e so um recado. */
+  .step__hint {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: rgb(var(--color-ink-muted));
   }
 
   /* --- Momentos da linha do tempo --------------------------------------- */
@@ -3187,17 +4789,107 @@
     flex: 1;
   }
 
+  /* Diz o que aquele celular é. Sem o rótulo ele podia passar por ilustração;
+     com ele, a pessoa entende que está vendo o resultado se formar. */
+  .editor__preview-label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.5rem;
+    padding: 0.2rem 0.4rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgb(var(--color-ink-muted));
+    cursor: pointer;
+  }
+
+  .editor__preview-seta {
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+
+  /* --- A previa recolhivel (so no celular) ------------------------------
+   *
+   * Recolhida, sobra a linha do rotulo -- que continua dizendo o que ha ali e
+   * como trazer de volta. O aparelho fica em `display: none` e nao e
+   * desmontado: assim a rolagem interna e o estado do preview sobrevivem ao
+   * recolher, e reabrir nao custa uma remontagem.
+   */
+  .editor__preview[data-recolhida] {
+    height: auto;
+    padding-block: 0.35rem;
+  }
+
+  .editor__preview[data-recolhida] .editor__preview-palco {
+    display: none;
+  }
+
+  .editor__preview[data-recolhida] .editor__preview-seta {
+    transform: rotate(-90deg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .editor__preview-seta {
+      transition: none;
+    }
+  }
+
   .editor__loading {
     color: rgb(var(--color-ink-muted));
   }
 
+  /* Barra de ação da PÁGINA, colada embaixo. No celular ela fica sempre ao
+     alcance do polegar, sem depender de rolar até o fim do formulário — que é
+     onde ela morava antes, dentro do painel. */
+  /* Barra de ação da PÁGINA, colada embaixo. No celular ela fica sempre ao
+     alcance do polegar, sem depender de rolar até o fim do formulário — que é
+     onde ela morava antes, dentro do painel.
+     Três colunas iguais para o nome da etapa cair no centro ótico mesmo com
+     "Publicar minha página" à direita, que é bem mais largo que "Voltar". */
   .editor__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 6;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    /* O fundo atravessa a tela; o CONTEUDO nao. Num monitor de 1440px os tres
+       itens ficavam largados em tres cantos -- "Voltar" colado na borda
+       esquerda, "Continuar" na direita, o nome da etapa sozinho no meio, a
+       800px de distancia um do outro. O `max()` mantem 1.25rem de respiro no
+       celular e, no desktop, empurra tudo para a mesma coluna de 78rem do
+       corpo, alinhando o botao com a borda do painel. */
+    padding-block: 0.9rem;
+    padding-inline: max(1.25rem, calc((100% - 78rem) / 2));
+    border-top: 1px solid rgb(var(--color-ink) / 0.08);
+    background: rgb(var(--color-bg) / 0.92);
+    backdrop-filter: blur(12px);
+  }
+
+  .editor__actions > :last-child {
+    justify-self: end;
+  }
+
+  /* O nome da etapa. Repete o que a bolinha acesa lá em cima já diz, e é de
+     propósito: a régua fica fora do campo de visão de quem está olhando para
+     o campo, e aqui a informação está onde a mão está. */
+  .editor__agora {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid rgb(var(--color-ink) / 0.08);
+    gap: 0.4rem;
+    margin: 0;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: rgb(var(--color-ink-muted));
+    white-space: nowrap;
   }
 
   /* --- indicador de salvamento ------------------------------------------ */
@@ -3239,29 +4931,111 @@
   }
 
   /* --- campos ---------------------------------------------------------- */
+  /*
+   * Um passo é UMA pergunta, centralizada, com espaço em volta.
+   *
+   * Antes era um formulário encostado na margem esquerda, com título pequeno e
+   * tudo alinhado à borda — parecia painel de configuração. Centralizado e com
+   * o título em display grande, cada etapa vira uma pergunta feita à pessoa,
+   * que é o que ela é. O respiro não é enfeite: é o que faz dez campos
+   * seguidos não parecerem um cadastro.
+   */
   .step {
     display: flex;
     flex-direction: column;
-    gap: 1.25rem;
+    align-items: center;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 30rem;
+    margin-inline: auto;
+    text-align: center;
   }
 
   .step__head {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
+    gap: 0.5rem;
   }
 
   .step__title {
     font-family: var(--font-display);
     font-weight: 400;
-    font-size: 1.6rem;
-    letter-spacing: -0.01em;
+    font-size: clamp(1.7rem, 4vw, 2.3rem);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   .step__lede {
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: rgb(var(--color-ink-muted));
+    text-wrap: balance;
+  }
+
+  /* O conteúdo do passo volta a ser alinhado à esquerda: rótulo de campo
+     centralizado é bonito e ilegível — o olho perde a coluna de leitura entre
+     um campo e o seguinte. Centralizado fica o cabeçalho, que é o convite. */
+  .step > *:not(.step__head) {
+    width: 100%;
+    text-align: left;
+  }
+
+  /* Botões e avisos soltos seguem centralizados: são ação, não leitura. */
+  .step > .btn-primary,
+  .step > .btn-quiet,
+  .step > .pular,
+  .step > .step__empty,
+  .step > .step__hint,
+  .step > .moment__remove {
+    width: auto;
+    text-align: center;
+  }
+
+  /* --- Passo do link ----------------------------------------------------
+   * A prévia é a peça central do passo: a pessoa tem de ver o endereço se
+   * formando enquanto digita, senão não entende que o fim é sorteado. */
+  .step-link__previa {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin: 0.2rem 0 0;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-surface-2));
+    overflow-wrap: anywhere;
+  }
+
+  .step-link__url {
+    font-size: 0.98rem;
     color: rgb(var(--color-ink-muted));
   }
+
+  /* O que a pessoa escolheu ganha a tinta cheia; o sufixo fica apagado, para
+     a diferença entre "meu" e "sorteado" ser visível sem precisar ler a nota. */
+  .step-link__url strong {
+    font-weight: 500;
+    color: rgb(var(--color-accent));
+  }
+
+  .step-link__url em {
+    font-style: normal;
+    color: rgb(var(--color-ink-muted) / 0.7);
+  }
+
+  .step-link__estado {
+    margin: 0;
+    font-size: 0.82rem;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .step-link__nota {
+    margin: 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: rgb(var(--color-ink-muted));
+  }
+
 
   .field {
     display: flex;
@@ -3296,22 +5070,44 @@
     color: rgb(var(--color-danger));
   }
 
+  /* O campo.
+   *
+   * Era um retangulo branco chapado sobre o rosa da pagina: sem profundidade,
+   * sem estado de hover, e o foco mudava so a cor da borda a 60% de alfa --
+   * pouco para quem navega por teclado e quase nada para quem enxerga mal.
+   *
+   * A sombra interna de um pixel e o que faz o campo ler como CAVIDADE em vez
+   * de adesivo. E o anel de foco e anel de verdade, nao uma borda um tom
+   * diferente. */
   .input {
     width: 100%;
     padding: 0.7rem 0.9rem;
     border-radius: var(--radius-sm);
     background: rgb(var(--color-surface));
-    border: 1px solid rgb(var(--color-ink) / 0.12);
+    border: 1px solid rgb(var(--color-ink) / 0.14);
+    box-shadow: inset 0 1px 2px rgb(var(--color-deep) / 0.05);
     color: rgb(var(--color-ink));
-    transition: border-color var(--dur-fast) var(--ease-out);
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
   }
 
   .input::placeholder {
     color: rgb(var(--color-ink-muted) / 0.7);
   }
 
+  .input:hover:not(:focus) {
+    border-color: rgb(var(--color-ink) / 0.24);
+  }
+
+  /* `outline: none` sozinho seria remover o foco e nao repor nada. O anel de
+     sombra faz o mesmo trabalho, acompanha o raio da borda e nao empurra
+     layout -- que e por onde a acessibilidade costuma se perder aqui. */
   .input:focus {
-    border-color: rgb(var(--color-accent) / 0.6);
+    border-color: rgb(var(--color-accent));
+    box-shadow:
+      inset 0 1px 2px rgb(var(--color-deep) / 0.04),
+      0 0 0 3px rgb(var(--color-accent) / 0.18);
     outline: none;
   }
 
@@ -3476,8 +5272,10 @@
   /* --- grade de fotos (FocusGrid, SPEC 5.3) ---------------------------- */
   .photo-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-    gap: 0.5rem;
+    /* 132px, e não os 88px de antes: cada célula agora carrega um campo de
+       legenda embaixo da foto, e a 88px o campo não cabia uma palavra. */
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: 0.75rem 0.5rem;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -3494,7 +5292,33 @@
 
   .photo-grid__item {
     position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
     touch-action: none; /* dnd-kit no celular */
+  }
+
+  /* A legenda. O `touch-action: auto` desfaz o `none` do item: aquele existe
+     para o arrasto do dnd-kit funcionar no celular, e sem esta linha ele
+     engoliria o toque que abre o teclado. */
+  .photo-grid__caption {
+    width: 100%;
+    padding: 0.35rem 0.5rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgb(var(--color-ink) / 0.1);
+    background: rgb(var(--color-surface));
+    color: rgb(var(--color-ink));
+    font-size: 0.76rem;
+    line-height: 1.3;
+    touch-action: auto;
+  }
+
+  .photo-grid__caption::placeholder {
+    color: rgb(var(--color-ink-muted) / 0.65);
+  }
+
+  .photo-grid__caption:focus-visible {
+    border-color: rgb(var(--color-accent) / 0.5);
   }
 
   .photo-grid__item[data-dragging] {
@@ -3503,6 +5327,10 @@
   }
 
   .photo-grid__handle {
+    /* Relativo para o selo "capa" ancorar NA FOTO. Sem isto ele resolvia
+       contra o .photo-grid__item, que desde o campo de legenda vai mais para
+       baixo — e o selo caía em cima do texto da legenda. */
+    position: relative;
     display: block;
     width: 100%;
     aspect-ratio: 1/1;
@@ -4089,12 +5917,21 @@
   .frame__cap {
     position: absolute;
     inset: auto 0 0 0;
-    padding: 0.75rem 1rem;
+    /* Acompanha o raio da moldura: reta, ela vazava dos cantos arredondados. */
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    padding: 1.6rem 1rem 0.75rem;
     font-size: 0.8rem;
+    /* O veu chega a 94% ATRAS DA LINHA DE TEXTO, e nao so na base.
+       A 85% com o degrade morrendo logo acima, a legenda caia na parte fina
+       do veu e ficava fraca sobre foto clara -- e texto sobre foto e
+       justamente o caso em que a regra 15 pede folga acima de 4,5:1, nao o
+       valor no limite. Com 94% da cor da pagina a tinta volta a ler como se
+       estivesse sobre a propria pagina, qualquer que seja a foto atras. */
     background: linear-gradient(
       to top,
-      rgb(var(--color-bg) / 0.85),
-      transparent
+      rgb(var(--color-bg) / 0.94) 0,
+      rgb(var(--color-bg) / 0.94) 62%,
+      transparent 100%
     );
   }
 }

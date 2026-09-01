@@ -62,10 +62,14 @@
      pede folga sobre os 4.5:1 porque ali o fundo não é chapado. */
   --color-hero-wash: 255 240 245;
 
-  /* 4.2 — famílias tipográficas (valores injetados por next/font no layout) */
-  --font-display: var(--font-instrument-serif), ui-serif, Georgia, serif;
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  /* 4.2 — famílias tipográficas (valores injetados por next/font no layout).
+   *
+   * O resto do CSS consome só estes três PAPÉIS. Trocar de fonte é trocar a
+   * linha aqui e a definição no layout — nenhuma regra de seção conhece o
+   * nome de nenhuma família, do mesmo jeito que nenhuma conhece a cor da pele. */
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, monospace;
 
   /* 4.3 — raios. Generosos: isto é presente, não painel de controle. */
   --radius-sm: 12px;
@@ -98,7 +102,21 @@
   /* Quanto a foto do hero aparece. Sobre claro ela é atmosfera, não assunto. */
   --hero-photo-opacity: 0.5;
 
-  /* Piso de opacidade do ato inativo em "Como funciona". */
+  /* "Como funciona": o ato inativo recua. São DOIS pisos, e a diferença é
+   * de acessibilidade, não de gosto.
+   *
+   * --act-floor vale para o ato inteiro, ou seja, para a PROSA. Apagar um
+   * parágrafo de 16px derruba o contraste junto: a 0.58 o texto do passo
+   * inativo media 2.46:1, contra os 4.5:1 que corpo de texto exige. A 0.9 ele
+   * mede 4.69:1 — medido, não estimado (CLAUDE.md, regra 15).
+   *
+   * --act-dim vale só para o TÍTULO, que tem 36px e por ser texto grande
+   * passa com 3:1. É ele que pode apagar de verdade, e é onde o recuo
+   * aparece: 0.9 × 0.58 = 0.522 efetivo, que mede 3.61:1.
+   *
+   * Foi assim que o efeito sobreviveu. Para a prosa passar sozinha o piso
+   * teria de ir a 0.89, e aí não haveria recuo nenhum para ver. */
+  --act-floor: 0.9;
   --act-dim: 0.58;
 
   /* QR é sempre escuro sobre claro — é assim que ele escaneia e é impresso.
@@ -139,7 +157,11 @@
   --glass-edge-alpha-b: 0.03;
 
   --hero-photo-opacity: 1;
-  --act-dim: 0.3;
+  /* Mesmo raciocínio, medido sobre o noir: a 0.8 a prosa fica em 4.55:1, e
+   * 0.85 dá folga (5.02:1). O título a 0.3 media 2.03:1 — reprovava até como
+   * texto grande —, então subiu para 0.5, que dá 3.73:1. */
+  --act-floor: 0.85;
+  --act-dim: 0.5;
 }
 
 /* --- Paletas de revelação (SPEC 4.1) ------------------------------------- *

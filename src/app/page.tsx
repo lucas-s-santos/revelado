@@ -35,28 +35,27 @@ export default function Home() {
   const now = Date.now();
   const celebration = nextCelebration(new Date(now));
 
-  // Contador de demonstração do mockup: uma data redonda e verossímil.
-  const counterSince = new Date(
-    Date.UTC(new Date(now).getUTCFullYear() - 4, 5, 12, 24 - 3),
-  ).toISOString();
-
   return (
     <>
       <TrackView event="landing_view" />
-      <ScrollProgress />
       <Safelight />
 
-      <PromoBar
-        deadline={celebration.date.toISOString()}
-        label={celebration.label}
-        dateLabel={formatCelebrationDate(celebration.date)}
-        now={now}
-      />
-      <Nav />
+      {/* Promo, nav e progresso num sticky só. Colados cada um em top:0 eles
+          ocupavam o mesmo ponto e o maior z-index tapava os outros. */}
+      <div className="site-chrome">
+        <PromoBar
+          deadline={celebration.date.toISOString()}
+          label={celebration.label}
+          dateLabel={formatCelebrationDate(celebration.date)}
+          now={now}
+        />
+        <Nav />
+        <ScrollProgress />
+      </div>
 
       <main id="conteudo">
         <Hero pagesCreated={1482} />
-        <PhoneShowcase since={counterSince} now={now} />
+        <PhoneShowcase />
         <Revelation />
         <Reaction />
         <BlocksGrid />

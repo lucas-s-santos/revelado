@@ -18,6 +18,8 @@ import { units } from "@/lib/units";
 
 export { units };
 
+import { portalText } from "@/lib/portal-text";
+
 export const copy = {
   units,
 
@@ -48,12 +50,11 @@ export const copy = {
     titleLead: "Uma página que",
     titleAccent: "revela",
     titleTail: "a história de vocês dois",
-    lede: "Suba as fotos de vocês, escreva o que você nunca falou e marque a data em que tudo começou. Pague uma vez no Pix e receba o link com o QR Code para imprimir e entregar na mão.",
+    lede: "Fotos, carta, música e o contador desde o primeiro dia. Um Pix, e o QR Code chega pronto para imprimir.",
     cta: "Criar nossa página",
     secondary: "Ver a página da Marina e do Téo",
-    socialPrefix: "já foram reveladas",
-    socialSuffix: "páginas de casal",
-    noLogin: "Sem cadastro para começar · você só paga no fim",
+    socialSuffix: "páginas já reveladas",
+    noLogin: "sem cadastro, você só paga no fim",
   },
 
   phone: {
@@ -70,10 +71,18 @@ export const copy = {
   // contagem de vendas: prova social inventada é alegação falsa, e o que a
   // gente tem de verdade para dizer aqui já é bom — o preview é grátis, o
   // pagamento é um só e a página sai pronta.
+  /* O primeiro frame da página publicada. Mora em `lib/portal-text.ts` e é
+     reexportado aqui: a página publicada importa a folha, para não arrastar
+     este arquivo inteiro para o bundle dela (ver o comentário de lá). */
+  portal: portalText,
+
   showcase: {
+    demoLabel: "A página de exemplo do Revelado, rodando dentro do celular",
+    demoWake: "tocar para explorar",
+    demoFull: "abrir a página inteira",
     eyebrow: "veja antes de decidir",
     title: "É isto que ela vai abrir.",
-    lede: "Role o celular aí em cima. É a página de verdade, do jeito que chega para quem recebe.",
+    lede: "Toque no celular aí em cima e role até o fim. É a página de verdade, do jeito que chega para quem recebe.",
     badges: [
       {
         id: "rapido",

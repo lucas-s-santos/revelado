@@ -12,6 +12,14 @@ import { getScrollDriverStats } from "@/hooks/use-scroll-driver";
  * A prova definitiva continua sendo o DevTools:
  *   getEventListeners(window).scroll        → 1
  *   getEventListeners(window).pointermove   → 1
+ *
+ * **Repare no `window`.** Em `document` aparecem DOIS `pointermove` e dois
+ * `mousemove`, e eles não são nossos: é a delegação de eventos do React, que
+ * registra captura e bolha para cada tipo que suporta. Rastreei as quatro
+ * pilhas até o chunk do `react-dom` (28/08). Existem em qualquer aplicação
+ * React, não fazem trabalho nenhum enquanto nenhum componente declarar
+ * `onPointerMove`, e não têm relação com a regra do driver único — que é sobre
+ * o listener de movimento ambiental, o nosso. Não saia caçando.
  */
 export function DriverStats() {
   const [stats, setStats] = useState({
