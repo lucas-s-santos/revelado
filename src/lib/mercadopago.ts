@@ -25,6 +25,46 @@ import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
 export const MP_CONFIGURED = Boolean(process.env.MERCADOPAGO_ACCESS_TOKEN);
 
+/**
+ * O simulador de pagamento só pode existir no modo de desenvolvimento local.
+ *
+ * **Isto fecha um jeito de burlar o sistema.** Sem Mercado Pago, esta camada
+ * simulava a cobrança e a `verifySignature` deixava passar sem segredo. Ótimo
+ * para testar o funil sem conta — mas era *fail open*: num deploy de produção
+ * que subisse sem as chaves, a segurança se desligava sozinha, e qualquer
+ * pessoa, dona do próprio rascunho, forjava a notificação (`sim_<orderId>`,
+ * previsível) e publicava **sem pagar**. Demonstrado de ponta a ponta.
+ *
+ * O sinal de "deploy real" é ter banco: um site de verdade persiste em
+ * Postgres; o modo local guarda tudo em arquivo. Amarrar pagamento-real a
+ * banco-presente é o que torna impossível ter pedido persistente publicado
+ * por simulação — sem `DATABASE_URL`, é dev; com ele, pagamento é sempre de
+ * verdade, e a falta de chave vira recusa (*fail closed*), nunca simulação.
+ */
+export const PAYMENTS_SIMULATED =
+  !MP_CONFIGURED && !process.env.DATABASE_URL;
+
+/** Lançado quando um deploy real tenta cobrar sem o Mercado Pago configurado. */
+export class PaymentsNotConfiguredError extends Error {
+  constructor() {
+    super("Pagamento indisponível: Mercado Pago não configurado neste ambiente.");
+    this.name = "PaymentsNotConfiguredError";
+  }
+}
+
+/**
+ * Porta única entre "simular" e "cobrar de verdade".
+ *
+ * Só há dois caminhos válidos: simulação (dev, sem banco) ou provedor real
+ * (chaves presentes). O terceiro — banco sem chaves — não pode virar
+ * simulação nem cobrança silenciosa: ele PARA aqui.
+ */
+function assertRealOrSimulated(): void {
+  if (!PAYMENTS_SIMULATED && !MP_CONFIGURED) {
+    throw new PaymentsNotConfiguredError();
+  }
+}
+
 /** Pix do Mercado Pago expira em 30 minutos por padrão. */
 const PIX_TTL_MINUTES = 30;
 
@@ -49,7 +89,8 @@ export async function createPixCharge(
 ): Promise<PixCharge> {
   const expiresAt = new Date(Date.now() + PIX_TTL_MINUTES * 60_000);
 
-  if (!MP_CONFIGURED) {
+  assertRealOrSimulated();
+  if (PAYMENTS_SIMULATED) {
     return {
       providerRef: `sim_${input.orderId}`,
       code: simulatedPixCode(input),
@@ -116,7 +157,8 @@ export async function createCardCheckout(
 ): Promise<CardCheckout> {
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-  if (!MP_CONFIGURED) {
+  assertRealOrSimulated();
+  if (PAYMENTS_SIMULATED) {
     return {
       providerRef: `simpref_${input.orderId}`,
       // O simulador não sai do site: cai na mesma tela de sucesso, que já sabe
@@ -261,7 +303,10 @@ export function verifySignature(
   dataId: string,
 ): boolean {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  if (!secret) return true;
+  // Sem segredo, a assinatura só é dispensada no modo simulado (dev sem banco).
+  // Num deploy real, a falta do segredo é recusa, não licença: era este `return
+  // true` que deixava o webhook forjado publicar sem pagar.
+  if (!secret) return PAYMENTS_SIMULATED;
   if (!signatureHeader) return false;
 
   const parts = Object.fromEntries(

@@ -5,7 +5,12 @@ import { readAnonId } from "@/lib/anon";
 import { validateForPublish } from "@/lib/blocks/schema";
 import { applyCoupon } from "@/lib/coupons";
 import { getDraft } from "@/lib/drafts";
-import { createCardCheckout, createPixCharge } from "@/lib/mercadopago";
+import {
+  createCardCheckout,
+  createPixCharge,
+  MP_CONFIGURED,
+  PAYMENTS_SIMULATED,
+} from "@/lib/mercadopago";
 import { attachCharge, createOrder } from "@/lib/orders";
 import {
   maxInstallments,
@@ -51,6 +56,16 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: parsed.error.issues[0]?.message ?? "Dados inválidos." },
       { status: 400 },
+    );
+  }
+
+  // Um deploy real (com banco) sem Mercado Pago não pode cobrar. Recusa antes
+  // de criar o pedido, para não deixar `Order` órfão em PENDING_PAYMENT — e
+  // para dizer a verdade em vez de simular uma cobrança que ninguém honra.
+  if (!PAYMENTS_SIMULATED && !MP_CONFIGURED) {
+    return NextResponse.json(
+      { error: "Pagamento indisponível no momento. Tente novamente em instantes." },
+      { status: 503 },
     );
   }
 

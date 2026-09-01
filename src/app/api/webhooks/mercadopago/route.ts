@@ -4,6 +4,7 @@ import {
   fetchPayment,
   mapPaymentStatus,
   MP_CONFIGURED,
+  PAYMENTS_SIMULATED,
   verifySignature,
   type NotificationStatus,
 } from "@/lib/mercadopago";
@@ -47,6 +48,17 @@ interface WebhookBody {
 }
 
 export async function POST(request: Request) {
+  // Fecho de segurança: um deploy real (com banco) sem Mercado Pago
+  // configurado não tem como validar nada aqui. Antes de olhar o corpo,
+  // recusa — é o que impede o webhook forjado de publicar quando as chaves
+  // faltam. No modo simulado (dev sem banco) segue o fluxo local.
+  if (!PAYMENTS_SIMULATED && !MP_CONFIGURED) {
+    return NextResponse.json(
+      { error: "pagamento não configurado" },
+      { status: 503 },
+    );
+  }
+
   const raw = await request.text();
 
   let body: WebhookBody;
@@ -126,9 +138,12 @@ async function resolveOrder(
 ): Promise<{ order: Order | null; status: NotificationStatus | null }> {
   const direct = await findByProviderRef(paymentId);
 
-  if (!MP_CONFIGURED) {
-    // Modo local: sem provedor a quem perguntar, o simulador manda o estado no
-    // próprio `action`, e o pedido é sempre achado pelo providerRef.
+  if (PAYMENTS_SIMULATED) {
+    // Modo simulado (dev sem banco): não há provedor a quem perguntar, então o
+    // estado vem do `action` da própria notificação. Isto SÓ vale aqui —
+    // `PAYMENTS_SIMULATED`, e não `!MP_CONFIGURED`: num deploy real sem token,
+    // confiar no corpo era o que permitia forjar "payment.approved" e publicar
+    // de graça. Lá, sem token, a rota não chega a este ramo — recusa antes.
     const action = body.action ?? "";
     const status = action.startsWith("payment.")
       ? mapPaymentStatus(action.replace("payment.", ""))
