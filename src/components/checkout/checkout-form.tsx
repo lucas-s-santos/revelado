@@ -7,11 +7,11 @@ import { useState } from "react";
 import { PixPanel } from "@/components/checkout/pix-panel";
 import { Logo } from "@/components/chrome/logo";
 import { BorderBeam } from "@/components/ui/border-beam";
-import { NumberTicker } from "@/components/ui/number-ticker";
 import { track } from "@/lib/analytics";
 import type { PublishIssue } from "@/lib/blocks/schema";
 import {
   bestInstallment,
+  durationLabel,
   FOREVER_BUMP_CENTS,
   orderTotalCents,
   PLANS,
@@ -227,11 +227,14 @@ export function CheckoutForm({
                     {formatBRL(candidate.priceCents)}
                   </span>
 
+                  {/* O prazo sai de `durationLabel`, nunca de string fixa.
+                      Havia um "1 ano no ar" escrito à mão aqui: o plano dura
+                      24 horas (`durationDays: 1`), então a tela de pagamento
+                      prometia um ano e a cobrança entregava um dia. É a mesma
+                      divergência que o helper foi criado para acabar — ela
+                      voltou por outro arquivo. */}
                   <span className="checkout__plan-hint">
-                    até {candidate.maxPhotos} fotos ·{" "}
-                    {candidate.durationDays === null
-                      ? "para sempre"
-                      : "1 ano no ar"}
+                    até {candidate.maxPhotos} fotos · {durationLabel(candidate)}
                   </span>
 
                   {planId === candidate.id ? (
@@ -357,16 +360,21 @@ export function CheckoutForm({
             </div>
           </fieldset>
 
+          {/* Dinheiro não anima.
+           *
+           * Aqui havia um `NumberTicker`. Ele só parte quando entra na
+           * viewport, e o total mora no fim de uma tela de 2.900px: quem
+           * chegava rolando via **TOTAL R$ 0** e depois o número subindo como
+           * caça-níquel por uns três segundos. Medido: R$ 34,39 aos 2,5s,
+           * ainda a caminho de 34,90.
+           *
+           * Este é o número que a pessoa confere antes de pagar. Ele precisa
+           * estar certo no primeiro quadro, e igual em qualquer momento da
+           * rolagem. `formatBRL` é o que o resto da tela já usa. */}
           <div className="checkout__total">
             <span className="eyebrow">total</span>
-            <p className="pricing__total-value">
-              R${" "}
-              <NumberTicker
-                key={`${planId}-${bumpApplies}`}
-                value={totalCents / 100}
-                decimalPlaces={2}
-                className="text-[rgb(var(--color-ink))]"
-              />
+            <p data-numeric className="pricing__total-value">
+              {formatBRL(totalCents)}
             </p>
           </div>
 

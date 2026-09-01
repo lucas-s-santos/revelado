@@ -8,10 +8,14 @@ import { subscribeScroll } from "@/hooks/use-scroll-driver";
 import { copy } from "@/lib/copy";
 
 /**
- * Nav em vidro que solidifica depois de 40px de scroll — SPEC 8.1 seção 2.
+ * Nav em ilha, que materializa depois de 40px de scroll — SPEC 8.1 seção 2.
  *
  * Assina o driver singleton e só chama setState quando o estado **muda** de
  * lado: um re-render por travessia, não um por frame (SPEC 6.4).
+ *
+ * O componente não sabe que virou cápsula: ele continua publicando o mesmo
+ * `data-solid`, e é o CSS que decide o que isso pinta. Trocar a forma da nav
+ * de novo não deveria passar por aqui.
  */
 export function Nav() {
   const [solid, setSolid] = useState(false);
@@ -29,7 +33,7 @@ export function Nav() {
 
   return (
     <header className="site-nav" data-solid={solid ? "" : undefined}>
-      <div className="site-nav__inner container-page">
+      <div className="site-nav__inner">
         <Logo />
 
         <nav aria-label="Navegação principal" className="site-nav__links">

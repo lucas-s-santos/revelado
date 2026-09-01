@@ -1,7 +1,7 @@
 import { Eye, Timer, Wallet } from "lucide-react";
 import type { ComponentType } from "react";
 
-import { HeroPhone } from "@/components/marketing/hero-phone";
+import { PhoneDemo } from "@/components/marketing/phone-demo";
 import { copy } from "@/lib/copy";
 
 /**
@@ -12,7 +12,11 @@ import { copy } from "@/lib/copy";
  * está dentro; aqui ele é o assunto da seção inteira e cabe em tamanho de ler.
  * O hero ficou com o texto e a ação, que é o trabalho dele.
  *
- * Server Component: só o mockup é cliente, porque o contador precisa do tique.
+ * O que está no palco agora é a GRAVAÇÃO da página, não um mockup montado em
+ * HTML. O mockup era honesto, mas era uma reconstrução — e numa seção chamada
+ * "é isto que ela vai abrir", parecer e ser não são a mesma coisa.
+ *
+ * Server Component: só o player é cliente.
  */
 
 const ICONS: Record<string, ComponentType<{ size?: number }>> = {
@@ -21,7 +25,7 @@ const ICONS: Record<string, ComponentType<{ size?: number }>> = {
   pagamento: Wallet,
 };
 
-export function PhoneShowcase({ since, now }: { since: string; now: number }) {
+export function PhoneShowcase() {
   return (
     <section className="section showcase">
       <header className="section__head showcase__head">
@@ -31,7 +35,7 @@ export function PhoneShowcase({ since, now }: { since: string; now: number }) {
       </header>
 
       <div className="showcase__stage">
-        <HeroPhone since={since} now={now} />
+        <PhoneDemo />
       </div>
 
       <ul className="showcase__badges">
