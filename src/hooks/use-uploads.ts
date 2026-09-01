@@ -39,6 +39,56 @@ interface SignResponse {
   dev: boolean;
 }
 
+/**
+ * Foto de iPhone, quando ela chega crua.
+ *
+ * **Não é o caminho comum, e é por isso que o `accept` do input continua sem
+ * HEIC.** Ao escolher da galeria no iOS, o próprio sistema transcodifica para
+ * JPEG antes de entregar — de graça e sem WASM nenhum — e é o `accept` pedindo
+ * JPEG que dispara isso. Anunciar HEIC ali faria o iOS entregar o original e
+ * jogaria esse trabalho para dentro do navegador, do lado de quem tem menos
+ * bateria e pior rede. Seria uma piora disfarçada de suporte.
+ *
+ * O HEIC cru chega por outros caminhos: arrastar do Finder ou do Explorer
+ * (que ignora `accept`), escolher pelo app Arquivos, ou Android que fotografa
+ * em HEIF. Nesses casos o arquivo é decodificado aqui.
+ *
+ * O decodificador entra por import dinâmico e só quando um HEIC aparece: é
+ * WASM de alguns megabytes, e quem manda JPEG não pode pagar por ele.
+ *
+ * Devolve `null` quando não é HEIC ou quando a conversão falha — aí o arquivo
+ * segue pelo caminho normal e a validação do servidor decide.
+ */
+async function heicParaJpeg(file: File): Promise<File | null> {
+  // Peneira barata primeiro. `isHeic` lê o cabeçalho e é o que decide de
+  // verdade, mas chamá-lo em toda foto importaria o WASM em toda foto.
+  const suspeito =
+    /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+  if (!suspeito) return null;
+
+  try {
+    const { isHeic, heicTo } = await import("heic-to/next");
+    // O mime de um HEIC costuma vir vazio; o cabeçalho não mente.
+    if (!(await isHeic(file))) return null;
+
+    const jpeg = await heicTo({
+      blob: file,
+      type: "image/jpeg",
+      quality: 0.92,
+    });
+
+    /* Volta como File, não Blob: o compressor lá embaixo tipa o argumento como
+     * File e lê o nome do arquivo. A extensão trocada evita um ".heic" que
+     * mente sobre o conteúdo se um dia esse nome for parar em algum lugar. */
+    return new File([jpeg], file.name.replace(/\.hei[cf]$/i, ".jpg"), {
+      type: "image/jpeg",
+      lastModified: file.lastModified,
+    });
+  } catch {
+    return null;
+  }
+}
+
 export function useUploads(draftId: string, onDone: (mediaId: string) => void) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const counter = useRef(0);
@@ -62,10 +112,15 @@ export function useUploads(draftId: string, onDone: (mediaId: string) => void) {
     async (localId: string, file: File) => {
       update(localId, { status: "compressing", progress: 0 });
 
-      let payload: File | Blob = file;
+      // HEIC vira JPEG ANTES de comprimir. A compressão desenha num canvas,
+      // e Chrome, Firefox e Edge não decodificam HEIC — o canvas fica vazio e
+      // o catch abaixo subia o arquivo original, que o servidor recusa.
+      const origem = (await heicParaJpeg(file)) ?? file;
+
+      let payload: File | Blob = origem;
       try {
         const { default: compress } = await import("browser-image-compression");
-        payload = await compress(file, {
+        payload = await compress(origem, {
           maxSizeMB: TARGET_MAX_MB,
           maxWidthOrHeight: TARGET_MAX_WIDTH,
           useWebWorker: true,
@@ -76,7 +131,7 @@ export function useUploads(draftId: string, onDone: (mediaId: string) => void) {
         // e deixa a validação de tamanho do servidor decidir.
       }
 
-      const mime = payload.type || file.type || "image/jpeg";
+      const mime = payload.type || origem.type || "image/jpeg";
 
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
         update(localId, { status: "uploading", attempts: attempt });

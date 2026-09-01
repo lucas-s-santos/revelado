@@ -22,28 +22,42 @@ describe("templates", () => {
 
 describe("quais dá para montar hoje", () => {
   /**
-   * Este teste existe para o editor nunca oferecer um formato cujo bloco
+   * Estes testes existem para o editor nunca oferecer um formato cujo bloco
    * principal não renderiza. O renderer ignora bloco sem componente — em
    * silêncio, sem erro —, então a pessoa escolheria "Motivos" e receberia uma
    * página sem os motivos.
+   *
+   * Antes eram duas listas de ids escritas à mão, uma de prontos e outra de
+   * não-prontos. Toda vez que um bloco ganhava componente, um id tinha de
+   * mudar de lista — e quando o último mudou, a lista de não-prontos ficou
+   * vazia e o teste passou a afirmar nada. Como propriedade, ele vale para os
+   * formatos que existem hoje e para os que vierem, sem manutenção.
    */
-  it("aceita os formatos cujos blocos todos existem", () => {
-    for (const id of ["essencial", "revelacao", "linha-do-tempo"]) {
-      const template = getTemplate(id);
-      expect(template, `template ${id} sumiu`).toBeDefined();
-      expect(isTemplateReady(template!, readyBlockTypes)).toBe(true);
+  it("todo formato oferecido tem todos os blocos prontos", () => {
+    for (const template of TEMPLATES) {
+      const faltando = template.preset.blocks.filter(
+        (type) => !readyBlockTypes.includes(type),
+      );
+
+      expect(
+        isTemplateReady(template, readyBlockTypes),
+        `o formato "${template.id}" pede ${faltando.join(", ")}`,
+      ).toBe(faltando.length === 0);
     }
   });
 
-  it("recusa os que dependem de bloco ainda não implementado", () => {
-    // "motivos" pede `reasons`; "capsula" pede `capsule`. Os dois estão no
-    // registry como ready: false. Quando ganharem componente, este teste falha
-    // — e aí é só movê-los para o caso de cima.
-    for (const id of ["motivos", "capsula"]) {
-      const template = getTemplate(id);
-      expect(template, `template ${id} sumiu`).toBeDefined();
-      expect(isTemplateReady(template!, readyBlockTypes)).toBe(false);
-    }
+  it("recusa um formato que peça bloco sem componente", () => {
+    // Sintético de propósito: os formatos de verdade estão todos prontos, e
+    // sem este caso a função de recusa deixaria de ser exercitada.
+    const inventado = {
+      ...TEMPLATES[0]!,
+      preset: {
+        ...TEMPLATES[0]!.preset,
+        blocks: ["hero", "guestbook", "footer"] as const,
+      },
+    };
+
+    expect(isTemplateReady(inventado, readyBlockTypes)).toBe(false);
   });
 
   it("sobra pelo menos um formato para escolher", () => {

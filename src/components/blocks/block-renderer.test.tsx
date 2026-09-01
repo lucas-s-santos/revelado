@@ -56,12 +56,22 @@ describe("BlockRenderer", () => {
   });
 
   it("ignora bloco sem componente em vez de quebrar a página", () => {
-    // `stats` está no schema mas é Fase 7: não tem componente.
+    /* Este teste usava `stats`, que desde entao ganhou componente — e passou a
+     * testar o contrario do que dizia. A afirmacao abaixo existe para isso nao
+     * se repetir em silencio: no dia em que `map` for implementado, ela falha
+     * com um recado dizendo para trocar o exemplo, em vez de o teste continuar
+     * verde sem verificar nada. */
+    expect(registry.map.ready).toBe(false);
+
     const content = {
       ...demoContent,
       blocks: [
         ...demoContent.blocks,
-        { id: "stats", type: "stats" as const, props: { items: [] } },
+        {
+          id: "map",
+          type: "map" as const,
+          props: { lat: -23.55, lng: -46.63, label: "onde a gente se conheceu" },
+        },
       ],
     };
 
@@ -69,7 +79,7 @@ describe("BlockRenderer", () => {
       <BlockRenderer content={content} mode="published" now={NOW} />,
     );
 
-    expect(html).not.toContain('data-block="stats"');
+    expect(html).not.toContain('data-block="map"');
     expect(html).toContain('data-block="hero"'); // o resto continua no ar
   });
 

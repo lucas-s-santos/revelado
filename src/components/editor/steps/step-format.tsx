@@ -1,9 +1,17 @@
 "use client";
 
-import { Check } from "lucide-react";
+import {
+  Check,
+  Heart,
+  ListOrdered,
+  Lock,
+  Sparkles,
+  Milestone,
+  type LucideIcon,
+} from "lucide-react";
 
-import { getBlockDefinition, readyBlockTypes } from "@/components/blocks/registry";
-import { isTemplateReady, TEMPLATES } from "@/lib/templates";
+import { readyBlockTypes } from "@/components/blocks/registry";
+import { isTemplateReady, TEMPLATES, type TemplateSeed } from "@/lib/templates";
 import { useEditorStore } from "@/stores/editor-store";
 
 /**
@@ -45,6 +53,8 @@ export function StepFormat() {
         {disponiveis.map((template) => {
           const ativo = content.theme.template === template.id;
 
+          const Icone = ICONES[template.icon];
+
           return (
             <button
               key={template.id}
@@ -53,26 +63,24 @@ export function StepFormat() {
               aria-pressed={ativo}
               className="format"
             >
-              <span className="format__head">
-                <span className="format__name">{template.name}</span>
-                {ativo ? (
-                  <span aria-hidden className="format__mark">
-                    <Check size={14} />
-                  </span>
-                ) : null}
+              {/* O selo do plano vem antes do nome: é a informação que muda
+                    a decisão, e depois de escolher já é tarde. */}
+              {template.planRequired ? (
+                <span className="format__plano">plano eterno</span>
+              ) : null}
+
+              <span aria-hidden className="format__icone">
+                <Icone size={18} />
               </span>
 
+              <span className="format__name">{template.name}</span>
               <span className="format__hint">{template.hint}</span>
 
-              {/* Rótulo do registry, nunca o nome do tipo: "Capa · Contador",
-                  não "hero · counter". Nomeie pelo que a pessoa reconhece
-                  (SPEC 11). O rodapé fica de fora porque toda página tem. */}
-              <span className="format__blocks">
-                {template.preset.blocks
-                  .filter((type) => type !== "footer")
-                  .map((type) => getBlockDefinition(type).label)
-                  .join(" · ")}
-              </span>
+              {ativo ? (
+                <span aria-hidden className="format__mark">
+                  <Check size={13} />
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -80,3 +88,12 @@ export function StepFormat() {
     </div>
   );
 }
+
+/** Nome declarado no template → componente. O template não importa React. */
+const ICONES: Record<TemplateSeed["icon"], LucideIcon> = {
+  heart: Heart,
+  sparkles: Sparkles,
+  timeline: Milestone,
+  list: ListOrdered,
+  lock: Lock,
+};

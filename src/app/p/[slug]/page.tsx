@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BlockRenderer } from "@/components/blocks/block-renderer";
+import { lacrarCapsulas } from "@/lib/capsule";
+import { Portal } from "@/components/blocks/portal";
+import type { SiteContent } from "@/lib/blocks/schema";
 import { collectMediaIds, mediaMapFor } from "@/lib/media";
 import { getPublishedSite, isExpired } from "@/lib/sites";
 
@@ -53,6 +56,26 @@ export async function generateMetadata({
   };
 }
 
+/**
+ * O nome que vai escrito no envelope.
+ *
+ * Sai do título do hero, que é onde a pessoa escreveu para quem é a página —
+ * "Marina e Téo", "Para você". Mas o campo é texto livre, e nem todo mundo
+ * escreve um nome ali: tem quem escreva uma frase inteira. Um envelope com um
+ * parágrafo na frente fica pior do que um envelope liso, então há um teto de
+ * tamanho; passando dele, devolve `undefined` e o envelope fica sem nada, como
+ * era antes.
+ */
+function nomeNoEnvelope(content: SiteContent): string | undefined {
+  const hero = content.blocks.find((block) => block.type === "hero");
+  if (hero?.type !== "hero") return undefined;
+
+  const titulo = hero.props.title.trim();
+  if (titulo.length === 0 || titulo.length > 28) return undefined;
+
+  return titulo;
+}
+
 export default async function PublishedPage({ params }: { params: Params }) {
   const { slug } = await params;
   const site = await getPublishedSite(slug);
@@ -60,6 +83,9 @@ export default async function PublishedPage({ params }: { params: Params }) {
   if (!site) notFound();
 
   const expired = isExpired(site);
+  // Uma leitura só do relógio: o mesmo instante decide o lacre e alimenta os
+  // contadores, senão HTML e hidratação divergem por milissegundos.
+  const agora = Date.now();
 
   return (
     <main
@@ -81,12 +107,14 @@ export default async function PublishedPage({ params }: { params: Params }) {
           </Link>
         </section>
       ) : (
-        <BlockRenderer
-          content={site.content}
-          mode="published"
-          now={Date.now()}
-          media={mediaMapFor(site.id, collectMediaIds(site.content))}
-        />
+        <Portal para={nomeNoEnvelope(site.content)}>
+          <BlockRenderer
+            content={lacrarCapsulas(site.content, agora)}
+            mode="published"
+            now={agora}
+            media={mediaMapFor(site.id, collectMediaIds(site.content))}
+          />
+        </Portal>
       )}
     </main>
   );

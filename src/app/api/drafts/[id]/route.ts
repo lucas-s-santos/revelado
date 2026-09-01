@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { readAnonId } from "@/lib/anon";
-import { getDraft, saveDraftContent } from "@/lib/drafts";
+import { getDraft, renameDraftSlug, saveDraftContent } from "@/lib/drafts";
 
 /**
  * Autosave do rascunho — SPEC 9.1.
@@ -79,12 +79,29 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     );
   }
 
-  const content =
-    body && typeof body === "object" && "content" in body
-      ? (body as { content: unknown }).content
-      : undefined;
+  const corpo = (body ?? {}) as { content?: unknown; apelido?: unknown };
 
-  const result = await saveDraftContent(id, content);
+  /* O apelido do link vem sozinho, nunca junto do conteúdo: são gravações
+   * diferentes (uma mexe no JSON dos blocos, a outra na coluna do slug) e o
+   * autosave dispara muito mais vezes que a troca de link. */
+  if (typeof corpo.apelido === "string") {
+    const renomeado = await renameDraftSlug(id, corpo.apelido);
+    if (!renomeado.ok) {
+      const status =
+        renomeado.reason === "not-found"
+          ? 404
+          : renomeado.reason === "published"
+            ? 409
+            : 422;
+      return NextResponse.json(
+        { error: renomeado.detail ?? "Não deu para trocar o link." },
+        { status },
+      );
+    }
+    return NextResponse.json({ slug: renomeado.draft.slug });
+  }
+
+  const result = await saveDraftContent(id, corpo.content);
 
   if (!result.ok) {
     const status =

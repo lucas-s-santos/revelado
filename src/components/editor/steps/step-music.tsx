@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Field } from "@/components/editor/field";
 import { MUSIC_PROVIDER_NAMES, musicUrl, parseMusicUrl } from "@/lib/music";
+import { Pular } from "@/components/editor/pular";
 import { findBlock, useEditorStore } from "@/stores/editor-store";
 
 /**
@@ -34,8 +35,18 @@ export function StepMusic() {
   // escolheu antes em vez de um campo vazio que parece perda de trabalho.
   const [raw, setRaw] = useState(() =>
     music?.props.trackId
-      ? musicUrl({ provider: music.props.provider, trackId: music.props.trackId })
+      ? musicUrl({
+          provider: music.props.provider,
+          trackId: music.props.trackId,
+        })
       : "",
+  );
+
+  // Texto do campo separado do número salvo: enquanto a pessoa digita "1:" o
+  // valor ainda não é um tempo válido, e reescrever o campo a cada tecla
+  // arrancaria o cursor do lugar.
+  const [tempo, setTempo] = useState(() =>
+    paraTexto(music?.props.startSec ?? 0),
   );
 
   // O bloco não vem no rascunho novo: é opcional, e este é o lugar de ligá-lo.
@@ -60,16 +71,25 @@ export function StepMusic() {
           <Music size={16} aria-hidden />
           Adicionar música
         </button>
+
+        <Pular texto="continuar sem música" />
       </div>
     );
   }
 
   const parsed = parseMusicUrl(raw);
+
   const sujo = raw.trim().length > 0;
   const erro =
     sujo && !parsed
       ? "Não reconheci esse link. Cole o endereço de uma faixa do Spotify ou de um vídeo do YouTube."
       : undefined;
+
+  function aoTrocarTempo(valor: string) {
+    setTempo(valor);
+    if (!music) return;
+    patch(music.id, { startSec: paraSegundos(valor) });
+  }
 
   function aoDigitar(valor: string) {
     setRaw(valor);
@@ -115,6 +135,39 @@ export function StepMusic() {
         </p>
       ) : null}
 
+      {/*
+        "Começar em" só no YouTube, e não por preguiça.
+        O embed do YouTube aceita `start` na própria URL. O do Spotify não tem
+        parâmetro equivalente: a IFrame API deles até expõe `startAt`, mas
+        exige carregar o SDK de terceiro, que este projeto não faz. Mostrar o
+        campo para o Spotify seria oferecer um controle que não controla nada.
+      */}
+      {parsed?.provider === "youtube" ? (
+        <Field
+          label="Começar em"
+          hint="Minutos e segundos, como 1:12. O refrão certo muda tudo."
+        >
+          {(props) => (
+            <input
+              {...props}
+              type="text"
+              inputMode="numeric"
+              value={tempo}
+              placeholder="0:00"
+              onChange={(event) => aoTrocarTempo(event.target.value)}
+              className="input"
+            />
+          )}
+        </Field>
+      ) : null}
+
+      {parsed?.provider === "spotify" ? (
+        <p className="step__hint">
+          O player do Spotify sempre começa do início — não dá para escolher o
+          trecho. Se o refrão importa, use o link do YouTube.
+        </p>
+      ) : null}
+
       {!sujo ? (
         <p className="step__empty">
           Nenhuma música ainda. Escolha a que tocava quando vocês se conheceram.
@@ -133,4 +186,26 @@ export function StepMusic() {
       </button>
     </div>
   );
+}
+
+/** "1:12" e "72" viram 72. Entrada torta vira 0 — não é erro, é campo vazio. */
+function paraSegundos(texto: string): number {
+  const partes = texto.split(":").map((parte) => parte.trim());
+  const numeros = partes.map((parte) => Number(parte.replace(/[^0-9]/g, "")));
+  if (numeros.some((n) => Number.isNaN(n))) return 0;
+
+  const total =
+    numeros.length === 2
+      ? (numeros[0] ?? 0) * 60 + (numeros[1] ?? 0)
+      : (numeros[0] ?? 0);
+
+  // Mesmo teto do schema: passar disso seria rejeitado no autosave.
+  return Math.min(Math.max(total, 0), 3600);
+}
+
+/** 72 vira "1:12". Zero vira campo vazio, e não "0:00" pedindo para ser apagado. */
+function paraTexto(segundos: number): string {
+  if (segundos <= 0) return "";
+  const minutos = Math.floor(segundos / 60);
+  return `${minutos}:${String(segundos % 60).padStart(2, "0")}`;
 }

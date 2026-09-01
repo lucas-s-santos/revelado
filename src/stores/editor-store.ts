@@ -4,7 +4,10 @@ import { enableMapSet, produce } from "immer";
 import { create } from "zustand";
 import { temporal } from "zundo";
 
-import { optionalBlock } from "@/lib/blocks/defaults";
+import {
+  optionalBlock,
+  type OptionalBlockType,
+} from "@/lib/blocks/defaults";
 import { getTemplate } from "@/lib/templates";
 import type {
   Block,
@@ -35,6 +38,9 @@ export const HISTORY_DEBOUNCE_MS = 500;
 export interface EditorState {
   draftId: string | null;
   content: SiteContent | null;
+  /** O endereço da página. Fora do `content` porque não é bloco: mora na
+   *  coluna do site e tem regra própria (imutável depois de publicado). */
+  slug: string | null;
 
   saveState: SaveState;
   saveError: string | null;
@@ -44,19 +50,22 @@ export interface EditorState {
   step: number;
 
   // --- ações
-  load: (draftId: string, content: SiteContent) => void;
+  load: (draftId: string, content: SiteContent, slug: string) => void;
+  setSlug: (slug: string) => void;
   patchBlockProps: <T extends BlockType>(
     blockId: string,
     patch: Partial<PropsOf<T>>,
   ) => void;
   setTheme: (patch: Partial<SiteContent["theme"]>) => void;
   /** Liga um bloco opcional (música, linha do tempo). Idempotente. */
-  addBlock: (type: "music" | "timeline" | "quiz") => void;
+  addBlock: (type: OptionalBlockType) => void;
   /** Troca o formato: remonta a moldura sem tocar no que foi escrito. */
   applyTemplate: (templateId: string) => void;
   removeBlock: (blockId: string) => void;
   addMedia: (mediaIds: string[]) => void;
   removeMedia: (mediaId: string) => void;
+  /** Legenda de uma foto. Texto vazio apaga a chave em vez de guardar "". */
+  setCaption: (mediaId: string, texto: string) => void;
   reorderMedia: (mediaIds: string[]) => void;
   setStep: (step: number) => void;
 
@@ -96,19 +105,23 @@ export const useEditorStore = create<EditorState>()(
     (set) => ({
       draftId: null,
       content: null,
+      slug: null,
       saveState: "idle",
       saveError: null,
       lastSavedAt: null,
       step: 0,
 
-      load: (draftId, content) =>
+      load: (draftId, content, slug) =>
         set({
           draftId,
           content,
+          slug,
           saveState: "idle",
           saveError: null,
           lastSavedAt: Date.now(),
         }),
+
+      setSlug: (slug) => set({ slug }),
 
       patchBlockProps: (blockId, patch) =>
         set((state) => {
@@ -263,10 +276,50 @@ export const useEditorStore = create<EditorState>()(
               block.props.mediaIds = block.props.mediaIds.filter(
                 (id) => id !== mediaId,
               );
+
+              // A legenda vai junto. Sem isto ela ficava órfã no JSON: a foto
+              // sumia da tela e o texto continuava sendo salvo para sempre,
+              // reaparecendo se um dia o mesmo mediaId voltasse.
+              if (block.props.captions) {
+                delete block.props.captions[mediaId];
+                if (Object.keys(block.props.captions).length === 0) {
+                  delete block.props.captions;
+                }
+              }
             }
 
             // A capa pode estar usando a foto removida — vira a próxima.
             syncCover(draft);
+          });
+
+          return { content, saveState: "dirty" };
+        }),
+
+      setCaption: (mediaId, texto) =>
+        set((state) => {
+          if (!state.content) return state;
+
+          const limpo = texto.trim();
+
+          const content = produce(state.content, (draft) => {
+            for (const block of draft.blocks) {
+              if (block.type !== "gallery") continue;
+
+              if (!limpo) {
+                // Guardar "" encheria o JSON de chaves vazias e faria o
+                // renderer desenhar uma faixa de legenda sem texto.
+                if (block.props.captions) {
+                  delete block.props.captions[mediaId];
+                  if (Object.keys(block.props.captions).length === 0) {
+                    delete block.props.captions;
+                  }
+                }
+                continue;
+              }
+
+              block.props.captions ??= {};
+              block.props.captions[mediaId] = limpo;
+            }
           });
 
           return { content, saveState: "dirty" };

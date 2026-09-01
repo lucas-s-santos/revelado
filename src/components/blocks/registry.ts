@@ -1,11 +1,15 @@
+import { CapsuleBlock } from "@/components/blocks/capsule-block";
 import { CounterBlock } from "@/components/blocks/counter-block";
+import { ReasonsBlock } from "@/components/blocks/reasons-block";
 import { FooterBlock } from "@/components/blocks/footer-block";
 import { GalleryBlock } from "@/components/blocks/gallery-block";
 import { HeroBlock } from "@/components/blocks/hero-block";
 import { LetterBlock } from "@/components/blocks/letter-block";
 import { MusicBlock } from "@/components/blocks/music-block";
 import { QuizBlock } from "@/components/blocks/quiz-block";
+import { StatsBlock } from "@/components/blocks/stats-block";
 import { TimelineBlock } from "@/components/blocks/timeline-block";
+import { VideoBlock } from "@/components/blocks/video-block";
 import { blockTypes, type BlockType } from "@/lib/blocks/schema";
 import type { PlanId } from "@/lib/plans";
 
@@ -91,13 +95,16 @@ export const registry: Record<BlockType, BlockDefinition> = {
     component: FooterBlock,
   },
 
-  // --- V2, Fase 7 (SPEC 13). Já no schema para o content não precisar migrar
-  // quando eles chegarem; sem componente, o renderer os ignora.
+  // --- Blocos que nasceram no schema para o content não precisar migrar
+  // quando chegassem (SPEC 13). Os que já têm componente estão ready: true e
+  // aparecem na página; os demais o renderer ignora, em silêncio e de
+  // propósito — uma página publicada não pode cair por causa de bloco novo.
   reasons: {
     label: "Motivos",
     icon: "list",
     plan: "especial",
-    ready: false,
+    ready: true,
+    component: ReasonsBlock,
   },
   guestbook: {
     label: "Mural de recados",
@@ -107,14 +114,26 @@ export const registry: Record<BlockType, BlockDefinition> = {
     ready: false,
   },
   map: { label: "Mapa", icon: "map-pin", plan: "especial", ready: false },
-  video: { label: "Vídeo", icon: "video", plan: "especial", ready: false },
+  video: {
+    label: "Vídeo",
+    icon: "video",
+    plan: "especial",
+    ready: true,
+    component: VideoBlock,
+  },
   capsule: {
     label: "Cápsula do tempo",
     icon: "lock",
     plan: "especial",
-    ready: false,
+    ready: true,
+    component: CapsuleBlock,
   },
-  stats: { label: "Números", icon: "hash", ready: false },
+  stats: {
+    label: "Números",
+    icon: "hash",
+    ready: true,
+    component: StatsBlock,
+  },
 };
 
 /** Tipos que o renderer sabe desenhar hoje. */
