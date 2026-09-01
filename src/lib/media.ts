@@ -15,7 +15,26 @@ export function mediaPath(draftId: string, mediaId: string): string {
   return `sites/${draftId}/${mediaId}`;
 }
 
+/**
+ * As fotos da página de exemplo moram em `public/demo/` e não no bucket.
+ *
+ * O exemplo é conteúdo do produto, não upload de ninguém: seus ids nunca
+ * passaram pela fila de mídia, então o caminho normal devolvia uma URL que
+ * dava 404 — e a página que a pessoa abre para decidir comprar mostrava
+ * quatro ícones de imagem quebrada.
+ *
+ * O prefixo é seguro como discriminador: id de upload é UUID, nunca a string
+ * literal `demo-1`. Gerados por `scripts/prepare-demo.mjs`.
+ */
+const DEMO_PREFIX = "demo-";
+
+export function isDemoMedia(mediaId: string): boolean {
+  return mediaId.startsWith(DEMO_PREFIX);
+}
+
 export function publicUrlFor(draftId: string, mediaId: string): string {
+  if (isDemoMedia(mediaId)) return `/demo/${mediaId}.webp`;
+
   const key = mediaPath(draftId, mediaId);
   return PUBLIC_HOST ? `https://${PUBLIC_HOST}/${key}` : `/api/media/${key}`;
 }

@@ -101,13 +101,92 @@ export function defaultContent(template = DEFAULT_TEMPLATE): SiteContent {
  *
  * O id é o próprio tipo, como nos demais: no modo simples existe no máximo um
  * bloco de cada.
+ *
+ * O tipo é exportado porque a mesma lista vive na assinatura do `addBlock` do
+ * store. Enquanto estava escrita duas vezes, as duas saíram de sincronia:
+ * `stats` entrou aqui, o store continuou sem ele, e o editor parou de
+ * compilar.
  */
-export function optionalBlock(type: "music" | "timeline" | "quiz"): Block {
+export type OptionalBlockType =
+  | "music"
+  | "timeline"
+  | "quiz"
+  | "capsule"
+  | "reasons"
+  | "stats"
+  | "video";
+
+export function optionalBlock(type: OptionalBlockType): Block {
+  if (type === "video") {
+    return block({
+      id: "video",
+      type: "video",
+      props: {
+        // Nunca "upload": hospedar vídeo é banda e custo por gigabyte, pelo
+        // mesmo motivo que a regra 10 proíbe hospedar música. O schema aceita
+        // o valor por histórico; o produto não o cria.
+        provider: "youtube" as const,
+        ref: "",
+      },
+    });
+  }
+
+  if (type === "stats") {
+    return block({
+      id: "stats",
+      type: "stats",
+      props: {
+        // Três linhas prontas e vazias, não zero e não seis. Zero deixa a
+        // pessoa diante de um botão sem saber o que o bloco faz; seis parecem
+        // uma planilha a preencher. Três já mostram a forma da grade.
+        items: [
+          { value: "", label: "" },
+          { value: "", label: "" },
+          { value: "", label: "" },
+        ],
+      },
+    });
+  }
+
+  if (type === "reasons") {
+    return block({
+      id: "reasons",
+      type: "reasons",
+      props: {
+        // Nasce com título e um item vazio: campo em branco parece erro, e o
+        // primeiro input já pronto convida a escrever (SPEC 11).
+        title: "motivos por que eu te amo",
+        items: [""],
+      },
+    });
+  }
+
+  if (type === "capsule") {
+    /* Abre daqui a uma semana, e não hoje: nascer já aberta esconderia o que a
+     * cápsula é. Uma data no futuro faz o contador aparecer no preview e a
+     * pessoa entender o recurso sem ler explicação. */
+    const daquiUmaSemana = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    return block({
+      id: "capsule",
+      type: "capsule",
+      props: {
+        openAt: daquiUmaSemana.toISOString(),
+        text: "",
+      },
+    });
+  }
+
   if (type === "music") {
     return block({
       id: "music",
       type: "music",
-      props: { provider: "spotify" as const, trackId: "", autoplay: false },
+      props: {
+        provider: "spotify" as const,
+        trackId: "",
+        autoplay: false,
+        startSec: 0,
+      },
     });
   }
 

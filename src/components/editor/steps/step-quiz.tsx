@@ -3,6 +3,7 @@
 import { HelpCircle, Plus, Trash2 } from "lucide-react";
 
 import { Field } from "@/components/editor/field";
+import { Pular } from "@/components/editor/pular";
 import { findBlock, useEditorStore } from "@/stores/editor-store";
 
 /**
@@ -20,7 +21,7 @@ import { findBlock, useEditorStore } from "@/stores/editor-store";
 const MAX_PERGUNTAS = 12;
 const MAX_OPCOES = 4;
 
-export function StepQuiz() {
+export function StepQuiz({ aninhado = false }: { aninhado?: boolean } = {}) {
   const content = useEditorStore((state) => state.content);
   const patch = useEditorStore((state) => state.patchBlockProps);
   const addBlock = useEditorStore((state) => state.addBlock);
@@ -31,13 +32,15 @@ export function StepQuiz() {
   if (!quiz) {
     return (
       <div className="step">
-        <header className="step__head">
-          <h2 className="step__title">Um quiz sobre vocês?</h2>
-          <p className="step__lede">
-            Perguntas que só quem viveu junto sabe responder. Opcional — e
-            errar faz parte da graça.
-          </p>
-        </header>
+        {aninhado ? null : (
+          <header className="step__head">
+            <h2 className="step__title">Um quiz sobre vocês?</h2>
+            <p className="step__lede">
+              Perguntas que só quem viveu junto sabe responder. Opcional — e
+              errar faz parte da graça.
+            </p>
+          </header>
+        )}
 
         <button
           type="button"
@@ -47,6 +50,8 @@ export function StepQuiz() {
           <HelpCircle size={16} aria-hidden />
           Adicionar quiz
         </button>
+
+        {aninhado ? null : <Pular texto="continuar sem quiz" />}
       </div>
     );
   }
@@ -108,13 +113,15 @@ export function StepQuiz() {
 
   return (
     <div className="step">
-      <header className="step__head">
-        <h2 className="step__title">O quiz de vocês</h2>
-        <p className="step__lede">
-          Quem recebe responde. Não tem nota nem placar — o recado do fim
-          aparece de qualquer jeito.
-        </p>
-      </header>
+      {aninhado ? null : (
+        <header className="step__head">
+          <h2 className="step__title">O quiz de vocês</h2>
+          <p className="step__lede">
+            Quem recebe responde. Não tem nota nem placar — o recado do fim
+            aparece de qualquer jeito.
+          </p>
+        </header>
+      )}
 
       <Field label="Título do quiz" value={quiz.props.title} maxLength={60}>
         {(props) => (

@@ -92,6 +92,18 @@ export const blockProps = {
     trackId: z.string(),
     // Política de autoplay do navegador exige gesto: nunca toca sozinho (SPEC 8.8).
     autoplay: z.boolean().default(false),
+    /**
+     * Segundo em que a faixa começa — o refrão, e não a introdução.
+     *
+     * Só o YouTube honra isto, e por isso o campo só aparece para ele no
+     * editor: o embed dele aceita `start` na própria URL. O do Spotify não
+     * tem parâmetro equivalente; a IFrame API deles tem `startAt`, mas exige
+     * carregar o SDK de terceiro, o que o projeto não faz (anti-padrão 10).
+     *
+     * O teto de 1h cobre música e vídeo longo sem virar campo livre para
+     * número absurdo.
+     */
+    startSec: z.number().int().min(0).max(3600).default(0),
   }),
 
   timeline: z.object({

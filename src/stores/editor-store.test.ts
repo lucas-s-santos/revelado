@@ -14,7 +14,11 @@ import {
  */
 
 const load = () => {
-  useEditorStore.getState().load("draft-1", defaultContent("namorados"));
+  useEditorStore.getState().load(
+    "draft-1",
+    defaultContent("namorados"),
+    "nosso-k3f9x2wq",
+  );
   useEditorStore.temporal.getState().clear();
 };
 

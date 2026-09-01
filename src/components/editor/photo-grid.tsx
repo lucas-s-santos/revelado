@@ -38,9 +38,11 @@ export function PhotoGrid({ onSettled }: { onSettled?: () => void }) {
   const draftId = useEditorStore((state) => state.draftId);
   const reorder = useEditorStore((state) => state.reorderMedia);
   const remove = useEditorStore((state) => state.removeMedia);
+  const setCaption = useEditorStore((state) => state.setCaption);
 
   const gallery = findBlock(content, "gallery");
   const mediaIds = gallery?.props.mediaIds ?? [];
+  const captions = gallery?.props.captions ?? {};
 
   const sensors = useSensors(
     // 6px antes de arrastar: no celular, tocar para remover não pode virar drag.
@@ -91,6 +93,8 @@ export function PhotoGrid({ onSettled }: { onSettled?: () => void }) {
               mediaId={mediaId}
               src={draftId ? publicUrlFor(draftId, mediaId) : ""}
               index={index}
+              caption={captions[mediaId] ?? ""}
+              onCaption={(texto) => setCaption(mediaId, texto)}
               onRemove={() => remove(mediaId)}
             />
           ))}
@@ -104,11 +108,15 @@ function SortablePhoto({
   mediaId,
   src,
   index,
+  caption,
+  onCaption,
   onRemove,
 }: {
   mediaId: string;
   src: string;
   index: number;
+  caption: string;
+  onCaption: (texto: string) => void;
   onRemove: () => void;
 }) {
   const {
@@ -159,6 +167,22 @@ function SortablePhoto({
       >
         ×
       </button>
+
+      {/*
+        A legenda mora aqui embaixo, e não numa tela separada, porque quem
+        escreve legenda está olhando a foto. O `li` tem `touch-action: none`
+        para o dnd-kit funcionar no celular, e isso engoliria o toque no campo
+        — daí o `auto` de volta na classe do input.
+      */}
+      <input
+        type="text"
+        value={caption}
+        onChange={(event) => onCaption(event.target.value)}
+        maxLength={80}
+        placeholder="legenda (opcional)"
+        aria-label={`Legenda da foto ${index + 1}`}
+        className="photo-grid__caption"
+      />
     </li>
   );
 }

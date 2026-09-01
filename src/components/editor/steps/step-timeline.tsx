@@ -3,6 +3,7 @@
 import { CalendarClock, Plus, Trash2 } from "lucide-react";
 
 import { Field } from "@/components/editor/field";
+import { Pular } from "@/components/editor/pular";
 import { findBlock, useEditorStore } from "@/stores/editor-store";
 
 /**
@@ -47,6 +48,8 @@ export function StepTimeline() {
           <CalendarClock size={16} aria-hidden />
           Adicionar linha do tempo
         </button>
+
+        <Pular texto="continuar sem a linha do tempo" />
       </div>
     );
   }
@@ -56,14 +59,21 @@ export function StepTimeline() {
   const escreve = (proximos: typeof items) =>
     patch(timeline.id, { items: proximos });
 
-  const alterar = (index: number, campo: "date" | "title" | "text", valor: string) =>
-    escreve(items.map((item, i) => (i === index ? { ...item, [campo]: valor } : item)));
+  const alterar = (
+    index: number,
+    campo: "date" | "title" | "text",
+    valor: string,
+  ) =>
+    escreve(
+      items.map((item, i) =>
+        i === index ? { ...item, [campo]: valor } : item,
+      ),
+    );
 
   const remover = (index: number) =>
     escreve(items.filter((_, i) => i !== index));
 
-  const adicionar = () =>
-    escreve([...items, { date: "", title: "" }]);
+  const adicionar = () => escreve([...items, { date: "", title: "" }]);
 
   return (
     <div className="step">

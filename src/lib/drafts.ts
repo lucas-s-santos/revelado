@@ -302,6 +302,108 @@ export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
   });
 }
 
+/** Quantos caracteres do fim do slug são o sufixo aleatório, com o hífen. */
+const SUFIXO = 9;
+
+/** Palavras que não podem virar o começo de um link público. */
+const RESERVADAS = new Set([
+  "admin", "api", "app", "auth", "blog", "checkout", "criar", "dev",
+  "editor", "entrar", "exemplo", "login", "novo", "p", "painel", "sair",
+  "sucesso", "suporte", "termos", "privacidade",
+]);
+
+/**
+ * Transforma o que a pessoa digitou no começo legível de um link.
+ *
+ * Sem acento, sem espaço, sem hífen dobrado nem sobrando nas pontas — e no
+ * máximo 40 caracteres, para o link ainda caber numa conversa sem quebrar.
+ */
+export function apelidoDeLink(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
+}
+
+/** O começo legível de um slug, sem o sufixo aleatório. */
+export function apelidoAtual(slug: string): string {
+  return slug.slice(0, Math.max(slug.length - SUFIXO, 0));
+}
+
+export type RenameResult =
+  | { ok: true; draft: Draft }
+  | { ok: false; reason: "not-found" | "published" | "invalid"; detail?: string };
+
+/**
+ * Troca só o **começo legível** do link, preservando o sufixo aleatório.
+ *
+ * Por que não deixar escolher o link inteiro, que é o que um wizard costuma
+ * oferecer: o sufixo é o que impede varrer as páginas dos outros (SPEC 9.4).
+ * Estas páginas têm foto íntima de casal; um `/p/marina-e-teo` é adivinhável,
+ * e adivinhável aqui significa que dá para achar a página de gente que você não
+ * conhece. Então a pessoa escolhe a parte que ela mostra para alguém, e a parte
+ * que protege continua sendo sorteada.
+ *
+ * De quebra, isso dispensa a verificação de disponibilidade em tempo real: com
+ * o sufixo mantido, dois links nunca colidem, e ninguém fica tentando nome atrás
+ * de nome como quem escolhe @ de rede social.
+ *
+ * Publicado não muda: o QR já foi impresso e apontado para o slug antigo
+ * (SPEC 7.1).
+ */
+export async function renameDraftSlug(
+  id: string,
+  apelido: string,
+): Promise<RenameResult> {
+  const limpo = apelidoDeLink(apelido);
+
+  if (limpo.length < 3) {
+    return { ok: false, reason: "invalid", detail: "Use ao menos 3 letras." };
+  }
+  if (RESERVADAS.has(limpo)) {
+    return { ok: false, reason: "invalid", detail: "Esse começo é reservado." };
+  }
+
+  const atual = await getDraft(id);
+  if (!atual) return { ok: false, reason: "not-found" };
+  if (atual.status === "PUBLISHED") return { ok: false, reason: "published" };
+
+  const slug = `${limpo}${atual.slug.slice(atual.slug.length - SUFIXO)}`;
+
+  if (!hasDatabase) {
+    const record = await devRead(id);
+    if (!record) return { ok: false, reason: "not-found" };
+    const updated: DevRecord = {
+      ...record,
+      slug,
+      updatedAt: new Date().toISOString(),
+    };
+    await devWrite(updated);
+    return { ok: true, draft: devToDraft(updated) };
+  }
+
+  const updated = await db.site.update({ where: { id }, data: { slug } });
+  return {
+    ok: true,
+    draft: {
+      id: updated.id,
+      slug: updated.slug,
+      templateId: updated.templateId,
+      content: atual.content,
+      status: updated.status,
+      anonId: updated.anonId,
+      passwordHash: updated.passwordHash,
+      indexable: updated.indexable,
+      expiresAt: updated.expiresAt,
+      updatedAt: updated.updatedAt,
+    },
+  };
+}
+
 /**
  * Slug com sufixo aleatório — SPEC 9.4: não pode ser adivinhável, senão dá para
  * varrer as páginas dos outros. Imutável depois de publicado (SPEC 7.1).

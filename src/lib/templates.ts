@@ -21,6 +21,14 @@ export interface TemplateSeed {
   name: string;
   /** uma linha, para o card de escolha */
   hint: string;
+  /**
+   * Ícone do card, por nome.
+   *
+   * Declarado aqui e não deduzido dos blocos porque não dá para deduzir:
+   * "Essencial" e "Cápsula" começam com os mesmos dois blocos, e sairiam com o
+   * mesmo desenho. O formato sabe o que ele é; a interface só desenha.
+   */
+  icon: "heart" | "sparkles" | "timeline" | "list" | "lock";
   previewUrl: string;
   /** null = incluso em todos os planos */
   planRequired: string | null;
@@ -39,6 +47,7 @@ export const TEMPLATES: readonly TemplateSeed[] = [
     id: "essencial",
     name: "Essencial",
     hint: "capa, contador, fotos e a carta",
+    icon: "heart",
     previewUrl: "/templates/essencial.webp",
     planRequired: null,
     order: 1,
@@ -53,6 +62,7 @@ export const TEMPLATES: readonly TemplateSeed[] = [
     id: "revelacao",
     name: "Revelação",
     hint: "as fotos aparecem conforme a pessoa rola",
+    icon: "sparkles",
     previewUrl: "/templates/revelacao.webp",
     planRequired: null,
     order: 2,
@@ -67,6 +77,7 @@ export const TEMPLATES: readonly TemplateSeed[] = [
     id: "linha-do-tempo",
     name: "Linha do tempo",
     hint: "de onde começou até aqui, data por data",
+    icon: "timeline",
     previewUrl: "/templates/linha-do-tempo.webp",
     planRequired: null,
     order: 3,
@@ -81,6 +92,7 @@ export const TEMPLATES: readonly TemplateSeed[] = [
     id: "motivos",
     name: "Motivos",
     hint: "a lista de por que você gosta dela ou dele",
+    icon: "list",
     previewUrl: "/templates/motivos.webp",
     planRequired: "especial",
     order: 4,
@@ -95,6 +107,7 @@ export const TEMPLATES: readonly TemplateSeed[] = [
     id: "capsula",
     name: "Cápsula do tempo",
     hint: "uma carta que só abre na data que você marcar",
+    icon: "lock",
     previewUrl: "/templates/capsula.webp",
     planRequired: "especial",
     order: 5,
