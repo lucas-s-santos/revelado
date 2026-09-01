@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { useAbertura } from "@/components/blocks/portal";
 import type { PropsOf } from "@/lib/blocks/schema";
 
 /**
@@ -16,11 +17,32 @@ import type { PropsOf } from "@/lib/blocks/schema";
  */
 export function MusicBlock({ props }: { props: PropsOf<"music"> }) {
   const [playing, setPlaying] = useState(false);
+  const aberto = useAbertura();
+
+  /*
+   * Quando a página abre pelo portal, a música entra junto.
+   *
+   * Não é autoplay burlando a política do navegador: o gesto que ela exige já
+   * aconteceu, e foi o toque no envelope. Aqui só reaproveitamos esse gesto,
+   * que é exatamente o motivo do portal existir.
+   *
+   * No preview do editor não há portal, a abertura vale falso, e o bloco
+   * continua pedindo o clique dele. Quem está montando a página não quer
+   * música começando sozinha a cada troca de etapa.
+   */
+  useEffect(() => {
+    if (aberto) setPlaying(true);
+  }, [aberto]);
+
+  /* `start` só no YouTube: é o embed dele que aceita o parâmetro. No Spotify
+   * o iframe simples sempre começa do zero — pular para um trecho lá exigiria
+   * o SDK da IFrame API deles, que este projeto não carrega. */
+  const inicio = props.startSec > 0 ? `&start=${props.startSec}` : "";
 
   const src =
     props.provider === "spotify"
       ? `https://open.spotify.com/embed/track/${props.trackId}?utm_source=revelado`
-      : `https://www.youtube.com/embed/${props.trackId}?autoplay=1&rel=0`;
+      : `https://www.youtube.com/embed/${props.trackId}?autoplay=1&rel=0${inicio}`;
 
   const label =
     props.provider === "spotify" ? "Ouvir no Spotify" : "Ouvir no YouTube";

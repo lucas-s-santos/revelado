@@ -53,6 +53,10 @@ const eslintConfig = [
     ignores: [
       "node_modules/**",
       ".next/**",
+      // A build de verificacao, que roda em outro diretorio para nao brigar
+      // com o `next dev` (ver `distDir` em next.config.ts). Sem esta linha o
+      // ESLint entra nos chunks minificados e acusa `require()` proibido.
+      ".next-verify/**",
       "out/**",
       "build/**",
       "coverage/**",

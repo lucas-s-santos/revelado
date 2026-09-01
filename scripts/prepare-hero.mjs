@@ -85,15 +85,15 @@ const ember = (w, h, cx, cy, radius) =>
  * queimada vira mancha suja — o que a página pede é o contrário, as bordas
  * **estourando** para o branco do papel. Entra em `screen`, que só clareia.
  */
-const halation = (w, h) =>
+const halation = (w, h, força = 1) =>
   layer(
     w,
     h,
     `<defs><radialGradient id="v" cx="46%" cy="44%" r="74%">` +
       `<stop offset="0" stop-color="#000000" stop-opacity="0"/>` +
-      `<stop offset=".52" stop-color="${rgb(CREME)}" stop-opacity=".10"/>` +
-      `<stop offset=".80" stop-color="${rgb(CREME)}" stop-opacity=".42"/>` +
-      `<stop offset="1" stop-color="${rgb(CREME)}" stop-opacity=".72"/>` +
+      `<stop offset=".52" stop-color="${rgb(CREME)}" stop-opacity="${0.1 * força}"/>` +
+      `<stop offset=".80" stop-color="${rgb(CREME)}" stop-opacity="${0.42 * força}"/>` +
+      `<stop offset="1" stop-color="${rgb(CREME)}" stop-opacity="${0.72 * força}"/>` +
       `</radialGradient></defs>` +
       `<rect width="${w}" height="${h}" fill="url(#v)"/>`,
   );
@@ -147,28 +147,48 @@ function grain(w, h) {
  * A gradação. Levanta e lava primeiro, depois as camadas — brasa antes da
  * halação, sangria antes do grão.
  *
- * `linear(0.72, 58)` é o passo que faz o efeito: comprime a faixa tonal e
- * levanta o preto para 58, então nada na foto chega perto da tinta do texto.
+ * **São dois trabalhos, não um.** A distinção não é de gosto, é de função:
+ *
+ * `fundo` é a foto que vive ATRÁS do texto do hero. Ela precisa sumir: o
+ * `linear(0.72, 58)` comprime a faixa tonal e levanta o preto para 58, então
+ * nada nela chega perto da tinta quase-preta que passa por cima. A sangria
+ * termina a imagem na cor do fundo em vez de num corte reto. É textura.
+ *
+ * `foto` é a foto que vive DENTRO do celular, e ali ela é o assunto — é a
+ * prova do produto, a coisa que a pessoa está tentando decidir se compra.
+ * Aplicada a gradação de fundo, ela saía fantasma: a sangria sozinha lavava a
+ * metade de baixo até 97% de creme e apagava o casal. Aqui a lavagem some, a
+ * halação entra a um terço e a sangria não entra. Sobra o mesmo tratamento de
+ * cor — brasa, rosa, grão — para ela continuar sendo da mesma família visual.
  */
-async function develop({ crop, sun }) {
+async function develop({ crop, sun, grade = "fundo" }) {
   const { width: w, height: h } = crop;
+  const éFundo = grade === "fundo";
 
   const base = await sharp(SOURCE)
     .extract(crop)
-    .modulate({ saturation: 0.55, brightness: 1.18 })
-    .linear(0.72, 58)
+    .modulate(
+      éFundo
+        ? { saturation: 0.55, brightness: 1.18 }
+        : { saturation: 0.94, brightness: 1.03 },
+    )
+    // Sem o levantamento de preto na foto: é ele que tira a densidade do
+    // casal, e aqui não há texto por cima para proteger.
+    .linear(...(éFundo ? [0.72, 58] : [1, 0]))
     .toBuffer();
 
-  return sharp(base)
-    .composite([
-      { input: flat(w, h, CREME, 0.42), blend: "screen" },
-      { input: flat(w, h, ROSE, 0.2), blend: "soft-light" },
-      { input: ember(w, h, sun.x, sun.y, sun.r), blend: "screen" },
-      { input: halation(w, h), blend: "screen" },
-      { input: bleed(w, h), blend: "over" },
-      { input: await grain(w, h), blend: "soft-light" },
-    ])
-    .toBuffer();
+  const camadas = [
+    { input: flat(w, h, CREME, éFundo ? 0.42 : 0.08), blend: "screen" },
+    { input: flat(w, h, ROSE, éFundo ? 0.2 : 0.14), blend: "soft-light" },
+    { input: ember(w, h, sun.x, sun.y, sun.r), blend: "screen" },
+    { input: halation(w, h, éFundo ? 1 : 0.34), blend: "screen" },
+  ];
+
+  if (éFundo) camadas.push({ input: bleed(w, h), blend: "over" });
+
+  camadas.push({ input: await grain(w, h), blend: "soft-light" });
+
+  return sharp(base).composite(camadas).toBuffer();
 }
 
 /*
@@ -217,6 +237,8 @@ const VARIANTS = [
     crop: { left: 380, top: 120, width: 640, height: 640 },
     sun: { x: 800, y: 312, r: 380 },
     widths: [560, 320],
+    // Esta é a única que aparece como imagem, não como fundo.
+    grade: "foto",
   },
 ];
 

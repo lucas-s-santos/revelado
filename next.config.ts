@@ -8,6 +8,43 @@ const withBundleAnalyzer = bundleAnalyzer({
 });
 
 const nextConfig: NextConfig = {
+  /*
+   * Onde a build mora. Padrão `.next`; qualquer outro valor vem do ambiente.
+   *
+   * `next dev` e `next build` escrevem no MESMO diretório, e um sobrescreve o
+   * outro sem avisar. Com um servidor de desenvolvimento aberto e uma build de
+   * produção rodando ao lado, o resultado não é um erro: é o servidor de
+   * produção passando a devolver **HTTP 400 em todo CSS e todo JS**, porque os
+   * arquivos que o HTML pede deixaram de existir. A página abre sem estilo
+   * nenhum e parece que o site quebrou.
+   *
+   * Isso aconteceu de verdade, três vezes em um dia — e uma delas foi a razão
+   * de a landing parecer "feia e falha" numa avaliação. Também é a origem dos
+   * `Failed to collect page data for /icon.png` que apareciam do nada.
+   *
+   * Com esta linha, uma verificação de produção roda em outro diretório e os
+   * dois convivem:
+   *
+   *     NEXT_DIST_DIR=.next-verify pnpm build
+   *     NEXT_DIST_DIR=.next-verify pnpm next start -p 3010
+   *
+   * `pnpm dev` continua no `.next` de sempre, sem nada a fazer.
+   */
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
+
+  /*
+   * O sharp fica FORA do bundle do servidor.
+   *
+   * Ele é um módulo nativo: o pacote JS carrega um .node compilado por
+   * plataforma (@img/sharp-win32-x64 aqui). Empacotado pelo Next, a resolução
+   * desse binário quebra — o dev server derrubava a rota da opengraph-image
+   * com "Ensure your package manager supports multi-platform installation",
+   * embora um require("sharp") normal funcionasse fora do Next.
+   *
+   * Vale para produção também, e não só para o dev: a mesma rota gera a
+   * imagem que o WhatsApp mostra quando o link chega.
+   */
+  serverExternalPackages: ["sharp"],
   reactStrictMode: true,
   poweredByHeader: false,
   images: {
