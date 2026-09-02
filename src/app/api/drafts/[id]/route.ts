@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { readAnonId } from "@/lib/anon";
+import { podeMexerNoRascunho } from "@/lib/anon";
 import { getDraft, renameDraftSlug, saveDraftContent } from "@/lib/drafts";
 
 /**
@@ -13,12 +13,9 @@ import { getDraft, renameDraftSlug, saveDraftContent } from "@/lib/drafts";
 
 type Params = Promise<{ id: string }>;
 
-/** Só o dono do cookie mexe no rascunho (SPEC 9.4). */
-async function assertOwner(draftAnonId: string | null): Promise<boolean> {
-  if (!draftAnonId) return true; // rascunho já migrado para uma conta
-  const anonId = await readAnonId();
-  return anonId === draftAnonId;
-}
+/** Só o dono do cookie mexe no rascunho (SPEC 9.4). Regra única e fail-closed
+ *  em `lib/anon`: sem dono, nega — não libera. */
+const assertOwner = podeMexerNoRascunho;
 
 export async function GET(_request: Request, { params }: { params: Params }) {
   const { id } = await params;
