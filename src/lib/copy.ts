@@ -256,6 +256,18 @@ export const copy = {
   //
   // Quando houver depoimento de gente real, com permissão, ele entra aqui com
   // nome de verdade e esta seção troca de rótulo.
+  mood: {
+    eyebrow: "de perto",
+    title: "O que fica na mão",
+    lede: "Três cenas soltas, sem gente — só o clima. Toque para ver cada uma se mexer.",
+    demoLabel: "cena ilustrativa",
+    items: [
+      { id: "telefone", tag: "a tela, de noite" },
+      { id: "fotos", tag: "o que fica guardado" },
+      { id: "qrcode", tag: "o cartão, na mão" },
+    ],
+  },
+
   testimonials: {
     eyebrow: "como a página chega",
     title: "O momento em que ela abre.",

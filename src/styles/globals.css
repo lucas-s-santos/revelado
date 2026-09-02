@@ -3395,6 +3395,109 @@
     }
   }
 
+  /* --- MoodReel: tres cenas em video, so tocam no toque -----------------
+   *
+   * Mesma base de cartao do `.scene` (Testimonials), reaproveitada de
+   * proposito: as duas secoes fazem o mesmo trabalho de "isto e ilustracao",
+   * e cartoes iguais deixam isso legivel de relance, sem precisar reler o
+   * rotulo.
+   */
+  .mood-grid {
+    display: grid;
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  @media (min-width: 800px) {
+    .mood-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  .mood-card {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    padding: 0.6rem 0.6rem 1rem;
+    border-radius: var(--radius-lg);
+    background: rgb(var(--color-surface));
+    box-shadow: var(--shadow-card);
+  }
+
+  .mood-card__wake {
+    position: relative;
+    display: block;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    background: rgb(var(--color-surface-2));
+  }
+
+  /* O poster nasce de um quadro de video capturado a 480x270 -- nao ha
+     origem maior. object-fit cover em vez de esticar mantem o quadro nitido
+     dentro do cartao, ao custo de recortar um pouco as bordas. */
+  .mood-card__media {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-surface-2));
+  }
+
+  .mood-card__play {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    /* Veu leve: o quadro de baixo continua legivel, mas o play nao se perde
+       nele quando o quadro e claro. */
+    background: linear-gradient(
+      to bottom,
+      rgb(var(--color-deep) / 0.05),
+      rgb(var(--color-deep) / 0.28)
+    );
+  }
+
+  .mood-card__play svg {
+    display: grid;
+    place-items: center;
+    width: 46px;
+    height: 46px;
+    padding-left: 3px;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--color-brand));
+    /* Par ja medido pelo check-contrast: 4,56:1. */
+    color: rgb(var(--color-on-brand));
+    box-shadow: 0 12px 26px -12px rgb(var(--color-brand) / 0.7);
+  }
+
+  .mood-card__caption {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding-inline: 0.4rem;
+  }
+
+  .mood-card__caption > span:first-child {
+    font-size: 0.92rem;
+    color: rgb(var(--color-ink));
+  }
+
+  /* Mesmo tratamento do `.scene__note`: mono, discreto, sempre presente. */
+  .mood-card__demo {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgb(var(--color-ink-muted));
+  }
+
   /* --- CTA final (SPEC 8.1 §11) ---------------------------------------- */
   /* --- Cenas de entrega (SPEC 8.1 §9) ---------------------------------- */
   .scene-grid {
