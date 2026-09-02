@@ -1211,16 +1211,33 @@
 
   /* A saida para quem o iframe nao serve: extensao que bloqueia, navegador
      antigo, leitor de tela que prefere o documento inteiro. */
+  /* Era texto sublinhado discreto — lia como rodapé, não como convite, e
+     clicar tirava a pessoa da landing na mesma aba, sem aviso (o componente
+     agora abre em aba nova). Vira contorno com a mesma família dos botões
+     secundários do site: presença de botão, peso menor que o primário
+     ("Criar nossa página"), que continua sendo a única ação cheia da tela. */
   .phone-demo__full {
-    margin-top: 0.9rem;
-    font-size: 0.82rem;
-    color: rgb(var(--color-ink-muted));
-    text-decoration: underline;
-    text-underline-offset: 3px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 1.1rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgb(var(--color-ink) / 0.14);
+    font-size: 0.85rem;
+    color: rgb(var(--color-ink));
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
   }
 
   .phone-demo__full:hover {
-    color: rgb(var(--color-accent));
+    border-color: rgb(var(--color-accent) / 0.5);
+    background: rgb(var(--color-accent) / 0.06);
+  }
+
+  .phone-demo__full svg {
+    color: rgb(var(--color-ink-muted));
   }
 
   /* --- Mockup de celular (SPEC 8.1 §3) --------------------------------- */
@@ -3047,41 +3064,97 @@
     margin-inline: auto;
   }
 
+  /* O palco.
+   *
+   * Era o celular flutuando sozinho num rosa liso — a única seção da landing
+   * sem nenhum fundo ou profundidade atrás do assunto, entre o hero (campo de
+   * ondas + luz de segurança) e a faixa escura que vem a seguir. Aqui a
+   * profundidade é ESTÁTICA de propósito: nenhum efeito novo entrando na
+   * conta da regra do teto de dois (CLAUDE.md) — glow e chão são gradiente
+   * parado, sem JS, sem listener, sem custo de orçamento.
+   *
+   * Duas camadas, dois trabalhos: o glow (::before) dá ao celular um halo
+   * de luz atrás, ecoando o roxo do campo de ondas do hero logo acima — é o
+   * mesmo fio de cor puxando a página adiante, não uma cor nova. O chão
+   * (::after) é a poça de sombra sob o aparelho, a mesma técnica de produto
+   * assentado sobre uma superfície, não boiando no vazio.
+   */
   .showcase__stage {
+    position: relative;
     display: flex;
     justify-content: center;
+    isolation: isolate;
+    /* O glow logo abaixo sangra -20% para cada lado de propósito (é o que dá
+       o halo largo, suave). Sem isto ele vaza para fora da largura da
+       página e cria barra de rolagem horizontal — pego pelo check-telas.mjs
+       (SPEC 6.1 proíbe rolagem lateral). Mesma solução do `.hero`. */
+    overflow: hidden;
     /* O mockup nasceu para a coluna estreita do hero; aqui ele é o assunto. */
     --phone-scale: 1.08;
   }
 
+  .showcase__stage::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -8% -20% 18%;
+    background: radial-gradient(
+      ellipse 60% 55% at 50% 38%,
+      rgb(var(--palette-selenio) / 0.16),
+      rgb(var(--color-brand-bright) / 0.1) 46%,
+      transparent 72%
+    );
+  }
+
+  .showcase__stage::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    left: 50%;
+    bottom: 6%;
+    width: min(74%, 380px);
+    height: clamp(28px, 6vw, 46px);
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(
+      ellipse closest-side,
+      rgb(var(--color-deep) / 0.22),
+      transparent 75%
+    );
+    filter: blur(2px);
+  }
+
   .showcase__badges {
     display: grid;
-    gap: 0.75rem;
-    padding: 1.25rem;
-    border-radius: var(--radius-lg);
-    background: rgb(var(--color-surface));
-    box-shadow: var(--shadow-card);
+    gap: 0.9rem;
   }
 
   @media (min-width: 760px) {
     .showcase__badges {
       grid-template-columns: repeat(3, 1fr);
-      gap: 1.5rem;
+      gap: 1.25rem;
     }
   }
 
+  /* Cada selo ganhou o próprio cartão — antes os três dividiam uma caixa só,
+     e liam como uma lista de rodapé em vez de três motivos separados para
+     confiar. */
   .showcase__badge {
     display: flex;
-    gap: 0.7rem;
+    gap: 0.85rem;
     align-items: flex-start;
+    padding: 1.1rem;
+    border-radius: var(--radius-lg);
+    background: rgb(var(--color-surface));
+    box-shadow: var(--shadow-card);
   }
 
   .showcase__badge-icon {
     display: grid;
     place-items: center;
     flex: none;
-    width: 34px;
-    height: 34px;
+    width: 38px;
+    height: 38px;
     border-radius: var(--radius-pill);
     background: rgb(var(--color-accent) / 0.1);
     color: rgb(var(--color-accent));
@@ -3089,10 +3162,12 @@
 
   .showcase__badge-name {
     font-size: 0.95rem;
+    font-weight: 500;
     line-height: 1.3;
   }
 
   .showcase__badge-text {
+    margin-top: 0.15rem;
     font-size: 0.85rem;
     line-height: 1.5;
     color: rgb(var(--color-ink-muted));
