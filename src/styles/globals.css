@@ -2849,15 +2849,16 @@
 
   /* A carta que sai de dentro. Fica atrás da frente do envelope e sobe. */
   .envelope__card {
-    /* Geometria: o bolso cobre os 64% de baixo, ou seja, de 36% a 100% a
-       partir do topo. Fechada, a carta precisa caber INTEIRA nessa faixa —
-       alta demais ela aparece pelos cantos transparentes da aba (em cima) ou
-       sobra para fora do envelope (embaixo). Daí 38% + 58% = 96%. */
     left: 9%;
     right: 9%;
     top: 38%;
     height: 58%;
-    z-index: 2;
+    /* O mais baixo dos quatro planos: fechada, a carta some atrás do bolso
+       (z-index 2) e da aba (3). Abre, e ela precisa passar na frente dos
+       dois — não só se mover para cima, porque a partir de agora o bolso
+       cobre a caixa inteira (ver o comentário em .envelope__body) e voltaria
+       a tampar a carta na metade de baixo do percurso. */
+    z-index: 1;
     display: grid;
     place-items: center;
     padding: 1.1rem;
@@ -2868,27 +2869,30 @@
     font-size: 0.88rem;
     line-height: 1.3;
     text-align: center;
-    /* Fechado, a carta tem de sumir por inteiro atrás do bolso. A aba é um
-       triângulo, então os cantos de cima dela são transparentes: qualquer
-       pedaço da carta acima da linha do bolso (36%) aparece por ali e entrega
-       o texto antes da pessoa abrir. */
     transform: translateY(0);
     box-shadow: 0 18px 30px -18px rgb(0 0 0 / 0.7);
   }
 
-  /* Sobe o bastante para a carta inteira ficar acima da linha do bolso (36%).
-     Com menos que isso o texto é cortado ao meio: a carta centraliza o próprio
-     conteúdo, e o centro dela caía justamente atrás da frente do envelope. */
   .envelope[data-open] .envelope__card {
     transform: translateY(-95%);
+    /* Sobe acima de tudo: sem isto a metade de baixo do trajeto passava atrás
+       do bolso (que agora cobre a caixa inteira) e a carta emergia cortada
+       ao meio, em vez de inteira. */
+    z-index: 5;
   }
 
-  /* A frente do envelope: o bolso que esconde a carta. */
+  /* A frente do envelope: o bolso que esconde a carta.
+   *
+   * Cobre a caixa INTEIRA (0 a 100%), não só os 64% de baixo. Um bolso
+   * mais curto que a aba deixa a aba boiando sem nada por trás dela nos
+   * primeiros 36% — lê como tampa solta, não como frente contínua do
+   * envelope. É a mesma correção já validada em `.portal__envelope-corpo`
+   * (a página publicada usa o mesmo desenho, um envelope à parte deste).
+   */
   .envelope__body {
-    inset: auto 0 0 0;
-    height: 64%;
-    z-index: 4;
-    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    inset: 0;
+    z-index: 2;
+    border-radius: var(--radius-sm);
     background: linear-gradient(
       180deg,
       rgb(var(--color-brand)) 0%,
@@ -2952,10 +2956,18 @@
     );
   }
 
-  /* A aba de cima, que gira para trás ao abrir. */
+  /* A aba de cima, que gira para trás ao abrir.
+   *
+   * 58%, não 62%: o bico do V para pouco abaixo do meio, que é onde a aba de
+   * um envelope de papel de verdade alcança. Descendo mais, o desenho lê como
+   * guardanapo dobrado em vez de aba lacrada — mesmo ajuste do Portal.
+   * z-index 3, ACIMA do bolso (2): fechada, é a aba que veda a caixa. Era o
+   * contrário (aba atrás do bolso), e o V nunca fechava — sobrava um trapézio
+   * que lia como tampa já levantada, numa seção cujo texto convida a abrir.
+   */
   .envelope__flap {
     inset: 0 0 auto 0;
-    height: 62%;
+    height: 58%;
     z-index: 3;
     transform-origin: top center;
     background: linear-gradient(
@@ -2971,18 +2983,35 @@
     filter: drop-shadow(0 5px 7px rgb(0 0 0 / 0.4));
   }
 
+  /* O vinco: uma dobra de papel pega luz de um lado e sombra do outro. Sem
+     isto, aba e bolso são dois rosas encostados e o envelope volta a parecer
+     adesivo. Mesma técnica do Portal. */
+  .envelope__flap::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    background: linear-gradient(
+      180deg,
+      rgb(var(--color-ink-on-deep) / 0.16) 0,
+      transparent 14%
+    );
+  }
+
   .envelope[data-open] .envelope__flap {
     transform: rotateX(180deg);
     z-index: 0;
   }
 
+  /* Fecha o bico do V, que agora está visível em 58% da altura — antes
+     boiava em 46%, no meio do trapézio quebrado, e lia como botão solto. */
   .envelope__seal {
-    top: 46%;
+    top: 58%;
     left: 50%;
     width: 34px;
     height: 34px;
     margin: -17px 0 0 -17px;
-    z-index: 5;
+    z-index: 4;
     border-radius: var(--radius-pill);
     /* Era um disco branco chapado. Lacre é cera: abaulado, com o brilho fora
        do centro e a borda caindo para a sombra. O gradiente radial deslocado
