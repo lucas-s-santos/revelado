@@ -79,10 +79,17 @@ export const copy = {
   showcase: {
     demoLabel: "A página de exemplo do Revelado, rodando dentro do celular",
     demoWake: "tocar para explorar",
-    demoFull: "abrir a página inteira",
+    // "abrir a página inteira" descrevia o link, não convidava a clicar nele
+    // — e não avisava que ele tira a pessoa da landing. Agora ele abre em
+    // nova aba (phone-demo.tsx) e a frase diz exatamente isso.
+    demoFull: "abrir em nova aba",
     eyebrow: "veja antes de decidir",
     title: "É isto que ela vai abrir.",
-    lede: "Toque no celular aí em cima e role até o fim. É a página de verdade, do jeito que chega para quem recebe.",
+    // Antes começava pela instrução ("toque... e role"), e só depois vinha o
+    // motivo para confiar. Invertido: primeiro a promessa (é a página de
+    // verdade, sem corte), depois o convite a agir — confiança antes de
+    // pedir o gesto, não o contrário.
+    lede: "A mesma página que ela vai receber, sem cortar nada. Toque no celular e role até o fim.",
     badges: [
       {
         id: "rapido",

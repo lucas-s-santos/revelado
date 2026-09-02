@@ -1,5 +1,6 @@
 "use client";
 
+import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 
 import { DEMO_SLUG } from "@/lib/blocks/demo-slug";
@@ -71,9 +72,18 @@ export function PhoneDemo() {
       </div>
 
       {/* Quem não puder com o iframe — extensão, navegador antigo — ainda tem
-          o caminho inteiro para a página. */}
-      <a href={`/p/${DEMO_SLUG}`} className="phone-demo__full">
+          o caminho inteiro para a página. `target="_blank"`: era a mesma
+          aba, e clicar tirava a pessoa da landing sem aviso — ela perdia o
+          lugar na página só para conferir o exemplo. Em aba nova ela nunca
+          sai daqui. */}
+      <a
+        href={`/p/${DEMO_SLUG}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="phone-demo__full"
+      >
         {copy.showcase.demoFull}
+        <ExternalLink size={13} aria-hidden />
       </a>
     </div>
   );
