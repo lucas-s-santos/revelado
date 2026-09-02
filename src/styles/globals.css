@@ -1209,37 +1209,6 @@
     }
   }
 
-  /* A saida para quem o iframe nao serve: extensao que bloqueia, navegador
-     antigo, leitor de tela que prefere o documento inteiro. */
-  /* Era texto sublinhado discreto — lia como rodapé, não como convite, e
-     clicar tirava a pessoa da landing na mesma aba, sem aviso (o componente
-     agora abre em aba nova). Vira contorno com a mesma família dos botões
-     secundários do site: presença de botão, peso menor que o primário
-     ("Criar nossa página"), que continua sendo a única ação cheia da tela. */
-  .phone-demo__full {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    margin-top: 1.1rem;
-    padding: 0.6rem 1.1rem;
-    border-radius: var(--radius-pill);
-    border: 1px solid rgb(var(--color-ink) / 0.14);
-    font-size: 0.85rem;
-    color: rgb(var(--color-ink));
-    transition:
-      border-color var(--dur-fast) var(--ease-out),
-      background-color var(--dur-fast) var(--ease-out);
-  }
-
-  .phone-demo__full:hover {
-    border-color: rgb(var(--color-accent) / 0.5);
-    background: rgb(var(--color-accent) / 0.06);
-  }
-
-  .phone-demo__full svg {
-    color: rgb(var(--color-ink-muted));
-  }
-
   /* --- Mockup de celular (SPEC 8.1 §3) --------------------------------- */
   .hero-phone {
     position: relative;
@@ -3836,6 +3805,46 @@
     background: rgb(var(--color-bg));
   }
 
+  /* Em tela larga, a coluna de leitura (640px, ver .blocks) sobrava sozinha
+   * num mar de fundo liso — lia como página inacabada, não como margem
+   * generosa. Testado num desktop de 1280px: ~320px de rosa vazio de cada
+   * lado, do topo ao rodapé, sem nenhuma textura.
+   *
+   * O glow é `--color-accent`, não uma cor fixa: esta página muda de paleta
+   * conforme a escolha de quem a montou (CLAUDE.md regra 6), e um fundo preso
+   * ao rosa do exemplo ficaria errado — ou pior, ficaria fora de tom — para
+   * qualquer página com outra paleta. Estático, sem JS: não conta como
+   * "efeito ambiental" (regra do teto de dois), é acabamento de página.
+   *
+   * Só a partir de 900px: abaixo disso a coluna já ocupa quase a tela
+   * inteira, e o glow só acrescentaria peso onde não há espaço para ele
+   * existir.
+   */
+  @media (min-width: 900px) {
+    .published {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .published::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(
+        ellipse 65% 55% at 50% 0%,
+        rgb(var(--color-accent) / 0.08),
+        transparent 62%
+      );
+      pointer-events: none;
+    }
+
+    .blocks {
+      position: relative;
+      z-index: 1;
+    }
+  }
+
   /* Caixa da /dev/blocos: a publicada dentro de uma moldura, para comparar. */
   .published--boxed {
     min-height: 0;
@@ -4097,6 +4106,41 @@
 
   .block-gallery.is-carousel .block-gallery__list::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Em mouse, a barra de rolagem fica visível e fina — é o único sinal de que
+   * há mais fotos, sem precisar descobrir sozinho que dá para arrastar.
+   *
+   * Medido: a roda do mouse sobre a galeria rola a PÁGINA inteira, não o
+   * carrossel (`scrollLeft` ficava em 0 depois de qualquer quantidade de
+   * scroll vertical) — sem nenhum sinal visual, um visitante de desktop não
+   * tinha como saber que a segunda foto existia, e muito menos como chegar
+   * nela. No toque (celular, tablet) o gesto de arrastar é natural, e uma
+   * barra ali seria ruído sobre a foto — por isso a condição de `hover`.
+   */
+  @media (hover: hover) and (pointer: fine) {
+    .block-gallery.is-carousel .block-gallery__list {
+      scrollbar-width: thin;
+      scrollbar-color: rgb(var(--color-accent) / 0.35) transparent;
+    }
+
+    .block-gallery.is-carousel .block-gallery__list::-webkit-scrollbar {
+      display: block;
+      height: 6px;
+    }
+
+    .block-gallery.is-carousel .block-gallery__list::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .block-gallery.is-carousel .block-gallery__list::-webkit-scrollbar-thumb {
+      background: rgb(var(--color-accent) / 0.35);
+      border-radius: var(--radius-pill);
+    }
+
+    .block-gallery.is-carousel .block-gallery__list::-webkit-scrollbar-thumb:hover {
+      background: rgb(var(--color-accent) / 0.55);
+    }
   }
 
   .block-gallery.is-carousel .block-gallery__item {
