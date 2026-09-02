@@ -82,6 +82,31 @@ export default async function PublishedPage({ params }: { params: Params }) {
 
   if (!site) notFound();
 
+  // ⚠️ FASE 6 — APLICAÇÃO DA SENHA ENTRA AQUI, E NÃO PODE SER ESQUECIDA.
+  //
+  // A tela `/p/[slug]/senha`, o `site-password.ts` e o cookie de unlock já
+  // estão prontos. O que falta é esta página REDIRECIONAR para `/senha` quando
+  // `site.hasPassword` e o cookie de unlock não bate. Hoje ela não faz isso —
+  // e é seguro, porque `passwordHash` é sempre null: não há nenhum lugar no
+  // código que DEFINA uma senha (o editor não tem o campo). `hasPassword` é
+  // sempre false, então não há página protegida para vazar.
+  //
+  // A armadilha: no dia em que "definir senha" for implementada, ligar SÓ o
+  // campo de definir, sem esta aplicação, deixa a senha decorativa — qualquer
+  // um abre `/p/[slug]` direto e ignora a tela. As duas metades TÊM que chegar
+  // juntas. `hasPassword` só pode virar `true` no mesmo PR que fizer:
+  //
+  //   if (site.hasPassword) {
+  //     const cookie = (await cookies()).get(unlockCookie(slug))?.value;
+  //     const stored = await storedHashFor(slug);
+  //     if (stored && unlockToken(stored) !== cookie) redirect(`/p/${slug}/senha`);
+  //   }
+  //
+  // E há um custo a resolver junto: `cookies()` torna esta página DINÂMICA e
+  // mata o ISR de 1h (SPEC 8.8). Ou a leitura fica atrás de um middleware que
+  // só age nas páginas com senha, ou as páginas protegidas aceitam ser
+  // dinâmicas enquanto as abertas seguem estáticas. É decisão da Fase 6, não
+  // um patch — por isso está marcado e não meio-implementado.
   const expired = isExpired(site);
   // Uma leitura só do relógio: o mesmo instante decide o lacre e alimenta os
   // contadores, senão HTML e hidratação divergem por milissegundos.

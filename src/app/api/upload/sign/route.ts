@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { readAnonId } from "@/lib/anon";
+import { podeMexerNoRascunho } from "@/lib/anon";
 import { getDraft } from "@/lib/drafts";
 import { PLANS } from "@/lib/plans";
 import {
@@ -75,7 +75,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (draft.anonId && draft.anonId !== (await readAnonId())) {
+  // Fail-closed: sem dono, nega. Ver a regra em lib/anon.
+  if (!(await podeMexerNoRascunho(draft.anonId))) {
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }
 
