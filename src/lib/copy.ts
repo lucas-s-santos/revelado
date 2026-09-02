@@ -79,10 +79,6 @@ export const copy = {
   showcase: {
     demoLabel: "A página de exemplo do Revelado, rodando dentro do celular",
     demoWake: "tocar para explorar",
-    // "abrir a página inteira" descrevia o link, não convidava a clicar nele
-    // — e não avisava que ele tira a pessoa da landing. Agora ele abre em
-    // nova aba (phone-demo.tsx) e a frase diz exatamente isso.
-    demoFull: "abrir em nova aba",
     eyebrow: "veja antes de decidir",
     title: "É isto que ela vai abrir.",
     // Antes começava pela instrução ("toque... e role"), e só depois vinha o
