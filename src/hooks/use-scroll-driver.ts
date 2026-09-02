@@ -64,6 +64,12 @@ function measure() {
     "--scroll",
     state.progress.toFixed(4),
   );
+  // Em px brutos, e não só o progresso 0..1. Um efeito preso à primeira dobra
+  // (o mascote do hero, por exemplo) não pode depender do tamanho da página
+  // inteira: em uma landing curta, --scroll chega a 0.3 em 200px rolados; numa
+  // longa, os mesmos 200px dão 0.03. --scroll-px é o mesmo em qualquer altura
+  // de documento.
+  document.documentElement.style.setProperty("--scroll-px", `${y}px`);
 
   for (const subscriber of subscribers) subscriber(state);
 }

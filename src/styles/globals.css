@@ -973,6 +973,42 @@
     height: auto;
   }
 
+  /* O mascote flutua contra a rolagem — sem listener novo (regra 3 do
+   * CLAUDE.md): só um consumidor a mais de `--scroll-px`, que o driver único
+   * de scroll já escreve (ScrollProgress, sempre montado na landing, garante
+   * que ele está ligado). Zero JS por quadro.
+   *
+   * O SINAL é positivo, e a primeira versão daqui tinha o contrário. Rolagem
+   * empurra qualquer elemento estático para CIMA na tela; um `translateY`
+   * NEGATIVO some na mesma direção, só que mais rápido — o mascote saía do
+   * topo antes do normal, o oposto de flutuar. Positivo freia: a tela sobe
+   * S px, o mascote sobe só (1 − 0.32) × S — 32% mais devagar que o resto da
+   * página, e é esse atraso que lê como objeto solto, sem peso, em vez de
+   * colado no scroll.
+   *
+   * `.hero` tem `overflow: hidden`, então o teto de 160px não precisa
+   * proteger de nada visualmente — é só para não seguir crescendo um valor
+   * que já não importa depois que a seção inteira saiu da tela.
+   *
+   * Não é o terceiro efeito ambiental da dobra (teto de dois, mesma regra):
+   * ao contrário do campo de ondas e da luz de segurança, que se movem
+   * sozinhos, este só reage ao gesto de quem rola — parou de rolar, ele para
+   * junto.
+   *
+   * SÓ NO DESKTOP (min-width: 1000px, o mesmo ponto em que `.hero__mascot`
+   * muda de `order`, acima). No celular mascote e texto ficam empilhados na
+   * mesma coluna — é `order: -1` fazendo o mascote vir primeiro. Atrasá-lo ali
+   * faz a pata dele invadir o H1 por cima: medido, a 300px de rolagem as
+   * patas cobriam a primeira linha de "Uma página que revela". No desktop os
+   * dois vivem em colunas separadas e não competem pelo mesmo espaço.
+   */
+  @media (prefers-reduced-motion: no-preference) and (min-width: 1000px) {
+    .hero__mascot img {
+      transform: translateY(clamp(0px, calc(var(--scroll-px, 0px) * 0.32), 160px));
+      will-change: transform;
+    }
+  }
+
   /* --- Campo de ondas atras do hero -------------------------------------
    *
    * O GradientWaves do React Bits, desenhado em ogl. O componente cuida do
