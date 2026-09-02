@@ -28,7 +28,6 @@ CREATE TABLE "Site" (
     "userId" TEXT,
     "anonId" TEXT,
     "slug" TEXT NOT NULL,
-    "occasionId" TEXT NOT NULL,
     "templateId" TEXT,
     "content" JSONB NOT NULL,
     "schemaVersion" INTEGER NOT NULL DEFAULT 1,
@@ -64,28 +63,14 @@ CREATE TABLE "Media" (
 );
 
 -- CreateTable
-CREATE TABLE "Occasion" (
-    "id" TEXT NOT NULL,
-    "slug" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "accent" TEXT NOT NULL,
-    "icon" TEXT NOT NULL,
-    "defaultBlocks" JSONB NOT NULL,
-    "seo" JSONB NOT NULL,
-    "active" BOOLEAN NOT NULL DEFAULT true,
-    "order" INTEGER NOT NULL,
-
-    CONSTRAINT "Occasion_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "Template" (
     "id" TEXT NOT NULL,
-    "occasionId" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "previewUrl" TEXT NOT NULL,
     "preset" JSONB NOT NULL,
     "planRequired" TEXT,
+    "active" BOOLEAN NOT NULL DEFAULT true,
+    "order" INTEGER NOT NULL DEFAULT 0,
 
     CONSTRAINT "Template_pkey" PRIMARY KEY ("id")
 );
@@ -177,10 +162,7 @@ CREATE INDEX "Site_status_expiresAt_idx" ON "Site"("status", "expiresAt");
 CREATE INDEX "Media_siteId_position_idx" ON "Media"("siteId", "position");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Occasion_slug_key" ON "Occasion"("slug");
-
--- CreateIndex
-CREATE INDEX "Template_occasionId_idx" ON "Template"("occasionId");
+CREATE INDEX "Template_active_order_idx" ON "Template"("active", "order");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Order_providerRef_key" ON "Order"("providerRef");
@@ -204,13 +186,7 @@ CREATE UNIQUE INDEX "SiteView_siteId_day_key" ON "SiteView"("siteId", "day");
 ALTER TABLE "Site" ADD CONSTRAINT "Site_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Site" ADD CONSTRAINT "Site_occasionId_fkey" FOREIGN KEY ("occasionId") REFERENCES "Occasion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Media" ADD CONSTRAINT "Media_siteId_fkey" FOREIGN KEY ("siteId") REFERENCES "Site"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "Template" ADD CONSTRAINT "Template_occasionId_fkey" FOREIGN KEY ("occasionId") REFERENCES "Occasion"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Order" ADD CONSTRAINT "Order_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
