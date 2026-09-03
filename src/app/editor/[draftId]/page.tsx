@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { EditorShell } from "@/components/editor/editor-shell";
 import { readAnonId } from "@/lib/anon";
 import { getDraft } from "@/lib/drafts";
+import { listActiveTemplates } from "@/lib/templates-db";
 
 export const metadata: Metadata = {
   title: "Montando sua página",
@@ -31,12 +32,15 @@ export default async function EditorPage({ params }: { params: Params }) {
   // Rascunho é privado: só o cookie que criou abre (SPEC 9.4).
   if (draft.anonId && draft.anonId !== (await readAnonId())) notFound();
 
+  const templates = await listActiveTemplates();
+
   return (
     <EditorShell
       draftId={draft.id}
       slug={draft.slug}
       content={draft.content}
       published={draft.status === "PUBLISHED"}
+      templates={templates}
     />
   );
 }

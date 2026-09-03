@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import { readyBlockTypes } from "@/components/blocks/registry";
-import { isTemplateReady, TEMPLATES, type TemplateSeed } from "@/lib/templates";
+import { isTemplateReady, type TemplateSeed } from "@/lib/templates";
 import { useEditorStore } from "@/stores/editor-store";
 
 /**
@@ -28,14 +28,23 @@ import { useEditorStore } from "@/stores/editor-store";
  *
  * Trocar não apaga nada: `applyTemplate` reordena os blocos que já existem em
  * vez de recriá-los, e o que o formato novo não pede continua na página.
+ *
+ * `templates` vem de `EditorPage` (lê `listActiveTemplates` no servidor) —
+ * este componente não importa `lib/templates` além do tipo e do filtro, para
+ * o admin poder criar formato novo sem deploy (SPEC 8.9) sem que o editor
+ * precise de outro código.
+ *
+ * Prop opcional só para `<Step />` genérico (em `editor-shell.tsx`) tipar
+ * como um dos passos possíveis sem exigir `templates` de quem nunca é este
+ * passo — na prática este componente sempre recebe a lista, nunca o padrão.
  */
-export function StepFormat() {
+export function StepFormat({ templates = [] }: { templates?: TemplateSeed[] }) {
   const content = useEditorStore((state) => state.content);
   const applyTemplate = useEditorStore((state) => state.applyTemplate);
 
   if (!content) return null;
 
-  const disponiveis = TEMPLATES.filter((template) =>
+  const disponiveis = templates.filter((template) =>
     isTemplateReady(template, readyBlockTypes),
   );
 
@@ -59,7 +68,7 @@ export function StepFormat() {
             <button
               key={template.id}
               type="button"
-              onClick={() => applyTemplate(template.id)}
+              onClick={() => applyTemplate(template)}
               aria-pressed={ativo}
               className="format"
             >

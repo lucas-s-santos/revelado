@@ -126,8 +126,12 @@ model Media {
 model Template {
   id           String  @id
   name         String
+  /** uma linha, para o card de escolha no editor */
+  hint         String  @default("")
+  /** nome do ícone (lib/templates.ts define os válidos) */
+  icon         String  @default("heart")
   previewUrl   String
-  preset       Json // SiteContent parcial
+  preset       Json // { palette, font, effect, blocks } — lib/templates.ts TemplateSeed["preset"]
   planRequired String?
   active       Boolean @default(true)
   order        Int     @default(0)
@@ -184,9 +188,11 @@ model Coupon {
   code       String    @unique
   type       String // "percent" | "fixed"
   value      Int
+  active     Boolean   @default(true)
   validUntil DateTime?
   maxUses    Int?
   uses       Int       @default(0)
+  createdAt  DateTime  @default(now())
 
   orders Order[]
 }

@@ -135,6 +135,18 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     create: { email: input.email },
   });
 
+  // O código vem do formulário; o que o Order guarda é o id — é o que a
+  // relação em Prisma exige e o que `getOrder` precisa para reconstruir o
+  // código depois (join, não string solta).
+  const couponId = input.couponCode
+    ? ((
+        await db.coupon.findUnique({
+          where: { code: input.couponCode.trim().toUpperCase() },
+          select: { id: true },
+        })
+      )?.id ?? null)
+    : null;
+
   const order = await db.order.create({
     data: {
       id: record.id,
@@ -144,6 +156,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       bumpForever: input.bumpForever,
       amountCents: input.amountCents,
       provider: input.provider ?? "mercadopago",
+      couponId,
     },
   });
 
@@ -163,7 +176,10 @@ export async function getOrder(id: string): Promise<Order | null> {
 
   const order = await db.order.findUnique({
     where: { id },
-    include: { user: { select: { email: true } } },
+    include: {
+      user: { select: { email: true } },
+      coupon: { select: { code: true } },
+    },
   });
   if (!order) return null;
 
@@ -173,7 +189,7 @@ export async function getOrder(id: string): Promise<Order | null> {
     planId: order.planId as PlanId,
     bumpForever: order.bumpForever,
     amountCents: order.amountCents,
-    couponCode: null,
+    couponCode: order.coupon?.code ?? null,
     email: order.user.email,
     status: order.status,
     provider: order.provider,

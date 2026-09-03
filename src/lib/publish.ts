@@ -1,3 +1,4 @@
+import { consumeCoupon } from "@/lib/coupons";
 import { getDraft } from "@/lib/drafts";
 import { db } from "@/lib/db";
 import { sendPublishedEmail } from "@/lib/email";
@@ -35,6 +36,12 @@ export async function publishSite(order: Order): Promise<PublishResult | null> {
     : new Date(Date.now() + plan.durationDays! * 24 * 60 * 60 * 1000);
 
   await markDraftPublished(order.siteId, expiresAt);
+
+  // Só aqui, porque só aqui é certeza de pagamento confirmado — o mesmo
+  // motivo pelo qual esta função só é chamada a partir da transição para PAID.
+  if (order.couponCode) {
+    await consumeCoupon(order.couponCode);
+  }
 
   if (process.env.DATABASE_URL) {
     await db.site.update({

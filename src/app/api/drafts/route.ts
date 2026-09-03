@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ensureAnonId } from "@/lib/anon";
 import { defaultContent, DEFAULT_TEMPLATE } from "@/lib/blocks/defaults";
 import { createDraft } from "@/lib/drafts";
-import { TEMPLATE_IDS } from "@/lib/templates";
+import { getTemplateById } from "@/lib/templates-db";
 
 /**
  * Cria um rascunho — SPEC 8.2: "cria um `Site` em DRAFT com `anonId` de cookie".
@@ -15,7 +15,7 @@ import { TEMPLATE_IDS } from "@/lib/templates";
  */
 
 const bodySchema = z.object({
-  template: z.enum(TEMPLATE_IDS as [string, ...string[]]).optional(),
+  template: z.string().min(1).max(64).optional(),
 });
 
 export async function POST(request: Request) {
@@ -39,7 +39,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const template = parsed.data.template ?? DEFAULT_TEMPLATE;
+  const requested = parsed.data.template;
+  // Sem enum estático: o admin cria template novo sem deploy (SPEC 8.9), e
+  // este id só existe no banco a partir de então.
+  if (requested && !(await getTemplateById(requested))) {
+    return NextResponse.json(
+      { error: "Esse template não existe. Escolha um da lista." },
+      { status: 400 },
+    );
+  }
+
+  const template = requested ?? DEFAULT_TEMPLATE;
   const anonId = await ensureAnonId();
 
   const draft = await createDraft({

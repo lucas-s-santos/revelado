@@ -9,8 +9,11 @@
  * a ordem dos blocos. Trocar de template no editor não apaga o que a pessoa já
  * escreveu — só remonta a moldura.
  *
- * Fonte de verdade para o seed do banco. Em runtime o app lê do banco, porque o
- * admin cria template novo sem deploy (SPEC 8.9).
+ * Fonte de verdade para o seed do banco e para o dev sem Neon. Em runtime com
+ * banco, quem o app lê é `lib/templates-db.ts` — de propósito num arquivo à
+ * parte: este aqui não importa Prisma, então `step-format.tsx` ("use client")
+ * pode importar `isTemplateReady`/`TemplateSeed` direto daqui sem levar o
+ * cliente de banco para o bundle do navegador.
  */
 
 import type { BlockType } from "@/lib/blocks/schema";
@@ -41,6 +44,14 @@ export interface TemplateSeed {
     blocks: readonly BlockType[];
   };
 }
+
+export const ICON_IDS = [
+  "heart",
+  "sparkles",
+  "timeline",
+  "list",
+  "lock",
+] as const;
 
 export const TEMPLATES: readonly TemplateSeed[] = [
   {
