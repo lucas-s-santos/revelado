@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { readyBlockTypes } from "@/components/blocks/registry";
+import type { BlockType } from "@/lib/blocks/schema";
 import { getTemplate, isTemplateReady, TEMPLATES } from "@/lib/templates";
 
 describe("templates", () => {
@@ -47,15 +48,16 @@ describe("quais dá para montar hoje", () => {
   });
 
   it("recusa um formato que peça bloco sem componente", () => {
-    // Sintético de propósito: os formatos de verdade estão todos prontos, e
-    // sem este caso a função de recusa deixaria de ser exercitada. "map" é o
-    // último bloco do schema ainda sem componente — trocar aqui quando ele
-    // ganhar um.
+    // Sintético de propósito: hoje todo bloco do schema já tem componente
+    // (não sobrou nenhum "V2" sem `ready: true`), e sem este caso a função
+    // de recusa deixaria de ser exercitada. O tipo inventado nunca existiu e
+    // nunca vai existir de verdade — é só para provar que a função reage a
+    // um tipo fora de `readyTypes`.
     const inventado = {
       ...TEMPLATES[0]!,
       preset: {
         ...TEMPLATES[0]!.preset,
-        blocks: ["hero", "map", "footer"] as const,
+        blocks: ["hero", "bloco-inexistente", "footer"] as BlockType[],
       },
     };
 

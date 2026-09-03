@@ -6,6 +6,7 @@ import { GalleryBlock } from "@/components/blocks/gallery-block";
 import { GuestbookBlock } from "@/components/blocks/guestbook-block";
 import { HeroBlock } from "@/components/blocks/hero-block";
 import { LetterBlock } from "@/components/blocks/letter-block";
+import { MapBlock } from "@/components/blocks/map-block";
 import { MusicBlock } from "@/components/blocks/music-block";
 import { QuizBlock } from "@/components/blocks/quiz-block";
 import { StatsBlock } from "@/components/blocks/stats-block";
@@ -115,7 +116,14 @@ export const registry: Record<BlockType, BlockDefinition> = {
     ready: true,
     component: GuestbookBlock,
   },
-  map: { label: "Mapa", icon: "map-pin", plan: "especial", ready: false },
+  map: {
+    label: "Mapa",
+    icon: "map-pin",
+    plan: "especial",
+    unique: true,
+    ready: true,
+    component: MapBlock,
+  },
   video: {
     label: "Vídeo",
     icon: "video",

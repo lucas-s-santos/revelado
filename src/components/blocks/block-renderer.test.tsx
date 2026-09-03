@@ -56,31 +56,42 @@ describe("BlockRenderer", () => {
   });
 
   it("ignora bloco sem componente em vez de quebrar a página", () => {
-    /* Este teste usava `stats`, que desde entao ganhou componente — e passou a
-     * testar o contrario do que dizia. A afirmacao abaixo existe para isso nao
-     * se repetir em silencio: no dia em que `map` for implementado, ela falha
-     * com um recado dizendo para trocar o exemplo, em vez de o teste continuar
-     * verde sem verificar nada. */
-    expect(registry.map.ready).toBe(false);
+    /* Este teste já trocou de exemplo duas vezes — `stats`, depois `map` —
+     * porque os dois ganharam componente e passaram a testar o contrário do
+     * que diziam. Hoje `registry` cobre os 14 tipos do schema com
+     * `ready: true` em todos: não sobrou um real para usar como exemplo.
+     *
+     * Em vez de inventar um `type` fora do schema (block.type é sempre um dos
+     * 14 reais — o zod garante isso na escrita), o teste desliga `ready` de
+     * um bloco de verdade por um instante, exercitando exatamente a
+     * condição que `BlockRenderer` checa (`!definition.ready`), e devolve o
+     * registry ao normal depois — sem isso os testes seguintes rodariam com
+     * `map` quebrado. */
+    const original = registry.map;
+    registry.map = { ...original, ready: false };
 
-    const content = {
-      ...demoContent,
-      blocks: [
-        ...demoContent.blocks,
-        {
-          id: "map",
-          type: "map" as const,
-          props: { lat: -23.55, lng: -46.63, label: "onde a gente se conheceu" },
-        },
-      ],
-    };
+    try {
+      const content = {
+        ...demoContent,
+        blocks: [
+          ...demoContent.blocks,
+          {
+            id: "map",
+            type: "map" as const,
+            props: { lat: -23.55, lng: -46.63, label: "onde a gente se conheceu" },
+          },
+        ],
+      };
 
-    const html = renderToStaticMarkup(
-      <BlockRenderer content={content} mode="published" now={NOW} />,
-    );
+      const html = renderToStaticMarkup(
+        <BlockRenderer content={content} mode="published" now={NOW} />,
+      );
 
-    expect(html).not.toContain('data-block="map"');
-    expect(html).toContain('data-block="hero"'); // o resto continua no ar
+      expect(html).not.toContain('data-block="map"');
+      expect(html).toContain('data-block="hero"'); // o resto continua no ar
+    } finally {
+      registry.map = original;
+    }
   });
 
   it("leva a paleta e a fonte para o DOM", () => {
