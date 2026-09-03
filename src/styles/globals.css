@@ -6141,6 +6141,39 @@
     gap: 0.25rem;
   }
 
+  /* --- Admin (SPEC 8.9) --------------------------------------------------
+   * Mesma base sóbria do `.panel` (CLAUDE.md regra 11: zero motion aqui). */
+  .admin__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .admin__stat {
+    padding: 1rem 1.1rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.08);
+  }
+
+  .admin__stat-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 1.8rem;
+    line-height: 1.1;
+  }
+
+  .admin__stat-label {
+    margin-top: 0.2rem;
+    font-size: 0.76rem;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .admin__section {
+    margin-bottom: 2.5rem;
+  }
+
   /* --- Frame (SPEC 5.4) ------------------------------------------------ */
   /*
    * Moldura vazia = "foto entra aqui", nunca "caixa quebrada".
