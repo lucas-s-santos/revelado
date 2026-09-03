@@ -12,6 +12,7 @@ import { PLAN_IDS } from "@/lib/plans";
 import { ICON_IDS } from "@/lib/templates";
 import { createTemplate, setTemplateActive } from "@/lib/templates-db";
 import { updatePlan } from "@/lib/plans-db";
+import { moderateEntry } from "@/lib/guestbook";
 
 const schema = z.object({
   slug: z.string().min(1, "Informe o link da página."),
@@ -314,4 +315,23 @@ export async function updatePlanAction(
   revalidatePath("/");
   revalidatePath("/admin");
   return { ok: true, message: "Plano atualizado." };
+}
+
+/**
+ * Fila de moderação do mural — SPEC 8.9. Aprovar marca `approved: true`;
+ * rejeitar apaga (não existe "recado rejeitado" para guardar). Sem
+ * `revalidatePath` na página publicada: `/p/[slug]` já não lê o mural do
+ * cache de conteúdo (SPEC 8.8), e a leitura do mural aceita a mesma janela de
+ * até 1h da ISR da rota — a mesma folga que o resto do conteúdo já tem.
+ */
+export async function moderateEntryAction(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (session?.user.role !== "ADMIN") return;
+
+  const id = formData.get("id");
+  const approve = formData.get("approve") === "true";
+  if (typeof id !== "string" || !id) return;
+
+  await moderateEntry(id, approve);
+  revalidatePath("/admin");
 }

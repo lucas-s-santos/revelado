@@ -48,12 +48,14 @@ describe("quais dá para montar hoje", () => {
 
   it("recusa um formato que peça bloco sem componente", () => {
     // Sintético de propósito: os formatos de verdade estão todos prontos, e
-    // sem este caso a função de recusa deixaria de ser exercitada.
+    // sem este caso a função de recusa deixaria de ser exercitada. "map" é o
+    // último bloco do schema ainda sem componente — trocar aqui quando ele
+    // ganhar um.
     const inventado = {
       ...TEMPLATES[0]!,
       preset: {
         ...TEMPLATES[0]!.preset,
-        blocks: ["hero", "guestbook", "footer"] as const,
+        blocks: ["hero", "map", "footer"] as const,
       },
     };
 

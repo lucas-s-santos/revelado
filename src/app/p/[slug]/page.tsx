@@ -6,6 +6,7 @@ import { BlockRenderer } from "@/components/blocks/block-renderer";
 import { lacrarCapsulas } from "@/lib/capsule";
 import { Portal } from "@/components/blocks/portal";
 import type { SiteContent } from "@/lib/blocks/schema";
+import { listApprovedEntries } from "@/lib/guestbook";
 import { collectMediaIds, mediaMapFor } from "@/lib/media";
 import { getPublishedSite, isExpired } from "@/lib/sites";
 
@@ -112,6 +113,15 @@ export default async function PublishedPage({ params }: { params: Params }) {
   // contadores, senão HTML e hidratação divergem por milissegundos.
   const agora = Date.now();
 
+  // Só busca se a página tem o bloco: a maioria não tem, e a consulta ao
+  // GuestbookEntry seria desperdício em toda visita.
+  const hasGuestbook = site.content.blocks.some(
+    (block) => block.type === "guestbook",
+  );
+  const guestbookEntries = hasGuestbook
+    ? await listApprovedEntries(site.id)
+    : [];
+
   return (
     <main
       className="published"
@@ -138,6 +148,9 @@ export default async function PublishedPage({ params }: { params: Params }) {
             mode="published"
             now={agora}
             media={mediaMapFor(site.id, collectMediaIds(site.content))}
+            {...(hasGuestbook
+              ? { guestbook: { slug: site.slug, entries: guestbookEntries } }
+              : {})}
           />
         </Portal>
       )}
