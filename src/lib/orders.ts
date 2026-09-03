@@ -51,6 +51,8 @@ export interface CreateOrderInput {
   amountCents: number;
   couponCode?: string | null;
   email: string;
+  /** "mercadopago" (padrão) ou "admin" — página concedida de graça (SPEC 8.9). */
+  provider?: string;
 }
 
 // --- backend de arquivo (dev) --------------------------------------------
@@ -113,7 +115,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     couponCode: input.couponCode ?? null,
     email: input.email,
     status: "PENDING",
-    provider: "mercadopago",
+    provider: input.provider ?? "mercadopago",
     providerRef: null,
     pixCode: null,
     pixExpiresAt: null,
@@ -141,6 +143,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       planId: input.planId,
       bumpForever: input.bumpForever,
       amountCents: input.amountCents,
+      provider: input.provider ?? "mercadopago",
     },
   });
 

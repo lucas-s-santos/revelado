@@ -104,6 +104,27 @@ export async function sendAbandonedEmail(input: {
   });
 }
 
+/**
+ * Link de entrada — Auth.js (`src/auth.ts`) chama esta função como
+ * `sendVerificationRequest`. Sem senha: o link é a prova.
+ */
+export async function sendMagicLinkEmail(input: {
+  to: string;
+  url: string;
+}): Promise<void> {
+  await send({
+    to: input.to,
+    subject: "Seu link de entrada — Revelado",
+    html: layout(
+      "Entrar na Revelado",
+      `<p style="line-height:1.6;color:#F6EFE6">É só clicar — o link vale por um tempo curto e só funciona uma vez.</p>
+       <p style="margin:24px 0">${button(input.url, "Entrar")}</p>
+       <p style="line-height:1.6;color:#9B90AA;font-size:13px">Não pediu isso? Pode ignorar este e-mail.</p>`,
+    ),
+    text: `Entre por este link: ${input.url}\n\nNão pediu isso? Pode ignorar este e-mail.`,
+  });
+}
+
 /** Primeira visita — SPEC 8.7: o maior gatilho emocional do produto. */
 export async function sendFirstViewEmail(input: {
   to: string;
