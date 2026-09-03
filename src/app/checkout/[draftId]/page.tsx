@@ -5,6 +5,7 @@ import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { readAnonId } from "@/lib/anon";
 import { validateForPublish } from "@/lib/blocks/schema";
 import { getDraft } from "@/lib/drafts";
+import { listActivePlans } from "@/lib/plans-db";
 
 export const metadata: Metadata = {
   title: "Publicar sua página",
@@ -34,11 +35,13 @@ export default async function CheckoutPage({ params }: { params: Params }) {
 
   const issues = validateForPublish(draft.content);
   const hero = draft.content.blocks.find((block) => block.type === "hero");
+  const plans = await listActivePlans();
 
   return (
     <CheckoutForm
       draftId={draft.id}
       slug={draft.slug}
+      plans={plans}
       palette={draft.content.theme.palette}
       title={hero?.type === "hero" ? hero.props.title : "Sua página"}
       subtitle={hero?.type === "hero" ? (hero.props.subtitle ?? null) : null}

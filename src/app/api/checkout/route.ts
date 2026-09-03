@@ -18,6 +18,7 @@ import {
   PLAN_IDS,
   type PlanId,
 } from "@/lib/plans";
+import { getPlanById } from "@/lib/plans-db";
 
 /**
  * Cria o pedido e a cobrança — SPEC 9.1.
@@ -101,6 +102,16 @@ export async function POST(request: Request) {
     );
   }
 
+  // O preço vem do banco, não do array estático: é o que o admin edita em
+  // /admin sem deploy (SPEC 8.9), e é o único número em que a cobrança confia.
+  const plan = await getPlanById(planId);
+  if (!plan) {
+    return NextResponse.json(
+      { error: "Esse plano não está disponível no momento." },
+      { status: 422 },
+    );
+  }
+
   const discount = coupon ? await applyCoupon(coupon) : null;
   if (coupon && !discount) {
     return NextResponse.json(
@@ -113,6 +124,7 @@ export async function POST(request: Request) {
     planId: planId as PlanId,
     bumpForever,
     coupon: discount ?? undefined,
+    plan,
   });
 
   const order = await createOrder({

@@ -142,11 +142,17 @@ model Template {
 model Plan {
   id           String  @id
   name         String
+  /** uma linha, para o card da vitrine */
+  hint         String  @default("")
   priceCents   Int
   listCents    Int // preço "de", riscado
   durationDays Int? // null = vitalício
   maxPhotos    Int
-  features     Json
+  /** destacado no meio da grade de preços */
+  highlight    Boolean @default(false)
+  features     Json // string[]
+  /** o que este plano NÃO tem — riscado no card; null = nada a riscar */
+  missing      Json?
   active       Boolean @default(true)
 
   orders Order[]

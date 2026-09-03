@@ -5,9 +5,11 @@ import { signOut } from "@/auth";
 import { Logo } from "@/components/chrome/logo";
 import { CouponForm } from "@/components/admin/coupon-form";
 import { GrantForm } from "@/components/admin/grant-form";
+import { PlanForm } from "@/components/admin/plan-form";
 import { TemplateForm } from "@/components/admin/template-form";
 import { getAdminStats, listRecentSites } from "@/lib/admin";
 import { listCoupons } from "@/lib/coupons";
+import { listAllPlans } from "@/lib/plans-db";
 import { listAllTemplates } from "@/lib/templates-db";
 import { formatBRL, formatDate } from "@/lib/utils";
 
@@ -19,11 +21,12 @@ export const dynamic = "force-dynamic";
  * (SPEC 8.7 e CLAUDE.md regra 11: sem motion ambiental aqui também).
  */
 export default async function AdminPage() {
-  const [stats, sites, coupons, templates] = await Promise.all([
+  const [stats, sites, coupons, templates, plans] = await Promise.all([
     getAdminStats(),
     listRecentSites(),
     listCoupons(),
     listAllTemplates(),
+    listAllPlans(),
   ]);
 
   return (
@@ -70,6 +73,20 @@ export default async function AdminPage() {
           <p className="admin__stat-label">pedidos pagos</p>
         </div>
       </div>
+
+      <section className="admin__section">
+        <h2 className="field__label">Planos</h2>
+        <p className="field__hint mb-3">
+          Preço, vitrine e recursos — mudam na landing e no checkout na hora,
+          sem deploy. Sem criar plano novo: os dois ids estão presos na grade
+          do checkout.
+        </p>
+        <div className="admin__plans">
+          {plans.map((plan) => (
+            <PlanForm key={plan.id} plan={plan} />
+          ))}
+        </div>
+      </section>
 
       <section className="admin__section">
         <h2 className="field__label">Publicar de graça</h2>

@@ -25,6 +25,7 @@ import { useAutosave } from "@/hooks/use-autosave";
 import { track } from "@/lib/analytics";
 import type { SiteContent } from "@/lib/blocks/schema";
 import { collectMediaIds, mediaMapFor } from "@/lib/media";
+import type { PlanSeed } from "@/lib/plans";
 import type { TemplateSeed } from "@/lib/templates";
 import { useEditorStore } from "@/stores/editor-store";
 
@@ -98,12 +99,14 @@ export function EditorShell({
   content,
   published,
   templates,
+  plans,
 }: {
   draftId: string;
   slug: string;
   content: SiteContent;
   published: boolean;
   templates: TemplateSeed[];
+  plans: PlanSeed[];
 }) {
   const load = useEditorStore((state) => state.load);
   // Do store, não da prop: renomear o link no passo "Link" não recarrega a
@@ -270,6 +273,8 @@ export function EditorShell({
             {ready ? (
               current.id === "formato" ? (
                 <StepFormat templates={templates} />
+              ) : current.id === "fotos" ? (
+                <StepPhotos plans={plans} />
               ) : (
                 <Step />
               )

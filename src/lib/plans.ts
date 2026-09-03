@@ -98,9 +98,12 @@ export interface ComparisonRow {
   especial: boolean | string;
 }
 
-export function planComparison(): readonly ComparisonRow[] {
-  const dia = PLAN_BY_ID.get("simples")!;
-  const eterno = PLAN_BY_ID.get("especial")!;
+export function planComparison(
+  plans: readonly PlanSeed[] = PLANS,
+): readonly ComparisonRow[] {
+  const byId = new Map(plans.map((plan) => [plan.id, plan]));
+  const dia = byId.get("simples") ?? PLAN_BY_ID.get("simples")!;
+  const eterno = byId.get("especial") ?? PLAN_BY_ID.get("especial")!;
 
   return [
     {
@@ -197,13 +200,21 @@ export function getPlan(id: string): PlanSeed | undefined {
   return PLAN_BY_ID.get(id);
 }
 
-/** Total do pedido em centavos. Cupom aplicado antes do bump. */
+/**
+ * Total do pedido em centavos. Cupom aplicado antes do bump.
+ *
+ * `plan` é opcional: quem já resolveu o plano no banco (checkout com preço
+ * editável pelo admin — SPEC 8.9) passa o objeto e esta função nunca olha
+ * para o array estático. Quem não passa cai nos cinco de fábrica — é o caso
+ * de toda tela que só exibe, nunca cobra.
+ */
 export function orderTotalCents(input: {
   planId: PlanId;
   bumpForever?: boolean;
   coupon?: { type: "percent" | "fixed"; value: number } | undefined;
+  plan?: PlanSeed;
 }): number {
-  const plan = PLAN_BY_ID.get(input.planId);
+  const plan = input.plan ?? PLAN_BY_ID.get(input.planId);
   if (!plan) throw new Error(`Plano desconhecido: ${input.planId}`);
 
   let total = plan.priceCents;
