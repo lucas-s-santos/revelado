@@ -13,16 +13,20 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  phone     String?
-  role      Role     @default(USER)
-  sites     Site[]
-  orders    Order[]
-  accounts  Account[]
-  sessions  Session[]
-  createdAt DateTime @default(now())
+  id            String    @id @default(cuid())
+  email         String    @unique
+  /** Auth.js marca isto ao confirmar o link — o adapter exige o campo mesmo
+   *  quando ninguém no app lê o valor. Sem ele, `updateUser` no login
+   *  quebra com "Unknown argument emailVerified". */
+  emailVerified DateTime?
+  name          String?
+  phone         String?
+  role          Role      @default(USER)
+  sites         Site[]
+  orders        Order[]
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
 }
 
 enum Role {

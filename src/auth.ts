@@ -43,8 +43,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // nosso, do `User` do Prisma — o adapter devolve a linha inteira, o tipo
       // é que não sabe. Sem augmentar `@auth/core/adapters` (módulo
       // transitivo, fora do alcance confiável de `declare module` aqui).
-      session.user.id = user.id;
-      session.user.role = (user as unknown as { role: Role }).role;
+      //
+      // Defensivo de propósito: um erro aqui dentro derruba o login inteiro
+      // (Auth.js reporta como "Configuration", sem dizer o porquê) — melhor
+      // um admin sem `role` no primeiro segundo do que a sessão inteira
+      // quebrando por causa de um cast.
+      session.user.id = user?.id ?? session.user.id;
+      const role = (user as unknown as { role?: Role } | undefined)?.role;
+      if (role) session.user.role = role;
       return session;
     },
   },
