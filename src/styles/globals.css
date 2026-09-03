@@ -6174,6 +6174,12 @@
     margin-bottom: 2.5rem;
   }
 
+  .admin__plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+
   /* --- Frame (SPEC 5.4) ------------------------------------------------ */
   /*
    * Moldura vazia = "foto entra aqui", nunca "caixa quebrada".

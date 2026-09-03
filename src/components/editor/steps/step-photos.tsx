@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 
 import { PhotoGrid } from "@/components/editor/photo-grid";
 import { useUploads } from "@/hooks/use-uploads";
-import { PLANS } from "@/lib/plans";
+import { PLANS, type PlanSeed } from "@/lib/plans";
 import { findBlock, useEditorStore } from "@/stores/editor-store";
 
 /**
@@ -13,13 +13,12 @@ import { findBlock, useEditorStore } from "@/stores/editor-store";
  * Comprime no browser, sobe direto para o R2, mostra progresso por arquivo e
  * tenta de novo sozinho. Limite conforme o plano-alvo, com upsell contextual
  * ("mais 25 fotos no Especial") em vez de um "não" seco.
+ *
+ * `plans` vem de `EditorPage` (lê `listActivePlans` no servidor — SPEC 8.9);
+ * padrão opcional só para tipar `<Step />` genérico em `editor-shell.tsx`, ver
+ * a mesma nota em `step-format.tsx`.
  */
-
-/** Plano-alvo enquanto o checkout não escolhe outro (SPEC 8.4). */
-const TARGET_PLAN = PLANS.find((plan) => plan.highlight) ?? PLANS[0]!;
-const NEXT_PLAN = PLANS.find((plan) => plan.maxPhotos > TARGET_PLAN.maxPhotos);
-
-export function StepPhotos() {
+export function StepPhotos({ plans = PLANS }: { plans?: readonly PlanSeed[] }) {
   const draftId = useEditorStore((state) => state.draftId);
   const content = useEditorStore((state) => state.content);
   const addMedia = useEditorStore((state) => state.addMedia);
@@ -27,9 +26,13 @@ export function StepPhotos() {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /** Plano-alvo enquanto o checkout não escolhe outro (SPEC 8.4). */
+  const targetPlan = plans.find((plan) => plan.highlight) ?? plans[0] ?? PLANS[0]!;
+  const nextPlan = plans.find((plan) => plan.maxPhotos > targetPlan.maxPhotos);
+
   const gallery = findBlock(content, "gallery");
   const used = gallery?.props.mediaIds.length ?? 0;
-  const remaining = Math.max(TARGET_PLAN.maxPhotos - used, 0);
+  const remaining = Math.max(targetPlan.maxPhotos - used, 0);
 
   const onDone = useCallback(
     (mediaId: string) => addMedia([mediaId]),
@@ -103,8 +106,8 @@ export function StepPhotos() {
           {remaining > 0 ? (
             <>
               <span data-numeric>{used}</span> de{" "}
-              <span data-numeric>{TARGET_PLAN.maxPhotos}</span> fotos no plano{" "}
-              {TARGET_PLAN.name}
+              <span data-numeric>{targetPlan.maxPhotos}</span> fotos no plano{" "}
+              {targetPlan.name}
             </>
           ) : (
             "Remova alguma foto para adicionar outra."
@@ -112,13 +115,13 @@ export function StepPhotos() {
         </p>
 
         {/* Upsell contextual, no momento em que o limite aperta (SPEC 8.4). */}
-        {NEXT_PLAN && remaining <= 3 ? (
+        {nextPlan && remaining <= 3 ? (
           <p className="uploader__upsell">
             Precisa de mais? São{" "}
             <strong data-numeric>
-              {NEXT_PLAN.maxPhotos - TARGET_PLAN.maxPhotos}
+              {nextPlan.maxPhotos - targetPlan.maxPhotos}
             </strong>{" "}
-            fotos a mais no {NEXT_PLAN.name} — dá para escolher no fim.
+            fotos a mais no {nextPlan.name} — dá para escolher no fim.
           </p>
         ) : null}
       </div>

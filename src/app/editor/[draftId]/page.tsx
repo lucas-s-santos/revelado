@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { EditorShell } from "@/components/editor/editor-shell";
 import { readAnonId } from "@/lib/anon";
 import { getDraft } from "@/lib/drafts";
+import { listActivePlans } from "@/lib/plans-db";
 import { listActiveTemplates } from "@/lib/templates-db";
 
 export const metadata: Metadata = {
@@ -32,7 +33,10 @@ export default async function EditorPage({ params }: { params: Params }) {
   // Rascunho é privado: só o cookie que criou abre (SPEC 9.4).
   if (draft.anonId && draft.anonId !== (await readAnonId())) notFound();
 
-  const templates = await listActiveTemplates();
+  const [templates, plans] = await Promise.all([
+    listActiveTemplates(),
+    listActivePlans(),
+  ]);
 
   return (
     <EditorShell
@@ -41,6 +45,7 @@ export default async function EditorPage({ params }: { params: Params }) {
       content={draft.content}
       published={draft.status === "PUBLISHED"}
       templates={templates}
+      plans={plans}
     />
   );
 }

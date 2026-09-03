@@ -11,6 +11,7 @@ import { PALETTE_IDS } from "@/lib/palettes";
 import { PLAN_IDS } from "@/lib/plans";
 import { ICON_IDS } from "@/lib/templates";
 import { createTemplate, setTemplateActive } from "@/lib/templates-db";
+import { updatePlan } from "@/lib/plans-db";
 
 const schema = z.object({
   slug: z.string().min(1, "Informe o link da página."),
@@ -225,4 +226,92 @@ export async function toggleTemplateAction(formData: FormData): Promise<void> {
 
   await setTemplateActive(id, nextActive);
   revalidatePath("/admin");
+}
+
+const planSchema = z.object({
+  id: z.enum(PLAN_IDS),
+  priceCents: z.coerce.number().int().positive(),
+  listCents: z.coerce.number().int().positive(),
+  hint: z.string().max(120).optional(),
+  features: z
+    .string()
+    .min(1, "Liste ao menos um recurso.")
+    .transform((value) =>
+      value
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    ),
+  missing: z
+    .string()
+    .optional()
+    .transform((value) =>
+      (value ?? "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    ),
+});
+
+export interface PlanFormState {
+  ok: boolean;
+  message: string | null;
+}
+
+/**
+ * Sem `createPlan`: os dois ids estão presos na grade de dois cards do
+ * checkout e da vitrine (ver o comentário em `lib/plans.ts`). Admin edita
+ * preço, vitrine e ativo — nunca cria um terceiro plano.
+ *
+ * `revalidatePath("/")` é o que faz a landing (estática, ISR de 1h) mostrar o
+ * preço novo na hora em vez de esperar a próxima hora — sem isso, "editável
+ * sem deploy" seria "editável sem deploy, em até 60 minutos".
+ */
+export async function updatePlanAction(
+  _prev: PlanFormState,
+  formData: FormData,
+): Promise<PlanFormState> {
+  const session = await auth();
+  if (session?.user.role !== "ADMIN") {
+    return { ok: false, message: "Sem acesso." };
+  }
+
+  const parsed = planSchema.safeParse({
+    id: formData.get("id"),
+    priceCents: formData.get("priceCents"),
+    listCents: formData.get("listCents"),
+    hint: formData.get("hint") || undefined,
+    features: formData.get("features"),
+    missing: formData.get("missing") || undefined,
+  });
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+
+  if (parsed.data.listCents < parsed.data.priceCents) {
+    return {
+      ok: false,
+      message: 'O preço "de" precisa ser maior ou igual ao preço de venda.',
+    };
+  }
+
+  const result = await updatePlan(parsed.data.id, {
+    priceCents: parsed.data.priceCents,
+    listCents: parsed.data.listCents,
+    hint: parsed.data.hint ?? "",
+    highlight: formData.get("highlight") === "on",
+    active: formData.get("active") === "on",
+    features: parsed.data.features,
+    missing: parsed.data.missing,
+  });
+
+  if (!result.ok) return { ok: false, message: result.error };
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  return { ok: true, message: "Plano atualizado." };
 }

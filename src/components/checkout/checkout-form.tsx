@@ -14,8 +14,8 @@ import {
   durationLabel,
   FOREVER_BUMP_CENTS,
   orderTotalCents,
-  PLANS,
   type PlanId,
+  type PlanSeed,
 } from "@/lib/plans";
 import { cn, formatBRL } from "@/lib/utils";
 
@@ -38,6 +38,8 @@ interface CheckoutFormProps {
   subtitle: string | null;
   photoCount: number;
   issues: PublishIssue[];
+  /** de `listActivePlans` — o mesmo preço que `/api/checkout` vai cobrar. */
+  plans: PlanSeed[];
 }
 
 type Method = "pix" | "card";
@@ -58,6 +60,7 @@ export function CheckoutForm({
   subtitle,
   photoCount,
   issues,
+  plans,
 }: CheckoutFormProps) {
   const router = useRouter();
 
@@ -70,10 +73,10 @@ export function CheckoutForm({
   const [submitting, setSubmitting] = useState(false);
   const [pix, setPix] = useState<PixState | null>(null);
 
-  const plan = PLANS.find((candidate) => candidate.id === planId);
+  const plan = plans.find((candidate) => candidate.id === planId);
   const isForever = plan?.durationDays === null;
   const bumpApplies = bump && !isForever;
-  const totalCents = orderTotalCents({ planId, bumpForever: bumpApplies });
+  const totalCents = orderTotalCents({ planId, bumpForever: bumpApplies, plan });
   const installment = bestInstallment(totalCents);
 
   const blocked = issues.length > 0;
@@ -199,7 +202,7 @@ export function CheckoutForm({
             <legend className="field__label">Escolha o plano</legend>
 
             <div className="checkout__plans">
-              {PLANS.map((candidate) => (
+              {plans.map((candidate) => (
                 <label
                   key={candidate.id}
                   className={cn(

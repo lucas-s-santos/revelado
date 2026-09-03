@@ -9,7 +9,14 @@ import { NumberTicker } from "@/components/ui/number-ticker";
 import { ShineBorder } from "@/components/ui/shine-border";
 import { track } from "@/lib/analytics";
 import { copy } from "@/lib/copy";
-import { bestInstallment, durationLabel, FOREVER_BUMP_CENTS, orderTotalCents, type PlanId, PLANS } from "@/lib/plans";
+import {
+  bestInstallment,
+  durationLabel,
+  FOREVER_BUMP_CENTS,
+  orderTotalCents,
+  type PlanId,
+  type PlanSeed,
+} from "@/lib/plans";
 import { cn, formatBRL } from "@/lib/utils";
 
 /**
@@ -17,19 +24,21 @@ import { cn, formatBRL } from "@/lib/utils";
  * clicável e total recalculando com Number Ticker.
  *
  * Todo cálculo passa por `orderTotalCents` (SPEC 12: centavos inteiros, nunca
- * float) — a mesma função que o checkout da Fase 5 vai usar, para a vitrine e a
- * cobrança nunca divergirem.
+ * float) — a mesma função que o checkout usa, para a vitrine e a cobrança
+ * nunca divergirem. `plans` vem de `page.tsx` (lê `listActivePlans` no
+ * servidor — SPEC 8.9, preço editável pelo admin sem deploy).
  */
-export function Pricing() {
+export function Pricing({ plans }: { plans: PlanSeed[] }) {
   const [selected, setSelected] = useState<PlanId>("especial");
   const [bump, setBump] = useState(false);
 
-  const plan = PLANS.find((candidate) => candidate.id === selected);
+  const plan = plans.find((candidate) => candidate.id === selected);
   const isForever = plan?.durationDays === null;
   const bumpApplies = bump && !isForever;
   const totalCents = orderTotalCents({
     planId: selected,
     bumpForever: bumpApplies,
+    plan,
   });
   const installment = bestInstallment(totalCents);
 
@@ -42,7 +51,7 @@ export function Pricing() {
       </header>
 
       <div role="radiogroup" aria-label="Planos" className="pricing__grid">
-        {PLANS.map((candidate) => {
+        {plans.map((candidate) => {
           const active = candidate.id === selected;
 
           return (

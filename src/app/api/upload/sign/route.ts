@@ -5,7 +5,7 @@ import { z } from "zod";
 
 import { podeMexerNoRascunho } from "@/lib/anon";
 import { getDraft } from "@/lib/drafts";
-import { PLANS } from "@/lib/plans";
+import { listActivePlans } from "@/lib/plans-db";
 import {
   isAcceptedMime,
   LOCAL_MEDIA_ENABLED,
@@ -28,9 +28,6 @@ const bodySchema = z.object({
   mime: z.string().min(1),
   bytes: z.number().int().positive(),
 });
-
-/** Teto absoluto: o maior plano. O limite do plano-alvo é cobrado na interface. */
-const HARD_PHOTO_LIMIT = Math.max(...PLANS.map((plan) => plan.maxPhotos));
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -86,6 +83,12 @@ export async function POST(request: Request) {
       block.type === "gallery" ? total + block.props.mediaIds.length : total,
     0,
   );
+
+  // Teto absoluto: o maior plano ativo. O limite do plano-alvo é cobrado na
+  // interface; aqui é o que de fato barra o upload — do banco, para
+  // acompanhar o admin sem deploy (SPEC 8.9).
+  const plans = await listActivePlans();
+  const HARD_PHOTO_LIMIT = Math.max(...plans.map((plan) => plan.maxPhotos));
 
   if (used >= HARD_PHOTO_LIMIT) {
     return NextResponse.json(

@@ -17,6 +17,7 @@ import { Testimonials } from "@/components/marketing/testimonials";
 import { Safelight } from "@/components/motion/safelight";
 import { TrackView } from "@/components/track-view";
 import { formatCelebrationDate, nextCelebration } from "@/lib/promo";
+import { listActivePlans } from "@/lib/plans-db";
 
 /**
  * Landing — SPEC 8.1, as 12 seções na ordem.
@@ -32,9 +33,10 @@ import { formatCelebrationDate, nextCelebration } from "@/lib/promo";
 // ISR de 1 hora: a contagem regressiva é do cliente, o HTML pode ser cacheado.
 export const revalidate = 3600;
 
-export default function Home() {
+export default async function Home() {
   const now = Date.now();
   const celebration = nextCelebration(new Date(now));
+  const plans = await listActivePlans();
 
   return (
     <>
@@ -63,8 +65,8 @@ export default function Home() {
         <BlocksGrid />
         <HowItWorks />
         <Testimonials />
-        <Pricing />
-        <Comparison />
+        <Pricing plans={plans} />
+        <Comparison plans={plans} />
         <Faq />
         <FinalCta
           deadline={celebration.date.toISOString()}

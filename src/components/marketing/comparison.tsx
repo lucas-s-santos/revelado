@@ -1,7 +1,7 @@
 import { Check, Minus } from "lucide-react";
 
 import { copy } from "@/lib/copy";
-import { planComparison } from "@/lib/plans";
+import { planComparison, type PlanSeed } from "@/lib/plans";
 
 /**
  * Comparação entre os dois planos — SPEC 8.1.
@@ -18,8 +18,8 @@ import { planComparison } from "@/lib/plans";
  *
  * Server Component: é tabela, não tem estado.
  */
-export function Comparison() {
-  const rows = planComparison();
+export function Comparison({ plans }: { plans: readonly PlanSeed[] }) {
+  const rows = planComparison(plans);
 
   return (
     <section className="section">

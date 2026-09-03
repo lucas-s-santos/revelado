@@ -14,26 +14,23 @@ const prisma = new PrismaClient();
 
 async function main() {
   for (const plan of PLANS) {
+    const data = {
+      name: plan.name,
+      hint: plan.hint,
+      priceCents: plan.priceCents,
+      listCents: plan.listCents,
+      durationDays: plan.durationDays,
+      maxPhotos: plan.maxPhotos,
+      highlight: plan.highlight,
+      features: plan.features,
+      missing: plan.missing ?? undefined,
+      active: true,
+    };
+
     await prisma.plan.upsert({
       where: { id: plan.id },
-      update: {
-        name: plan.name,
-        priceCents: plan.priceCents,
-        listCents: plan.listCents,
-        durationDays: plan.durationDays,
-        maxPhotos: plan.maxPhotos,
-        features: plan.features,
-        active: true,
-      },
-      create: {
-        id: plan.id,
-        name: plan.name,
-        priceCents: plan.priceCents,
-        listCents: plan.listCents,
-        durationDays: plan.durationDays,
-        maxPhotos: plan.maxPhotos,
-        features: plan.features,
-      },
+      update: data,
+      create: { id: plan.id, ...data },
     });
   }
   console.log(`✓ ${PLANS.length} planos`);
