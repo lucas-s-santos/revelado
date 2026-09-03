@@ -115,7 +115,8 @@ export type OptionalBlockType =
   | "reasons"
   | "stats"
   | "video"
-  | "guestbook";
+  | "guestbook"
+  | "map";
 
 export function optionalBlock(type: OptionalBlockType): Block {
   if (type === "video") {
@@ -174,6 +175,21 @@ export function optionalBlock(type: OptionalBlockType): Block {
       props: {
         openAt: daquiUmaSemana.toISOString(),
         text: "",
+      },
+    });
+  }
+
+  if (type === "map") {
+    return block({
+      id: "map",
+      type: "map",
+      props: {
+        // Praça da Sé, São Paulo — só para o pino nascer em algum lugar
+        // reconhecível em vez de "Null Island" (0, 0). O passo do editor tem
+        // um botão de "usar minha localização" para trocar num toque.
+        lat: -23.5505,
+        lng: -46.6333,
+        label: "Onde nos conhecemos",
       },
     });
   }

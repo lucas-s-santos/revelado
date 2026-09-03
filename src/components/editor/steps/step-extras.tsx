@@ -2,13 +2,14 @@
 
 import { StepCapsule } from "@/components/editor/steps/step-capsule";
 import { StepGuestbook } from "@/components/editor/steps/step-guestbook";
+import { StepMap } from "@/components/editor/steps/step-map";
 import { StepQuiz } from "@/components/editor/steps/step-quiz";
 import { StepReasons } from "@/components/editor/steps/step-reasons";
 import { StepStats } from "@/components/editor/steps/step-stats";
 import { StepVideo } from "@/components/editor/steps/step-video";
 
 /**
- * Extras — motivos, quiz, números, vídeo e cápsula numa etapa só.
+ * Extras — motivos, quiz, números, vídeo, cápsula, mural e mapa numa etapa só.
  *
  * Eram passos separados, e cada um ocupava uma tela inteira para mostrar um
  * título e um botão de adicionar. Telas quase vazias custam caro duas vezes:
@@ -16,13 +17,13 @@ import { StepVideo } from "@/components/editor/steps/step-video";
  * tamanho do trabalho, e pedem várias decisões onde há uma só — "quero mais
  * alguma coisa nessa página?".
  *
- * Cabem seis aqui porque todos começam FECHADOS: quem não quiser nenhum vê
- * seis cartões e segue. No dia em que um deles nascer aberto, esta etapa vira
+ * Cabem sete aqui porque todos começam FECHADOS: quem não quiser nenhum vê
+ * sete cartões e segue. No dia em que um deles nascer aberto, esta etapa vira
  * uma tela longa demais e a conta muda.
  *
  * Cada bloco continua sendo o mesmo componente de antes, agora em modo
- * `aninhado`: sem cabeçalho próprio e sem "Pular", que aqui seriam seis
- * títulos e seis saídas na mesma tela. Ninguém foi reescrito; o que mudou foi
+ * `aninhado`: sem cabeçalho próprio e sem "Pular", que aqui seriam sete
+ * títulos e sete saídas na mesma tela. Ninguém foi reescrito; o que mudou foi
  * onde eles moram.
  *
  * **Tema e Letra ficaram de fora desta fusão de propósito.** Aqueles dois já
@@ -65,6 +66,10 @@ export function StepExtras() {
 
         <section className="extras__item">
           <StepGuestbook aninhado />
+        </section>
+
+        <section className="extras__item">
+          <StepMap aninhado />
         </section>
       </div>
     </div>
