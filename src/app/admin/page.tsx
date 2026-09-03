@@ -1,10 +1,15 @@
 import Link from "next/link";
 
+import { toggleCouponAction, toggleTemplateAction } from "@/app/admin/actions";
 import { signOut } from "@/auth";
 import { Logo } from "@/components/chrome/logo";
+import { CouponForm } from "@/components/admin/coupon-form";
 import { GrantForm } from "@/components/admin/grant-form";
+import { TemplateForm } from "@/components/admin/template-form";
 import { getAdminStats, listRecentSites } from "@/lib/admin";
-import { formatDate } from "@/lib/utils";
+import { listCoupons } from "@/lib/coupons";
+import { listAllTemplates } from "@/lib/templates-db";
+import { formatBRL, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -14,9 +19,11 @@ export const dynamic = "force-dynamic";
  * (SPEC 8.7 e CLAUDE.md regra 11: sem motion ambiental aqui também).
  */
 export default async function AdminPage() {
-  const [stats, sites] = await Promise.all([
+  const [stats, sites, coupons, templates] = await Promise.all([
     getAdminStats(),
     listRecentSites(),
+    listCoupons(),
+    listAllTemplates(),
   ]);
 
   return (
@@ -71,6 +78,107 @@ export default async function AdminPage() {
           admin (nunca como se o Mercado Pago tivesse cobrado).
         </p>
         <GrantForm />
+      </section>
+
+      <section className="admin__section">
+        <h2 className="field__label">Cupons</h2>
+        <p className="field__hint mb-3">
+          Some as vagas: percentual e valor fixo aplicam antes do bump.
+        </p>
+        <CouponForm />
+
+        {coupons.length > 0 ? (
+          <ul className="panel__list mt-4">
+            {coupons.map((coupon) => (
+              <li key={coupon.id} className="panel__item">
+                <div className="panel__item-main">
+                  <p className="panel__item-title">{coupon.code}</p>
+                  <p className="panel__item-meta">
+                    <span>
+                      {coupon.type === "percent"
+                        ? `${coupon.value}%`
+                        : formatBRL(coupon.value)}
+                    </span>
+                    <span aria-hidden>·</span>
+                    <span data-numeric>
+                      {coupon.uses}
+                      {coupon.maxUses ? ` / ${coupon.maxUses}` : ""} usos
+                    </span>
+                    {coupon.validUntil ? (
+                      <>
+                        <span aria-hidden>·</span>
+                        <span>até {formatDate(coupon.validUntil)}</span>
+                      </>
+                    ) : null}
+                    {!coupon.active ? (
+                      <>
+                        <span aria-hidden>·</span>
+                        <span>desativado</span>
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+
+                <form action={toggleCouponAction}>
+                  <input type="hidden" name="id" value={coupon.id} />
+                  <input
+                    type="hidden"
+                    name="nextActive"
+                    value={coupon.active ? "false" : "true"}
+                  />
+                  <button type="submit" className="btn-quiet">
+                    {coupon.active ? "Desativar" : "Ativar"}
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </section>
+
+      <section className="admin__section">
+        <h2 className="field__label">Templates do editor</h2>
+        <p className="field__hint mb-3">
+          Entram no seletor de formato do editor assim que criados — sem
+          deploy. Desativar não apaga: páginas antigas continuam com o
+          formato que escolheram.
+        </p>
+        <TemplateForm />
+
+        {templates.length > 0 ? (
+          <ul className="panel__list mt-4">
+            {templates.map((template) => (
+              <li key={template.id} className="panel__item">
+                <div className="panel__item-main">
+                  <p className="panel__item-title">{template.name}</p>
+                  <p className="panel__item-meta">
+                    <span>{template.id}</span>
+                    <span aria-hidden>·</span>
+                    <span>{template.preset.blocks.join(" → ")}</span>
+                    {!template.active ? (
+                      <>
+                        <span aria-hidden>·</span>
+                        <span>desativado</span>
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+
+                <form action={toggleTemplateAction}>
+                  <input type="hidden" name="id" value={template.id} />
+                  <input
+                    type="hidden"
+                    name="nextActive"
+                    value={template.active ? "false" : "true"}
+                  />
+                  <button type="submit" className="btn-quiet">
+                    {template.active ? "Desativar" : "Ativar"}
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </section>
 
       <section className="admin__section">

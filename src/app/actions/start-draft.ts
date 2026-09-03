@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { ensureAnonId } from "@/lib/anon";
 import { defaultContent, DEFAULT_TEMPLATE } from "@/lib/blocks/defaults";
 import { createDraft } from "@/lib/drafts";
-import { getTemplate } from "@/lib/templates";
+import { getTemplateById } from "@/lib/templates-db";
 
 /**
  * Começar uma página — SPEC 8.2, sem o passo de escolher ocasião.
@@ -18,7 +18,7 @@ import { getTemplate } from "@/lib/templates";
 export async function startDraft(formData?: FormData) {
   const requested = formData?.get("template");
   const template =
-    typeof requested === "string" && getTemplate(requested)
+    typeof requested === "string" && (await getTemplateById(requested))
       ? requested
       : DEFAULT_TEMPLATE;
 

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { defaultContent } from "@/lib/blocks/defaults";
 import { parseSiteContent } from "@/lib/blocks/schema";
+import { TEMPLATES } from "@/lib/templates";
 import {
   HISTORY_DEBOUNCE_MS,
   findBlock,
@@ -102,6 +103,12 @@ describe("editor store", () => {
     const tipos = () =>
       useEditorStore.getState().content?.blocks.map((b) => b.type) ?? [];
 
+    // `applyTemplate` não resolve mais id → preset (isso mora em
+    // `lib/templates.ts`, banco incluído, desde SPEC 8.9); o store recebe o
+    // par pronto. "linha-do-tempo" segue existindo nos padrões de fábrica só
+    // para este teste ter um preset de verdade para aplicar.
+    const linhaDoTempo = TEMPLATES.find((t) => t.id === "linha-do-tempo")!;
+
     it("remonta a moldura sem apagar o que foi escrito", () => {
       // A promessa inteira da ação está neste caso: reordenar não pode
       // recriar bloco, senão o texto vai junto.
@@ -110,7 +117,7 @@ describe("editor store", () => {
         .getState()
         .patchBlockProps(letter.id, { text: "não me apaga" });
 
-      useEditorStore.getState().applyTemplate("linha-do-tempo");
+      useEditorStore.getState().applyTemplate(linhaDoTempo);
 
       expect(findBlock(useEditorStore.getState().content, "letter")?.props.text).toBe(
         "não me apaga",
@@ -118,7 +125,7 @@ describe("editor store", () => {
     });
 
     it("põe os blocos na ordem do preset", () => {
-      useEditorStore.getState().applyTemplate("linha-do-tempo");
+      useEditorStore.getState().applyTemplate(linhaDoTempo);
 
       const ordem = tipos();
       expect(ordem[0]).toBe("hero");
@@ -129,7 +136,7 @@ describe("editor store", () => {
     it("cria o bloco opcional que o formato pede e a página não tem", () => {
       expect(tipos()).not.toContain("timeline");
 
-      useEditorStore.getState().applyTemplate("linha-do-tempo");
+      useEditorStore.getState().applyTemplate(linhaDoTempo);
 
       expect(tipos()).toContain("timeline");
     });
@@ -137,7 +144,7 @@ describe("editor store", () => {
     it("mantém bloco que o formato não pede, antes do rodapé", () => {
       useEditorStore.getState().addBlock("music");
       // "linha-do-tempo" não inclui música: ela tem de sobreviver à troca.
-      useEditorStore.getState().applyTemplate("linha-do-tempo");
+      useEditorStore.getState().applyTemplate(linhaDoTempo);
 
       const ordem = tipos();
       expect(ordem).toContain("music");
@@ -145,19 +152,12 @@ describe("editor store", () => {
     });
 
     it("aplica paleta, fonte e efeito do preset", () => {
-      useEditorStore.getState().applyTemplate("linha-do-tempo");
+      useEditorStore.getState().applyTemplate(linhaDoTempo);
 
       const theme = useEditorStore.getState().content?.theme;
       expect(theme?.template).toBe("linha-do-tempo");
       expect(theme?.palette).toBe("ambar");
       expect(theme?.effect).toBe("none");
-    });
-
-    it("ignora formato desconhecido em vez de zerar a página", () => {
-      const antes = tipos();
-      useEditorStore.getState().applyTemplate("nao-existe");
-
-      expect(tipos()).toEqual(antes);
     });
   });
 

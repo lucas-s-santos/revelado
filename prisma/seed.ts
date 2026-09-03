@@ -41,8 +41,10 @@ async function main() {
   for (const template of TEMPLATES) {
     const data = {
       name: template.name,
+      hint: template.hint,
+      icon: template.icon,
       previewUrl: template.previewUrl,
-      preset: { theme: template.preset },
+      preset: template.preset,
       planRequired: template.planRequired,
       order: template.order,
       active: true,

@@ -8,7 +8,7 @@ import {
   optionalBlock,
   type OptionalBlockType,
 } from "@/lib/blocks/defaults";
-import { getTemplate } from "@/lib/templates";
+import type { TemplateSeed } from "@/lib/templates";
 import type {
   Block,
   BlockType,
@@ -60,7 +60,7 @@ export interface EditorState {
   /** Liga um bloco opcional (música, linha do tempo). Idempotente. */
   addBlock: (type: OptionalBlockType) => void;
   /** Troca o formato: remonta a moldura sem tocar no que foi escrito. */
-  applyTemplate: (templateId: string) => void;
+  applyTemplate: (template: Pick<TemplateSeed, "id" | "preset">) => void;
   removeBlock: (blockId: string) => void;
   addMedia: (mediaIds: string[]) => void;
   removeMedia: (mediaId: string) => void;
@@ -178,12 +178,9 @@ export const useEditorStore = create<EditorState>()(
        *    rodapé. Sumir com ele apagaria trabalho — e é a pessoa quem tira,
        *    no passo dele.
        */
-      applyTemplate: (templateId) =>
+      applyTemplate: (template) =>
         set((state) => {
           if (!state.content) return state;
-
-          const template = getTemplate(templateId);
-          if (!template) return state;
 
           const { preset } = template;
 
