@@ -114,7 +114,8 @@ export type OptionalBlockType =
   | "capsule"
   | "reasons"
   | "stats"
-  | "video";
+  | "video"
+  | "guestbook";
 
 export function optionalBlock(type: OptionalBlockType): Block {
   if (type === "video") {
@@ -173,6 +174,19 @@ export function optionalBlock(type: OptionalBlockType): Block {
       props: {
         openAt: daquiUmaSemana.toISOString(),
         text: "",
+      },
+    });
+  }
+
+  if (type === "guestbook") {
+    return block({
+      id: "guestbook",
+      type: "guestbook",
+      props: {
+        title: "Deixe um recado",
+        // Moderado por padrão: quem monta a página escolhe abrir mão da
+        // revisão, a revisão nunca escolhe abrir mão dela por ele.
+        moderated: true,
       },
     });
   }

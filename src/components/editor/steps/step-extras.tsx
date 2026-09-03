@@ -1,6 +1,7 @@
 "use client";
 
 import { StepCapsule } from "@/components/editor/steps/step-capsule";
+import { StepGuestbook } from "@/components/editor/steps/step-guestbook";
 import { StepQuiz } from "@/components/editor/steps/step-quiz";
 import { StepReasons } from "@/components/editor/steps/step-reasons";
 import { StepStats } from "@/components/editor/steps/step-stats";
@@ -15,13 +16,13 @@ import { StepVideo } from "@/components/editor/steps/step-video";
  * tamanho do trabalho, e pedem várias decisões onde há uma só — "quero mais
  * alguma coisa nessa página?".
  *
- * Cabem cinco aqui porque todos começam FECHADOS: quem não quiser nenhum vê
- * cinco cartões e segue. No dia em que um deles nascer aberto, esta etapa vira
+ * Cabem seis aqui porque todos começam FECHADOS: quem não quiser nenhum vê
+ * seis cartões e segue. No dia em que um deles nascer aberto, esta etapa vira
  * uma tela longa demais e a conta muda.
  *
  * Cada bloco continua sendo o mesmo componente de antes, agora em modo
- * `aninhado`: sem cabeçalho próprio e sem "Pular", que aqui seriam cinco
- * títulos e cinco saídas na mesma tela. Ninguém foi reescrito; o que mudou foi
+ * `aninhado`: sem cabeçalho próprio e sem "Pular", que aqui seriam seis
+ * títulos e seis saídas na mesma tela. Ninguém foi reescrito; o que mudou foi
  * onde eles moram.
  *
  * **Tema e Letra ficaram de fora desta fusão de propósito.** Aqueles dois já
@@ -60,6 +61,10 @@ export function StepExtras() {
 
         <section className="extras__item">
           <StepCapsule aninhado />
+        </section>
+
+        <section className="extras__item">
+          <StepGuestbook aninhado />
         </section>
       </div>
     </div>

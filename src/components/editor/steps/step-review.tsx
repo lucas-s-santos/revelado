@@ -25,10 +25,12 @@ const STEP_OF_BLOCK: Partial<Record<BlockType, number>> = {
   letter: 4,
   music: 5,
   timeline: 6,
-  // Quiz, motivos e cápsula moram todos no passo "Extras" agora.
+  // Quiz, motivos, cápsula, números, vídeo e mural moram todos no passo
+  // "Extras" agora.
   quiz: 7,
   reasons: 7,
   capsule: 7,
+  guestbook: 7,
 };
 
 export function StepReview() {

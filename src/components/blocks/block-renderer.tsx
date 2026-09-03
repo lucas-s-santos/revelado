@@ -1,6 +1,7 @@
 import { registry } from "@/components/blocks/registry";
 import { Reveal } from "@/components/motion/reveal";
 import type { SiteContent } from "@/lib/blocks/schema";
+import type { GuestbookPublicEntry } from "@/lib/guestbook";
 import { cn } from "@/lib/utils";
 
 /**
@@ -30,6 +31,12 @@ export interface BlockRendererProps {
    * atravessa essa fronteira — o React derruba o render inteiro.
    */
   media?: Record<string, string>;
+  /**
+   * Recados aprovados + o slug para onde o formulário do mural envia. Só o
+   * mural usa — `undefined` no preview do editor, onde não existe recado de
+   * verdade (a página nem está no ar ainda).
+   */
+  guestbook?: { slug: string; entries: GuestbookPublicEntry[] };
   className?: string;
 }
 
@@ -38,6 +45,7 @@ export function BlockRenderer({
   mode,
   now,
   media,
+  guestbook,
   className,
 }: BlockRendererProps) {
   return (
@@ -61,6 +69,7 @@ export function BlockRenderer({
             props={block.props}
             {...(now !== undefined ? { now } : {})}
             {...(media ? { media } : {})}
+            {...(block.type === "guestbook" && guestbook ? { guestbook } : {})}
           />
         );
 

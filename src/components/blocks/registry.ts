@@ -3,6 +3,7 @@ import { CounterBlock } from "@/components/blocks/counter-block";
 import { ReasonsBlock } from "@/components/blocks/reasons-block";
 import { FooterBlock } from "@/components/blocks/footer-block";
 import { GalleryBlock } from "@/components/blocks/gallery-block";
+import { GuestbookBlock } from "@/components/blocks/guestbook-block";
 import { HeroBlock } from "@/components/blocks/hero-block";
 import { LetterBlock } from "@/components/blocks/letter-block";
 import { MusicBlock } from "@/components/blocks/music-block";
@@ -111,7 +112,8 @@ export const registry: Record<BlockType, BlockDefinition> = {
     icon: "message-square",
     plan: "especial",
     unique: true,
-    ready: false,
+    ready: true,
+    component: GuestbookBlock,
   },
   map: { label: "Mapa", icon: "map-pin", plan: "especial", ready: false },
   video: {
