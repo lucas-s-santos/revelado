@@ -6257,12 +6257,215 @@
   }
 
   /* --- Admin (SPEC 8.9) --------------------------------------------------
-   * Mesma base sóbria do `.panel` (CLAUDE.md regra 11: zero motion aqui). */
+   * Sóbrio de propósito (CLAUDE.md regra 11: zero motion aqui) — mas sóbrio
+   * não é cru. Cartão, sombra rasa e hierarquia tipográfica fazem a diferença
+   * sem precisar de nenhum efeito ambiental. */
+
+  .admin-shell {
+    max-width: 980px;
+    margin-inline: auto;
+    padding: 1rem 1.25rem 4rem;
+  }
+
+  .admin-shell__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.75rem 1.25rem;
+  }
+
+  .admin-shell__content {
+    padding-top: 1.5rem;
+  }
+
+  /* Rolagem horizontal no celular (vira barra de abas), coluna fixa à
+     esquerda a partir de 720px — o mesmo breakpoint do resto do painel. */
+  .admin-nav {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.1);
+  }
+
+  .admin-nav__link {
+    flex: none;
+    padding: 0.5rem 0.9rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.85rem;
+    color: rgb(var(--color-ink-muted));
+    white-space: nowrap;
+  }
+
+  .admin-nav__link:hover {
+    color: rgb(var(--color-ink));
+    background: rgb(var(--color-ink) / 0.05);
+  }
+
+  .admin-nav__link[aria-current="page"] {
+    color: rgb(var(--color-accent));
+    background: rgb(var(--color-accent) / 0.12);
+    font-weight: 500;
+  }
+
+  .admin-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.75rem;
+  }
+
+  .admin-page__title {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+  }
+
+  .admin-page__lede {
+    margin-top: -1.25rem;
+    font-size: 0.9rem;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  .admin-page__grid {
+    display: grid;
+    grid-template-columns: minmax(260px, 340px) 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+
+  @media (max-width: 720px) {
+    .admin-page__grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .admin-card {
+    padding: 1.25rem 1.4rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.08);
+    box-shadow: var(--shadow-card);
+  }
+
+  .admin-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .admin-card__title {
+    font-size: 1.05rem;
+    font-weight: 500;
+  }
+
+  .admin-card__hint {
+    margin-top: -0.4rem;
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+    color: rgb(var(--color-ink-muted));
+  }
+
+  /* Os forms de admin (CouponForm, PlanForm...) já são `.fieldset`; isto só
+     empresta a mesma moldura de `.admin-card` para eles, sem duplicar JSX. */
+  .admin-form-card {
+    padding: 1.25rem 1.4rem;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-surface));
+    border: 1px solid rgb(var(--color-ink) / 0.08);
+    box-shadow: var(--shadow-card);
+  }
+
+  .admin-table {
+    width: 100%;
+    margin-top: 1rem;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  .admin-table th {
+    padding: 0.5rem 0.6rem;
+    text-align: left;
+    font-weight: 500;
+    color: rgb(var(--color-ink-muted));
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.1);
+  }
+
+  .admin-table td {
+    padding: 0.5rem 0.6rem;
+    border-bottom: 1px solid rgb(var(--color-ink) / 0.06);
+  }
+
+  .admin-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .admin-search__icon {
+    position: absolute;
+    left: 0.85rem;
+    color: rgb(var(--color-ink-muted));
+    pointer-events: none;
+  }
+
+  .admin-search .input {
+    padding-left: 2.2rem;
+  }
+
+  /* `<details>`: recolhido é só a linha da lista, sem JS nenhum. */
+  .admin-site__details summary {
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .admin-site__details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .admin-site__summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .admin-site__panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 0.85rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid rgb(var(--color-ink) / 0.08);
+  }
+
+  .site-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .site-actions__inline {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .site-actions__inline .input {
+    max-width: 20rem;
+  }
+
+  .site-actions__row {
+    display: flex;
+    gap: 0.5rem;
+  }
+
   .admin__stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 0.75rem;
-    margin-bottom: 2.5rem;
   }
 
   .admin__stat {
@@ -6283,10 +6486,6 @@
     margin-top: 0.2rem;
     font-size: 0.76rem;
     color: rgb(var(--color-ink-muted));
-  }
-
-  .admin__section {
-    margin-bottom: 2.5rem;
   }
 
   .admin__plans {

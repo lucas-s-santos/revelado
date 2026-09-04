@@ -15,7 +15,7 @@ export function PlanForm({ plan }: { plan: AdminPlanSummary }) {
   );
 
   return (
-    <form action={formAction} className="fieldset max-w-sm">
+    <form action={formAction} className="fieldset admin-form-card max-w-sm">
       <input type="hidden" name="id" value={plan.id} />
 
       <p className="field__label">{plan.name}</p>

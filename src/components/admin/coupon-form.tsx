@@ -13,7 +13,7 @@ export function CouponForm() {
   );
 
   return (
-    <form action={formAction} className="fieldset max-w-sm">
+    <form action={formAction} className="fieldset admin-form-card max-w-sm">
       <div className="field">
         <label htmlFor="code" className="field__label">
           Código

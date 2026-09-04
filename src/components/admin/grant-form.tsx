@@ -14,7 +14,7 @@ export function GrantForm() {
   );
 
   return (
-    <form action={formAction} className="fieldset max-w-sm">
+    <form action={formAction} className="fieldset admin-form-card max-w-sm">
       <div className="field">
         <label htmlFor="slug" className="field__label">
           Link da página
