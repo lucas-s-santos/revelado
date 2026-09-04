@@ -19,7 +19,7 @@ export function TemplateForm() {
   );
 
   return (
-    <form action={formAction} className="fieldset max-w-sm">
+    <form action={formAction} className="fieldset admin-form-card max-w-sm">
       <div className="field">
         <label htmlFor="tpl-id" className="field__label">
           Identificador

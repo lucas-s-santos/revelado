@@ -4,9 +4,15 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { auth } from "@/auth";
-import { grantFreeSite } from "@/lib/admin";
+import {
+  deleteSite,
+  grantFreeSite,
+  resendPublishedEmail,
+  setSiteIndexable,
+} from "@/lib/admin";
 import { blockProps } from "@/lib/blocks/schema";
 import { createCoupon, setCouponActive } from "@/lib/coupons";
+import { renameDraftSlug } from "@/lib/drafts";
 import { PALETTE_IDS } from "@/lib/palettes";
 import { PLAN_IDS } from "@/lib/plans";
 import { ICON_IDS } from "@/lib/templates";
@@ -56,6 +62,7 @@ export async function grantFreeSiteAction(
   const result = await grantFreeSite(parsed.data);
   if (!result.ok) return { ok: false, message: result.error };
 
+  revalidatePath("/admin/paginas");
   revalidatePath("/admin");
   return { ok: true, message: `Publicada: /p/${result.slug}` };
 }
@@ -110,7 +117,7 @@ export async function createCouponAction(
 
   if (!result.ok) return { ok: false, message: result.error };
 
-  revalidatePath("/admin");
+  revalidatePath("/admin/cupons");
   return { ok: true, message: `Cupom ${parsed.data.code} criado.` };
 }
 
@@ -124,7 +131,7 @@ export async function toggleCouponAction(formData: FormData): Promise<void> {
   if (typeof id !== "string" || !id) return;
 
   await setCouponActive(id, nextActive);
-  revalidatePath("/admin");
+  revalidatePath("/admin/cupons");
 }
 
 const templateSchema = z.object({
@@ -212,7 +219,7 @@ export async function createTemplateAction(
 
   if (!result.ok) return { ok: false, message: result.error };
 
-  revalidatePath("/admin");
+  revalidatePath("/admin/templates");
   return { ok: true, message: `Template "${parsed.data.name}" criado.` };
 }
 
@@ -226,7 +233,7 @@ export async function toggleTemplateAction(formData: FormData): Promise<void> {
   if (typeof id !== "string" || !id) return;
 
   await setTemplateActive(id, nextActive);
-  revalidatePath("/admin");
+  revalidatePath("/admin/templates");
 }
 
 const planSchema = z.object({
@@ -313,7 +320,7 @@ export async function updatePlanAction(
   if (!result.ok) return { ok: false, message: result.error };
 
   revalidatePath("/");
-  revalidatePath("/admin");
+  revalidatePath("/admin/planos");
   return { ok: true, message: "Plano atualizado." };
 }
 
@@ -333,5 +340,112 @@ export async function moderateEntryAction(formData: FormData): Promise<void> {
   if (typeof id !== "string" || !id) return;
 
   await moderateEntry(id, approve);
+  revalidatePath("/admin/mural");
+}
+
+// --- Páginas (SPEC 8.9: busca de pedido, reenvio de e-mail) ----------------
+
+/** Sem `useActionState`: é um botão de alternar, não precisa de estado local. */
+export async function setIndexableAction(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (session?.user.role !== "ADMIN") return;
+
+  const id = formData.get("id");
+  const indexable = formData.get("indexable") === "true";
+  if (typeof id !== "string" || !id) return;
+
+  await setSiteIndexable(id, indexable);
+  revalidatePath("/admin/paginas");
+}
+
+/**
+ * Sem confirmação de duas etapas: é soft delete (SPEC 7.1, `deletedAt`) — a
+ * linha continua no banco, só some das listas. Reversível direto no banco se
+ * precisar, então não pede o teatro de "digite EXCLUIR para confirmar".
+ */
+export async function deleteSiteAction(formData: FormData): Promise<void> {
+  const session = await auth();
+  if (session?.user.role !== "ADMIN") return;
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return;
+
+  await deleteSite(id);
+  revalidatePath("/admin/paginas");
   revalidatePath("/admin");
+}
+
+export interface ResendFormState {
+  ok: boolean;
+  message: string | null;
+}
+
+export async function resendEmailAction(
+  _prev: ResendFormState,
+  formData: FormData,
+): Promise<ResendFormState> {
+  const session = await auth();
+  if (session?.user.role !== "ADMIN") {
+    return { ok: false, message: "Sem acesso." };
+  }
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) {
+    return { ok: false, message: "Página não encontrada." };
+  }
+
+  const result = await resendPublishedEmail(id);
+  if (!result.ok) return { ok: false, message: result.error };
+
+  return { ok: true, message: "E-mail reenviado." };
+}
+
+const renameSchema = z.object({
+  id: z.string().min(1),
+  apelido: z.string().min(1, "Digite o novo começo do link."),
+});
+
+export interface RenameFormState {
+  ok: boolean;
+  message: string | null;
+}
+
+/**
+ * Reusa `renameDraftSlug` — a mesma função do editor, com a mesma regra:
+ * recusa em página já publicada (o QR já foi impresso, SPEC 7.1). Não existe
+ * "forçar mesmo assim": mudar o link de uma página publicada quebraria todo
+ * QR já entregue, admin ou não.
+ */
+export async function renameSiteSlugAction(
+  _prev: RenameFormState,
+  formData: FormData,
+): Promise<RenameFormState> {
+  const session = await auth();
+  if (session?.user.role !== "ADMIN") {
+    return { ok: false, message: "Sem acesso." };
+  }
+
+  const parsed = renameSchema.safeParse({
+    id: formData.get("id"),
+    apelido: formData.get("apelido"),
+  });
+  if (!parsed.success) {
+    return {
+      ok: false,
+      message: parsed.error.issues[0]?.message ?? "Dados inválidos.",
+    };
+  }
+
+  const result = await renameDraftSlug(parsed.data.id, parsed.data.apelido);
+  if (!result.ok) {
+    const mensagens = {
+      "not-found": "Página não encontrada.",
+      published: "Página publicada não muda de link — o QR já foi impresso.",
+      invalid: result.detail ?? "Link inválido.",
+    };
+    return { ok: false, message: mensagens[result.reason] };
+  }
+
+  revalidatePath("/admin/paginas");
+  return { ok: true, message: `Novo link: /p/${result.draft.slug}` };
 }
