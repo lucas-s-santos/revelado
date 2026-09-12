@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { readAnonId } from "@/lib/anon";
+import { isDraftOwner } from "@/lib/anon";
 import { validateForPublish } from "@/lib/blocks/schema";
 import { applyCoupon } from "@/lib/coupons";
 import { getDraft } from "@/lib/drafts";
 import { createPixCharge } from "@/lib/mercadopago";
 import { attachCharge, createOrder } from "@/lib/orders";
 import { orderTotalCents, PLAN_IDS, type PlanId } from "@/lib/plans";
+import { limitOr429 } from "@/lib/rate-limit";
+import { logDenied } from "@/lib/security-log";
 
 /**
  * Cria o pedido e a cobrança — SPEC 9.1.
@@ -29,6 +31,13 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Cada chamada abre uma cobrança de verdade no provedor (SPEC 9.4).
+  const limited = await limitOr429(
+    "checkout",
+    "Muitas tentativas de pagamento seguidas. Espere um minuto.",
+  );
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -57,7 +66,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (draft.anonId && draft.anonId !== (await readAnonId())) {
+  if (!(await isDraftOwner(draft.anonId))) {
+    await logDenied("owner-mismatch", { rota: "checkout", draftId });
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }
 

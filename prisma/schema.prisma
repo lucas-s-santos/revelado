@@ -127,18 +127,22 @@ model Plan {
 }
 
 model Order {
-  id          String      @id @default(cuid())
-  userId      String
-  siteId      String
-  planId      String
-  bumpForever Boolean     @default(false)
-  amountCents Int
-  couponId    String?
-  status      OrderStatus @default(PENDING)
-  provider    String      @default("mercadopago")
-  providerRef String?     @unique
-  paidAt      DateTime?
-  createdAt   DateTime    @default(now())
+  id           String      @id @default(cuid())
+  userId       String
+  siteId       String
+  planId       String
+  bumpForever  Boolean     @default(false)
+  amountCents  Int
+  couponId     String?
+  status       OrderStatus @default(PENDING)
+  provider     String      @default("mercadopago")
+  providerRef  String?     @unique
+  // Copia-e-cola do Pix. Sem isto, recarregar a tela de pagamento perde o
+  // código e a pessoa fica sem como pagar (SPEC 8.5).
+  pixCode      String?
+  pixExpiresAt DateTime?
+  paidAt       DateTime?
+  createdAt    DateTime    @default(now())
 
   user   User    @relation(fields: [userId], references: [id])
   site   Site    @relation(fields: [siteId], references: [id])
@@ -147,6 +151,7 @@ model Order {
 
   @@index([status, createdAt])
   @@index([siteId])
+  @@index([pixExpiresAt])
 }
 
 enum OrderStatus {

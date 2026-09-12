@@ -1,10 +1,12 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { randomInt, randomUUID } from "node:crypto";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { migrate } from "@/lib/blocks/migrate";
+import { revalidateSite } from "@/lib/cache";
 import { parseSiteContent, type SiteContent } from "@/lib/blocks/schema";
 import { db, notDeleted } from "@/lib/db";
+import { deleteSiteMedia } from "@/lib/r2";
 
 /**
  * Rascunhos — o lado servidor do requisito mais importante do editor:
@@ -363,16 +365,95 @@ export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
   });
 }
 
+/** O slug já existe? Ignora `deletedAt`: apagada ou não, a vaga está ocupada. */
+async function slugTaken(slug: string): Promise<boolean> {
+  if (!hasDatabase) {
+    try {
+      const files = await readdir(DEV_DIR);
+      for (const file of files) {
+        if (!file.endsWith(".json")) continue;
+        const record = await devRead(file.replace(/\.json$/, ""));
+        if (record?.slug === slug) return true;
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  }
+
+  const site = await db.site.findUnique({
+    where: { slug },
+    select: { id: true },
+  });
+  return site !== null;
+}
+
 /**
  * Slug com sufixo aleatório — SPEC 9.4: não pode ser adivinhável, senão dá para
  * varrer as páginas dos outros. Imutável depois de publicado (SPEC 7.1).
+ *
+ * Duas coisas que o sorteio precisa ter e antes não tinha:
+ *  - **`randomInt` do `node:crypto`**, não `Math.random`. O sufixo é a única
+ *    coisa que separa a página de quem não deveria vê-la, e `Math.random` é
+ *    previsível a partir de saídas anteriores — quem coletasse alguns slugs
+ *    poderia derivar os próximos;
+ *  - **conferência de colisão**. O slug é `@unique` no banco: sem conferir,
+ *    um empate vira erro 500 na cara de quem estava criando a página.
  */
 async function generateSlug(occasionId: string): Promise<string> {
   const alphabet = "abcdefghijkmnpqrstuvwxyz23456789"; // sem 0/o/1/l
-  const suffix = Array.from(
-    { length: 8 },
-    () => alphabet[Math.floor(Math.random() * alphabet.length)],
-  ).join("");
 
-  return `${occasionId}-${suffix}`;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const suffix = Array.from({ length: 8 }, () =>
+      alphabet.charAt(randomInt(alphabet.length)),
+    ).join("");
+
+    const slug = `${occasionId}-${suffix}`;
+    if (!(await slugTaken(slug))) return slug;
+  }
+
+  // Cinco empates seguidos em 32^8 não acontece: se aconteceu, alguma coisa
+  // está errada no sorteio. Cai para um sufixo maior em vez de insistir.
+  return `${occasionId}-${randomUUID().replace(/-/g, "").slice(0, 12)}`;
+}
+
+/**
+ * Exclusão a pedido da pessoa — SPEC 9.4: "direito de exclusão apagando também
+ * o R2".
+ *
+ * Três coisas acontecem, nesta ordem, e a ordem importa:
+ *  1. as fotos saem do R2. É o único lugar de onde não dá para recuperar por
+ *     engano depois, e é o que a LGPD cobra;
+ *  2. o site vira `deletedAt` no banco (soft delete, SPEC 7.1) — o histórico da
+ *     venda continua existindo para a contabilidade, o conteúdo não;
+ *  3. o cache do slug cai, senão a página continua servindo do ISR por mais uma
+ *     hora depois de apagada.
+ *
+ * O slug **não** é liberado: `slugTaken` ignora `deletedAt` de propósito. Um QR
+ * Code impresso não pode um dia apontar para a página de outra pessoa.
+ */
+export async function deleteSite(id: string): Promise<boolean> {
+  const draft = await getDraft(id);
+  if (!draft) return false;
+
+  const removed = await deleteSiteMedia(id).catch((error: unknown) => {
+    // Falha no storage não pode impedir a exclusão do conteúdo: o pedido da
+    // pessoa vale mais. Fica registrado para varredura posterior.
+    console.error(`[exclusao:${id}] mídias não saíram do R2`, error);
+    return 0;
+  });
+
+  if (!hasDatabase) {
+    await rm(join(DEV_DIR, `${id}.json`), { force: true });
+  } else {
+    await db.site.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  revalidateSite(draft.slug);
+  console.warn(`[exclusao:${id}] site apagado, ${removed} mídias removidas`);
+
+  return true;
 }

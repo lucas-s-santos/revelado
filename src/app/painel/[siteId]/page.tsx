@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
 import { CopyLink } from "@/components/painel/copy-link";
 import { Logo } from "@/components/chrome/logo";
-import { readAnonId } from "@/lib/anon";
+import { isDraftOwner } from "@/lib/anon";
 import { revalidateSite } from "@/lib/cache";
-import { getDraft, updateSitePrivacy } from "@/lib/drafts";
+import { deleteSite, getDraft, updateSitePrivacy } from "@/lib/drafts";
+import { logDenied } from "@/lib/security-log";
 import { hashPassword } from "@/lib/site-password";
 import { formatDate } from "@/lib/utils";
 import { viewsFor } from "@/lib/views";
@@ -32,13 +33,16 @@ export const dynamic = "force-dynamic";
  */
 export default async function SiteDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ siteId: string }>;
+  searchParams: Promise<{ erro?: string }>;
 }) {
   const { siteId } = await params;
+  const { erro } = await searchParams;
 
   const draft = await getDraft(siteId);
-  if (!draft || !(await isOwner(draft.anonId))) notFound();
+  if (!draft || !(await isDraftOwner(draft.anonId))) notFound();
 
   const published = draft.status === "PUBLISHED";
   const views = published ? await viewsFor(draft.id) : 0;
@@ -60,7 +64,13 @@ export default async function SiteDetailPage({
     "use server";
 
     const owned = await getDraft(siteId);
-    if (!owned || !(await isOwner(owned.anonId))) notFound();
+    if (!owned || !(await isDraftOwner(owned.anonId))) {
+      await logDenied("owner-mismatch", {
+        rota: "painel.savePassword",
+        siteId,
+      });
+      notFound();
+    }
 
     const password = String(formData.get("senha") ?? "").trim();
 
@@ -77,12 +87,42 @@ export default async function SiteDetailPage({
     "use server";
 
     const owned = await getDraft(siteId);
-    if (!owned || !(await isOwner(owned.anonId))) notFound();
+    if (!owned || !(await isDraftOwner(owned.anonId))) notFound();
 
     await updateSitePrivacy(siteId, { indexable: !owned.indexable });
 
     revalidateSite(owned.slug);
     revalidatePath(`/painel/${siteId}`);
+  }
+
+  /**
+   * Exclusão — SPEC 8.7 e 9.4 (direito de exclusão).
+   *
+   * A confirmação é digitada, não um `confirm()`: apagar é irreversível e o QR
+   * Code impresso deixa de funcionar junto. Quem chegou aqui por engano não
+   * consegue apagar sem ler o que está fazendo.
+   */
+  async function removeSite(formData: FormData) {
+    "use server";
+
+    const owned = await getDraft(siteId);
+    if (!owned || !(await isDraftOwner(owned.anonId))) {
+      await logDenied("owner-mismatch", { rota: "painel.removeSite", siteId });
+      notFound();
+    }
+
+    if (
+      String(formData.get("confirmacao") ?? "")
+        .trim()
+        .toUpperCase() !== "APAGAR"
+    ) {
+      redirect(`/painel/${siteId}?erro=confirmacao`);
+    }
+
+    await deleteSite(siteId);
+
+    revalidatePath("/painel");
+    redirect("/painel");
   }
 
   return (
@@ -94,9 +134,7 @@ export default async function SiteDetailPage({
         </Link>
       </header>
 
-      <p className="eyebrow">
-        {published ? "no ar" : "ainda não publicada"}
-      </p>
+      <p className="eyebrow">{published ? "no ar" : "ainda não publicada"}</p>
       <h1 className="panel__title">{title}</h1>
 
       {published ? (
@@ -194,6 +232,43 @@ export default async function SiteDetailPage({
         </section>
       ) : null}
 
+      <section className="detail__card detail__card--danger">
+        <h2 className="detail__card-title">Apagar esta página</h2>
+        <p className="field__hint">
+          Some o conteúdo, somem as fotos e o QR Code impresso para de abrir.
+          Não tem como desfazer. O registro da compra continua guardado.
+        </p>
+
+        <form action={removeSite} className="detail__form">
+          <label htmlFor="confirmacao" className="field__label">
+            Para confirmar, digite <strong>APAGAR</strong>
+          </label>
+
+          <div className="detail__form-row">
+            <input
+              id="confirmacao"
+              name="confirmacao"
+              type="text"
+              autoComplete="off"
+              className="input"
+              placeholder="APAGAR"
+              aria-describedby={
+                erro === "confirmacao" ? "erro-confirmacao" : undefined
+              }
+            />
+            <button type="submit" className="btn-danger">
+              Apagar para sempre
+            </button>
+          </div>
+
+          {erro === "confirmacao" ? (
+            <p id="erro-confirmacao" role="alert" className="field__error">
+              A página continua no ar. Digite APAGAR para confirmar.
+            </p>
+          ) : null}
+        </form>
+      </section>
+
       <div className="detail__foot">
         <Link
           href={published ? `/p/${draft.slug}` : `/editor/${draft.id}`}
@@ -204,10 +279,4 @@ export default async function SiteDetailPage({
       </div>
     </main>
   );
-}
-
-/** Sem login ainda: o dono é o cookie anônimo que criou o rascunho. */
-async function isOwner(draftAnonId: string | null): Promise<boolean> {
-  if (!draftAnonId) return true; // rascunho já migrado para uma conta
-  return (await readAnonId()) === draftAnonId;
 }

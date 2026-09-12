@@ -1,4 +1,5 @@
 import { revalidateSite } from "@/lib/cache";
+import { consumeCoupon } from "@/lib/coupons";
 import { getDraft } from "@/lib/drafts";
 import { db } from "@/lib/db";
 import { sendPublishedEmail } from "@/lib/email";
@@ -48,6 +49,10 @@ export async function publishSite(order: Order): Promise<PublishResult | null> {
   // antes do pagamento confirmar continuaria vendo "página não encontrada" pela
   // duração inteira do ISR — no dia em que o presente ia ser entregue.
   revalidateSite(draft.slug);
+
+  // Cupom só gasta um uso quando o dinheiro entrou — nunca no checkout, senão
+  // carrinho abandonado queima o estoque do cupom (SPEC 7.1, model Coupon).
+  if (order.couponCode) await consumeCoupon(order.couponCode);
 
   // O e-mail é o comprovante da compra: falhar aqui não pode desfazer a
   // publicação, que é o que a pessoa pagou. Erro vai para o log e para o Sentry.

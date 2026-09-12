@@ -2513,6 +2513,39 @@
     margin-top: 1.5rem;
   }
 
+  /* --- exclusão (SPEC 8.7 e 9.4) ---------------------------------------
+     Sóbrio como o resto do painel. O vermelho aparece só na borda e no botão:
+     apagar a própria página é uma decisão, não um susto. */
+  .detail__card--danger {
+    border-color: rgb(var(--color-danger) / 0.35);
+  }
+
+  .detail__card--danger .detail__card-title {
+    color: rgb(var(--color-danger));
+  }
+
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 1.1rem;
+    border-radius: var(--radius-pill, 999px);
+    font-size: 0.9rem;
+    color: rgb(var(--color-danger));
+    background: rgb(var(--color-danger) / 0.1);
+    border: 1px solid rgb(var(--color-danger) / 0.4);
+    transition: background 160ms ease;
+  }
+
+  .btn-danger:hover {
+    background: rgb(var(--color-danger) / 0.18);
+  }
+
+  .btn-danger:focus-visible {
+    outline: 2px solid rgb(var(--color-danger));
+    outline-offset: 3px;
+  }
+
   /* --- portão da senha (SPEC 8.8) -------------------------------------- */
   .gate {
     min-height: 100dvh;

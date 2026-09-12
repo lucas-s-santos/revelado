@@ -7,6 +7,66 @@ const withBundleAnalyzer = bundleAnalyzer({
   openAnalyzer: false,
 });
 
+/**
+ * Cabeçalhos de segurança — SPEC 9.4.
+ *
+ * Antes não havia nenhum: qualquer site podia embutir o checkout num iframe
+ * invisível (clickjacking), o navegador podia adivinhar o tipo de um arquivo
+ * servido e a URL completa da página publicada vazava no `referer` para todo
+ * link externo — inclusive o slug, que é o que separa a página de quem não
+ * deveria vê-la.
+ *
+ * A CSP lista o que o app **de fato** carrega: fontes são self-host do
+ * `next/font`, o único embed externo é Spotify/YouTube (SPEC, regra 10: nunca
+ * hospedar áudio) e as fotos vêm do host público do R2.
+ *
+ * `'unsafe-inline'` em `script-src` é o preço de não ter middleware: o Next
+ * injeta o script de hidratação inline e a alternativa é nonce por requisição,
+ * que obrigaria toda página a virar dinâmica — e a página publicada é estática
+ * por decisão de produto (SPEC 8.8). Quando houver middleware, troque por nonce.
+ */
+const R2_HOST = process.env.NEXT_PUBLIC_R2_PUBLIC_HOST
+  ? `https://${process.env.NEXT_PUBLIC_R2_PUBLIC_HOST}`
+  : "";
+
+const POSTHOG_HOST =
+  process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
+
+const csp = [
+  `default-src 'self'`,
+  // `unsafe-eval` só em desenvolvimento: é o que o Fast Refresh usa.
+  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === "production" ? "" : " 'unsafe-eval'"}`,
+  `style-src 'self' 'unsafe-inline'`,
+  `img-src 'self' data: blob: ${R2_HOST}`.trim(),
+  `font-src 'self' data:`,
+  `connect-src 'self' ${POSTHOG_HOST} https://*.sentry.io ${R2_HOST}`.trim(),
+  // Spotify e YouTube: o embed oficial é a única forma de música (regra 10).
+  `frame-src https://open.spotify.com https://www.youtube.com https://www.youtube-nocookie.com`,
+  `media-src 'self' ${R2_HOST}`.trim(),
+  `object-src 'none'`,
+  `base-uri 'self'`,
+  `form-action 'self'`,
+  // Ninguém embute o Revelado: o checkout dentro de iframe alheio é golpe.
+  `frame-ancestors 'none'`,
+  `upgrade-insecure-requests`,
+].join("; ");
+
+const securityHeaders = [
+  { key: "Content-Security-Policy", value: csp },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  // O slug é segredo: não vai junto no `referer` de um link para fora.
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=()",
+  },
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
+];
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
@@ -26,6 +86,9 @@ const nextConfig: NextConfig = {
   experimental: {
     // Tree-shaking dos barrels dessas libs (orçamento de JS — SPEC 10).
     optimizePackageImports: ["motion", "lucide-react"],
+  },
+  async headers() {
+    return [{ source: "/:path*", headers: securityHeaders }];
   },
 };
 

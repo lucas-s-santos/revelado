@@ -83,10 +83,7 @@ export default async function PanelPage() {
                       <Link href={`/p/${draft.slug}`} className="btn-quiet">
                         Ver
                       </Link>
-                      <Link
-                        href={`/painel/${draft.id}`}
-                        className="btn-quiet"
-                      >
+                      <Link href={`/painel/${draft.id}`} className="btn-quiet">
                         Gerenciar
                       </Link>
                     </>

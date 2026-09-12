@@ -69,130 +69,128 @@ export default async function OpengraphImage({
       : null;
 
   return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          // Com foto, o texto assenta embaixo, sobre o véu escuro. Sem foto,
-          // centralizado — senão o card fica com meia tela vazia em cima.
-          justifyContent: photo ? "flex-end" : "center",
-          position: "relative",
-          background: NOIR,
-          color: PAPER,
-          fontFamily: "sans-serif",
-        }}
-      >
-        {photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photo}
-            alt=""
-            width={size.width}
-            height={size.height}
-            style={{
-              position: "absolute",
-              inset: 0,
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-            }}
-          />
-        ) : null}
-
-        {/* Véu escuro: garante o contraste do texto sobre qualquer foto. */}
-        <div
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        // Com foto, o texto assenta embaixo, sobre o véu escuro. Sem foto,
+        // centralizado — senão o card fica com meia tela vazia em cima.
+        justifyContent: photo ? "flex-end" : "center",
+        position: "relative",
+        background: NOIR,
+        color: PAPER,
+        fontFamily: "sans-serif",
+      }}
+    >
+      {photo ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={photo}
+          alt=""
+          width={size.width}
+          height={size.height}
           style={{
             position: "absolute",
             inset: 0,
-            background: photo
-              ? `linear-gradient(180deg, rgba(10,7,17,.35) 0%, rgba(10,7,17,.92) 72%)`
-              : `radial-gradient(900px 520px at 18% -10%, ${NOIR_2} 0%, ${NOIR} 70%)`,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
           }}
         />
+      ) : null}
 
-        {/* Luz de segurança: a assinatura visual da Câmara Escura (SPEC 4).
-         *
-         * Círculo com paradas explícitas e `borderRadius`: o Satori não entende
-         * `closest-side` e, sem isso, o brilho vaza até a borda da caixa e
-         * aparece como um retângulo magenta no card. */}
+      {/* Véu escuro: garante o contraste do texto sobre qualquer foto. */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: photo
+            ? `linear-gradient(180deg, rgba(10,7,17,.35) 0%, rgba(10,7,17,.92) 72%)`
+            : `radial-gradient(900px 520px at 18% -10%, ${NOIR_2} 0%, ${NOIR} 70%)`,
+        }}
+      />
+
+      {/* Luz de segurança: a assinatura visual da Câmara Escura (SPEC 4).
+       *
+       * Círculo com paradas explícitas e `borderRadius`: o Satori não entende
+       * `closest-side` e, sem isso, o brilho vaza até a borda da caixa e
+       * aparece como um retângulo magenta no card. */}
+      <div
+        style={{
+          position: "absolute",
+          top: -300,
+          left: -220,
+          width: 760,
+          height: 760,
+          borderRadius: 760,
+          background: `radial-gradient(circle, ${accent(0.32)} 0%, ${accent(0.12)} 45%, rgba(10,7,17,0) 70%)`,
+        }}
+      />
+
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+          gap: 18,
+          padding: photo ? "0 72px 72px" : "0 72px",
+        }}
+      >
         <div
           style={{
-            position: "absolute",
-            top: -300,
-            left: -220,
-            width: 760,
-            height: 760,
-            borderRadius: 760,
-            background: `radial-gradient(circle, ${accent(0.32)} 0%, ${accent(0.12)} 45%, rgba(10,7,17,0) 70%)`,
-          }}
-        />
-
-        <div
-          style={{
-            position: "relative",
             display: "flex",
-            flexDirection: "column",
-            gap: 18,
-            padding: photo ? "0 72px 72px" : "0 72px",
+            alignItems: "center",
+            gap: 14,
+            fontSize: 22,
+            letterSpacing: 4,
+            textTransform: "uppercase",
+            color: accent(1),
           }}
         >
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              fontSize: 22,
-              letterSpacing: 4,
-              textTransform: "uppercase",
-              color: accent(1),
+              width: 12,
+              height: 12,
+              borderRadius: 999,
+              background: accent(1),
             }}
-          >
-            <div
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: 999,
-                background: accent(1),
-              }}
-            />
-            {locked ? "página privada" : "revelado"}
-          </div>
-
-          <div
-            style={{
-              fontSize: title.length > 42 ? 66 : 88,
-              lineHeight: 1.05,
-              letterSpacing: -1.5,
-              maxWidth: 980,
-            }}
-          >
-            {title}
-          </div>
-
-          <div style={{ fontSize: 32, color: MUTED, maxWidth: 860 }}>
-            {subtitle}
-          </div>
+          />
+          {locked ? "página privada" : "revelado"}
         </div>
 
-        {/* Filete do accent na base — a mesma marca d'água do rodapé do produto.
-         * Posicionado, e não como último filho do flex: com o conteúdo
-         * centralizado (card sem foto) ele seria centralizado junto e cortaria
-         * a imagem ao meio. */}
         <div
           style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 10,
-            background: accent(1),
+            fontSize: title.length > 42 ? 66 : 88,
+            lineHeight: 1.05,
+            letterSpacing: -1.5,
+            maxWidth: 980,
           }}
-        />
+        >
+          {title}
+        </div>
+
+        <div style={{ fontSize: 32, color: MUTED, maxWidth: 860 }}>
+          {subtitle}
+        </div>
       </div>
-    ),
+
+      {/* Filete do accent na base — a mesma marca d'água do rodapé do produto.
+       * Posicionado, e não como último filho do flex: com o conteúdo
+       * centralizado (card sem foto) ele seria centralizado junto e cortaria
+       * a imagem ao meio. */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 10,
+          background: accent(1),
+        }}
+      />
+    </div>,
     size,
   );
 }

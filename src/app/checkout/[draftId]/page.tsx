@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { CheckoutForm } from "@/components/checkout/checkout-form";
-import { readAnonId } from "@/lib/anon";
+import { isDraftOwner } from "@/lib/anon";
 import { validateForPublish } from "@/lib/blocks/schema";
 import { getDraft } from "@/lib/drafts";
 
@@ -27,7 +27,7 @@ export default async function CheckoutPage({ params }: { params: Params }) {
   const draft = await getDraft(draftId);
 
   if (!draft) notFound();
-  if (draft.anonId && draft.anonId !== (await readAnonId())) notFound();
+  if (!(await isDraftOwner(draft.anonId))) notFound();
 
   // Já publicada: a pessoa voltou no histórico. Manda para o lugar certo.
   if (draft.status === "PUBLISHED") redirect(`/p/${draft.slug}`);

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 
+import { allow } from "@/lib/rate-limit";
+import { logDenied } from "@/lib/security-log";
 import { verifyPassword, unlockCookie, unlockToken } from "@/lib/site-password";
 import { getPublishedSite, sitePasswordHash } from "@/lib/sites";
 
@@ -21,9 +23,10 @@ type Params = Promise<{ slug: string }>;
  * que é o que a SPEC 8.8 pede da página publicada ("funciona com JS desabilitado
  * até o primeiro paint").
  *
- * Sem contador de tentativas por enquanto — o slug já tem sufixo aleatório
- * (SPEC 9.4), então não há lista de páginas para varrer. Está anotado no README
- * como pendência se a senha virar barreira séria.
+ * Força bruta: oito tentativas por IP a cada cinco minutos (`LIMITS.password`).
+ * O slug já tem sufixo aleatório (SPEC 9.4), então não existe lista de páginas
+ * para varrer — mas uma vez que o link circula no WhatsApp, a senha é a única
+ * barreira que resta, e barreira sem contador não é barreira.
  */
 export default async function PasswordPage({
   params,
@@ -44,12 +47,18 @@ export default async function PasswordPage({
   async function unlock(formData: FormData) {
     "use server";
 
+    if (!(await allow("password"))) {
+      await logDenied("rate-limited", { rota: "senha", slug });
+      redirect(`/p/${slug}/senha?erro=espera`);
+    }
+
     const password = String(formData.get("senha") ?? "");
     const target = await getPublishedSite(slug);
     if (!target?.hasPassword) redirect(`/p/${slug}`);
 
     const stored = await sitePasswordHash(slug);
     if (!stored || !(await verifyPassword(password, stored))) {
+      await logDenied("bad-password", { slug });
       redirect(`/p/${slug}/senha?erro=1`);
     }
 
@@ -90,7 +99,9 @@ export default async function PasswordPage({
 
         {erro ? (
           <p role="alert" className="field__error">
-            Essa senha não abriu. Confira com quem te enviou o link.
+            {erro === "espera"
+              ? "Muitas tentativas seguidas. Espere cinco minutos e tente de novo."
+              : "Essa senha não abriu. Confira com quem te enviou o link."}
           </p>
         ) : null}
 

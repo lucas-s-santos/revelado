@@ -131,6 +131,16 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     create: { email: input.email },
   });
 
+  // O cupom vira vínculo, não texto solto: é o que permite consumir o uso
+  // quando o pagamento confirma e saber depois qual cupom trouxe qual venda
+  // (SPEC 7.1, model Coupon).
+  const coupon = input.couponCode
+    ? await db.coupon.findUnique({
+        where: { code: input.couponCode.trim().toUpperCase() },
+        select: { id: true },
+      })
+    : null;
+
   const order = await db.order.create({
     data: {
       id: record.id,
@@ -139,6 +149,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
       planId: input.planId,
       bumpForever: input.bumpForever,
       amountCents: input.amountCents,
+      couponId: coupon?.id ?? null,
     },
   });
 
@@ -158,7 +169,10 @@ export async function getOrder(id: string): Promise<Order | null> {
 
   const order = await db.order.findUnique({
     where: { id },
-    include: { user: { select: { email: true } } },
+    include: {
+      user: { select: { email: true } },
+      coupon: { select: { code: true } },
+    },
   });
   if (!order) return null;
 
@@ -168,13 +182,13 @@ export async function getOrder(id: string): Promise<Order | null> {
     planId: order.planId as PlanId,
     bumpForever: order.bumpForever,
     amountCents: order.amountCents,
-    couponCode: null,
+    couponCode: order.coupon?.code ?? null,
     email: order.user.email,
     status: order.status,
     provider: order.provider,
     providerRef: order.providerRef,
-    pixCode: null,
-    pixExpiresAt: null,
+    pixCode: order.pixCode,
+    pixExpiresAt: order.pixExpiresAt,
     paidAt: order.paidAt,
     createdAt: order.createdAt,
   };
@@ -200,7 +214,11 @@ export async function attachCharge(
 
   await db.order.update({
     where: { id },
-    data: { providerRef: charge.providerRef },
+    data: {
+      providerRef: charge.providerRef,
+      pixCode: charge.pixCode ?? null,
+      pixExpiresAt: charge.pixExpiresAt ?? null,
+    },
   });
 }
 

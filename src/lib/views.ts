@@ -120,7 +120,10 @@ async function notifyFirstView(slug: string): Promise<void> {
 
     await sendFirstViewEmail({ to: email, slug });
   } catch (error) {
-    console.error(`[views:${slug}] notificação de primeira visita falhou`, error);
+    console.error(
+      `[views:${slug}] notificação de primeira visita falhou`,
+      error,
+    );
   }
 }
 
@@ -146,7 +149,8 @@ async function ownerEmailFor(siteId: string): Promise<string | null> {
         status: string;
         email: string;
       };
-      if (order.siteId === siteId && order.status === "PAID") return order.email;
+      if (order.siteId === siteId && order.status === "PAID")
+        return order.email;
     }
   } catch {
     return null;

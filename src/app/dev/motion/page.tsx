@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { MotionLab } from "@/components/dev/motion-lab";
 
@@ -15,5 +16,8 @@ export const metadata: Metadata = {
  * Página de desenvolvimento — não entra no funil e não é indexada.
  */
 export default function MotionLabPage() {
+  // Página de aceite de fase: não tem por que existir em produção (SPEC 9.4).
+  if (process.env.NODE_ENV === "production") notFound();
+
   return <MotionLab />;
 }
