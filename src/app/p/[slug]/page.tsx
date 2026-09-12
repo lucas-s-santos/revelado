@@ -95,11 +95,7 @@ export default async function PublishedPage({ params }: { params: Params }) {
   const expired = isExpired(site);
 
   return (
-    <main
-      className="published"
-      data-occasion={site.content.theme.palette}
-      data-effect={site.content.theme.effect}
-    >
+    <main className="published" data-occasion={site.content.theme.palette}>
       {expired ? (
         // SPEC 8.8: expirada mostra CTA de renovação, nunca 404.
         <section className="published__expired">

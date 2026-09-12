@@ -2,14 +2,19 @@
  * Seed — SPEC Fase 0: ocasiões, templates e planos.
  * Idempotente: roda quantas vezes quiser (upsert por id).
  *
- * Os defaultBlocks/preset aqui são o mínimo viável para o motor de blocos da
- * Fase 3 ter o que ler. Quando `lib/blocks/defaults.ts` existir (Fase 3), este
- * arquivo passa a importar de lá em vez de montar o JSON à mão.
+ * Ocasiões, planos e templates vêm todos de `src/lib/`: o app precisa deles sem
+ * banco configurado, então o código é a fonte de verdade e o banco é a cópia.
+ * Este arquivo não inventa nenhum dos três.
+ *
+ * `defaultBlocks` ainda monta o JSON à mão porque o `Occasion.defaultBlocks` do
+ * banco é o que o admin vai editar sem deploy (SPEC 8.9) — é uma cópia que pode
+ * divergir de propósito, ao contrário dos templates.
  */
 import { type Prisma, PrismaClient } from "@prisma/client";
 
 import { OCCASIONS, type OccasionId } from "../src/lib/occasions";
 import { PLANS } from "../src/lib/plans";
+import { templatesFor } from "../src/lib/templates";
 
 const prisma = new PrismaClient();
 
@@ -71,47 +76,6 @@ function defaultBlocks(occasion: OccasionId): Prisma.InputJsonArray {
   }
 }
 
-/** Um template neutro e um "clássico" por ocasião (SPEC 8.3 pede 6 a 8; o resto
- * entra com os presets de arte da Fase 3). */
-function templatesFor(occasion: OccasionId): Array<{
-  id: string;
-  name: string;
-  previewUrl: string;
-  planRequired: string | null;
-  preset: Prisma.InputJsonObject;
-}> {
-  return [
-    {
-      id: `${occasion}-essencial`,
-      name: "Essencial",
-      previewUrl: `/templates/${occasion}-essencial.webp`,
-      planRequired: null,
-      preset: {
-        theme: {
-          template: `${occasion}-essencial`,
-          palette: occasion,
-          font: "mixed",
-          effect: "none",
-        },
-      },
-    },
-    {
-      id: `${occasion}-revelacao`,
-      name: "Revelação",
-      previewUrl: `/templates/${occasion}-revelacao.webp`,
-      planRequired: "especial",
-      preset: {
-        theme: {
-          template: `${occasion}-revelacao`,
-          palette: occasion,
-          font: "serif",
-          effect: occasion === "namorados" ? "hearts" : "stars",
-        },
-      },
-    },
-  ];
-}
-
 async function main() {
   for (const plan of PLANS) {
     await prisma.plan.upsert({
@@ -158,16 +122,31 @@ async function main() {
     });
 
     for (const template of templatesFor(occasion.id)) {
+      // O preset é só o tema: os blocos vêm da ocasião (ver lib/templates.ts).
+      const preset: Prisma.InputJsonObject = {
+        theme: {
+          template: template.id,
+          palette: occasion.id,
+          font: template.font,
+          effect: template.effect,
+        },
+      };
+
+      // `previewUrl` fica vazio de propósito: a SPEC 8.3 pede preview real, e
+      // ele é o próprio BlockRenderer dentro do PhoneFrame. A coluna existe no
+      // schema e some quando a Fase 7 revisar o model.
+      const data = {
+        occasionId: occasion.id,
+        name: template.name,
+        previewUrl: "",
+        preset,
+        planRequired: template.planRequired,
+      };
+
       await prisma.template.upsert({
         where: { id: template.id },
-        update: {
-          occasionId: occasion.id,
-          name: template.name,
-          previewUrl: template.previewUrl,
-          preset: template.preset,
-          planRequired: template.planRequired,
-        },
-        create: { ...template, occasionId: occasion.id },
+        update: data,
+        create: { id: template.id, ...data },
       });
       templateCount += 1;
     }
