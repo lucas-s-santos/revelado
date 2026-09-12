@@ -25,6 +25,12 @@ export default defineConfig({
     command: "pnpm build && pnpm start",
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    timeout: 300_000,
+    env: {
+      // O e2e percorre o funil inteiro várias vezes por minuto de um IP só —
+      // o padrão que o limitador existe para barrar. A folga só tem efeito
+      // fora de um host (ver lib/rate-limit.ts); num deploy é ignorada.
+      RATE_LIMIT_TEST_SLACK: "50",
+    },
   },
 });
