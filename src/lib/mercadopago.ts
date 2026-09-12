@@ -1,5 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
+import { HOSTED } from "@/lib/env";
+
 /**
  * Mercado Pago — SPEC 2, 8.5 e 9.1.
  *
@@ -158,9 +160,13 @@ export function verifySignature(
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
 
   if (!secret) {
-    // Em produção, webhook de pagamento sem segredo é porta aberta: quem
+    // Hospedado, webhook de pagamento sem segredo é porta aberta: quem
     // descobrir a URL publica página de graça. Recusa em vez de confiar.
-    if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    // A pergunta é "estou hospedado?" e não "NODE_ENV é production?" de
+    // propósito: `pnpm start` local roda como production, e é assim que o e2e
+    // percorre pago/pendente/expirado/reembolsado pelo simulador. Decidir por
+    // NODE_ENV desligaria justamente o teste que prova que esta trava funciona.
+    if (HOSTED) {
       console.error(
         "[webhook] MERCADOPAGO_WEBHOOK_SECRET ausente em produção — notificação recusada.",
       );

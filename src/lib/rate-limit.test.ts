@@ -1,6 +1,23 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { hit, LIMITS, resetLimits, retryAfter } from "@/lib/rate-limit";
+// O limitador lê o IP do cabeçalho e a identidade do cookie. Os dois vêm do
+// contexto de requisição do Next, que não existe em teste — então entram aqui.
+const fakeIp = { value: "200.0.0.1" };
+const fakeAnon = { value: null as string | null };
+
+vi.mock("next/headers", () => ({
+  headers: () =>
+    Promise.resolve({
+      get: (name: string) => (name === "x-forwarded-for" ? fakeIp.value : null),
+    }),
+}));
+
+vi.mock("@/lib/anon", () => ({
+  readAnonId: () => Promise.resolve(fakeAnon.value),
+}));
+
+const { allow, hit, LIMITS, resetLimits, retryAfter } =
+  await import("@/lib/rate-limit");
 
 /**
  * Teto de requisições — SPEC 9.4.
@@ -60,5 +77,70 @@ describe("limite de requisições", () => {
     // Senha é a única barreira da página privada: janela longa, cota curta.
     expect(LIMITS.password.limit).toBeLessThanOrEqual(10);
     expect(LIMITS.password.windowMs).toBeGreaterThanOrEqual(60_000);
+  });
+
+  it("conta senha e QR por IP — limpar cookie não pode zerar a cota", () => {
+    expect(LIMITS.password.by).toBe("ip");
+    expect(LIMITS.qr.by).toBe("ip");
+  });
+});
+
+/**
+ * CGNAT — SPEC 1: 90% do tráfego é celular em 4G, e operadora móvel brasileira
+ * entrega dezenas de pessoas pelo mesmo endereço público. Este bloco existe
+ * porque contar só por IP transformaria o pico do Dia das Mães em recusa em
+ * massa de gente legítima.
+ */
+describe("várias pessoas atrás do mesmo IP", () => {
+  beforeEach(() => {
+    resetLimits();
+    fakeIp.value = "200.0.0.1";
+    fakeAnon.value = null;
+  });
+
+  it("não faz um visitante gastar a cota do outro no mesmo IP", async () => {
+    fakeAnon.value = "pessoa-a";
+    for (let i = 0; i < LIMITS.drafts.limit; i++) {
+      expect(await allow("drafts")).toBe(true);
+    }
+    expect(await allow("drafts")).toBe(false);
+
+    // Mesmo IP, outra pessoa: chega com a cota inteira.
+    fakeAnon.value = "pessoa-b";
+    expect(await allow("drafts")).toBe(true);
+  });
+
+  it("ainda assim segura um script que forja cookie novo a cada chamada", async () => {
+    const teto = LIMITS.drafts.limit * 10;
+    let passaram = 0;
+
+    // Cada chamada com identidade nova: o teto individual nunca fecha, e quem
+    // segura é o teto do IP.
+    for (let i = 0; i < teto + 20; i++) {
+      fakeAnon.value = `forjado-${i}`;
+      if (await allow("drafts")) passaram += 1;
+    }
+
+    expect(passaram).toBe(teto);
+  });
+
+  it("na senha, trocar de cookie não adianta — a conta é do IP", async () => {
+    for (let i = 0; i < LIMITS.password.limit; i++) {
+      fakeAnon.value = `cookie-${i}`;
+      expect(await allow("password")).toBe(true);
+    }
+
+    fakeAnon.value = "cookie-novo-em-folha";
+    expect(await allow("password")).toBe(false);
+  });
+
+  it("outro IP na senha continua com a cota cheia", async () => {
+    for (let i = 0; i < LIMITS.password.limit; i++) {
+      await allow("password");
+    }
+    expect(await allow("password")).toBe(false);
+
+    fakeIp.value = "200.0.0.2";
+    expect(await allow("password")).toBe(true);
   });
 });

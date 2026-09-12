@@ -10,6 +10,8 @@
  * Em produção isso não acontece: `assertR2Configured` derruba o deploy.
  */
 
+import { HOSTED } from "@/lib/env";
+
 export const R2_CONFIGURED = Boolean(
   process.env.R2_ACCOUNT_ID &&
   process.env.R2_ACCESS_KEY_ID &&
@@ -25,19 +27,10 @@ export const R2_CONFIGURED = Boolean(
  * o processo está — num servidor hospedado o disco é efêmero, e gravar nele
  * significaria perder as fotos no próximo deploy.
  *
- * A lista cobre os hosts que marcam presença por variável de ambiente. Antes
- * olhava só para a Vercel, o que deixava a rota de gravação em disco aberta em
- * qualquer outro lugar (Railway, Fly, Render, Cloud Run, um VPS em container).
+ * Quem responde "estou hospedado?" é `lib/env.ts`. Antes isto olhava só para a
+ * Vercel, o que deixava a rota de gravação em disco aberta em qualquer outro
+ * lugar (Railway, Fly, Render, Cloud Run, um VPS em container).
  */
-const HOSTED = Boolean(
-  process.env.VERCEL ||
-  process.env.RENDER ||
-  process.env.FLY_APP_NAME ||
-  process.env.RAILWAY_ENVIRONMENT ||
-  process.env.K_SERVICE ||
-  process.env.AWS_EXECUTION_ENV,
-);
-
 export const LOCAL_MEDIA_ENABLED = !R2_CONFIGURED && !HOSTED;
 
 /** Tipos aceitos no upload (SPEC 9.1: valida mime, tamanho e cota). */

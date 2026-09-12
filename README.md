@@ -275,6 +275,56 @@ travas são todas do lado do servidor e estão em três arquivos.
 - `AUTH_SECRET` — assina os links de `/sucesso` e os cookies de senha. Sem ela,
   o app usa um valor de reserva que é público e grita no log.
 
+### Dois defeitos que só o e2e encontrou
+
+Ambos na página publicada — a tela que é o produto entregue — e ambos invisíveis
+para os testes unitários e para qualquer conferência manual rápida.
+
+**1. Página com senha devolvia 500 em produção.** `/p/[slug]` declarava
+`revalidate = 3600` e `generateStaticParams`, o que faz o Next tratar a rota
+como geração estática. Ler cookie ali **não** "cai para dinâmico" como o
+comentário do arquivo afirmava — estoura `DYNAMIC_SERVER_USAGE`. Em `pnpm dev`
+funcionava, que é o pior tipo de bug.
+
+**2. Página com prazo quebrava a partir do segundo acesso.** A leitura passa por
+`unstable_cache`, que **serializa** o que guarda: na volta do cache, `expiresAt`
+não era mais `Date`, era a string ISO dele, e `isExpired` chamava `.getTime()`
+nela. O primeiro acesso funcionava (valor fresco) e o segundo dava 500. Valia
+para todo plano com `durationDays` — ou seja, dois dos três. Travado agora em
+`sites.test.ts`, que faz a data passar por `JSON.parse(JSON.stringify(...))`
+igual ao cache faz.
+
+### A página publicada deixou de ser estática — e por quê
+
+O e2e do funil encontrou um defeito que nenhum teste unitário pegaria: **toda
+página com senha devolvia 500 em produção**, em vez de mostrar o portão. Em
+`pnpm dev` funcionava, o que é o pior tipo de bug.
+
+A causa: `/p/[slug]` declarava `revalidate = 3600` e `generateStaticParams`, o
+que faz o Next tratar a rota como geração estática. Ler cookie ali **não** "cai
+para dinâmico" como o comentário do arquivo afirmava — estoura
+`DYNAMIC_SERVER_USAGE`.
+
+A rota agora é dinâmica. O que muda na prática:
+
+|                              | antes               | agora                               |
+| ---------------------------- | ------------------- | ----------------------------------- |
+| Página com senha             | **500**             | portão (307 → `/senha`)             |
+| Consulta ao banco por visita | não (cache por tag) | não (mesmo cache)                   |
+| Render no servidor           | não                 | ~15ms (medido; o estático faz ~4ms) |
+| Cache de CDN na frente       | sim                 | **não**                             |
+
+Os ~15ms não ameaçam o LCP < 1,5s da SPEC 10 — em 4G quem manda é a rede. O que
+se perde é o cache de borda, e com pico sazonal de 50x isso vira invocação de
+função por visita.
+
+**Como recuperar os dois**, quando valer a pena: o portão passa a morar só em
+`/p/[slug]/senha`. A página publicada volta a ser estática e, quando tem senha,
+redireciona para lá sem ler cookie nenhum (redirect estático é permitido); o
+portão, que já é `force-dynamic`, confere o cookie e renderiza o conteúdo com o
+mesmo `BlockRenderer`. Custo: quem destrava fica com `/senha` na barra de
+endereço. É uma decisão de produto, não técnica.
+
 ### Pendências conhecidas
 
 Cada uma está anotada também no lugar certo do código:
@@ -306,6 +356,9 @@ Cada uma está anotada também no lugar certo do código:
   digitada e purga do R2 junto — é o direito de exclusão da SPEC 9.4.
 - `/criar/[occasion]` (escolha de template, SPEC 8.3) não existe — o editor entra
   direto com o preset da ocasião.
+- **Reembolso não tira a página do ar.** O pedido vira `REFUNDED` e o site
+  continua publicado; o e2e trava esse comportamento para ele não mudar sem
+  querer. Se a regra de negócio for despublicar, o lugar é `transitionOrder`.
 - Modo avançado do editor é Fase 8 no próprio SPEC.
 
 `docs/MOTION-REFS.md` continua vazio — as Fases 1 e 2 seguiram a seção 6.3 do SPEC

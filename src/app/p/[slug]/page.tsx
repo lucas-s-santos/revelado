@@ -13,16 +13,25 @@ import { getPublishedSite, isExpired, sitePasswordHash } from "@/lib/sites";
  * A página publicada — SPEC 8.8. **A tela mais importante do sistema**: é o
  * produto entregue.
  *
- * Server Component, estática com ISR e revalidação por tag ao editar (ver
- * `lib/cache.ts`). Uma página viralizada não pode custar nem cair.
+ * Server Component. Os dados vêm do cache por tag (`lib/sites.ts`), invalidado
+ * ao publicar, trocar senha, mudar indexação ou excluir — uma página viralizada
+ * não faz uma consulta de banco por visita.
+ *
+ * **Por que a rota é dinâmica e não mais ISR.** O e2e do funil pegou: com
+ * `export const revalidate` e `generateStaticParams`, o Next trata esta rota
+ * como geração estática, e ler cookie ali não "cai para dinâmico" — estoura
+ * `DYNAMIC_SERVER_USAGE`. Na prática, **toda página com senha devolvia 500 em
+ * produção**, em vez do portão. O comentário antigo dizia o contrário e estava
+ * errado.
+ *
+ * O custo medido de renderizar por requisição é ~15ms contra ~4ms do estático:
+ * irrelevante para o orçamento de LCP (SPEC 10), que é dominado pela rede em
+ * 4G. O que se perde é o cache de CDN na frente — com pico sazonal de 50x, isso
+ * vira invocação de função por visita. Está anotado no README: a forma de ter
+ * os dois é o portão morar só em `/senha`, deixando esta rota sem cookie
+ * nenhum, ao preço de a pessoa destravada ficar naquela URL.
  */
-export const revalidate = 3600;
 export const dynamicParams = true;
-
-// Nada de pré-render no build: os slugs nascem quando as pessoas publicam.
-export function generateStaticParams() {
-  return [];
-}
 
 type Params = Promise<{ slug: string }>;
 
@@ -69,12 +78,8 @@ export default async function PublishedPage({ params }: { params: Params }) {
 
   if (!site) notFound();
 
-  // SPEC 8.8: com senha, ninguém vê o conteúdo antes de destravar.
-  //
-  // `cookies()` só é lido quando a página **tem** senha, e é essa condição que
-  // preserva o ISR: ler cookie marca o render como dinâmico, então uma página
-  // protegida sai do cache de rota (que é o correto — a resposta depende de quem
-  // pede) enquanto todas as outras continuam estáticas e baratas.
+  // SPEC 8.8: com senha, ninguém vê o conteúdo antes de destravar. O cookie só
+  // é lido quando existe senha — nas outras páginas nada disso roda.
   if (site.hasPassword) {
     const stored = await sitePasswordHash(slug);
     const store = await cookies();
