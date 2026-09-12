@@ -275,6 +275,28 @@ travas são todas do lado do servidor e estão em três arquivos.
 - `AUTH_SECRET` — assina os links de `/sucesso` e os cookies de senha. Sem ela,
   o app usa um valor de reserva que é público e grita no log.
 
+### Escolha do template (SPEC 8.3)
+
+`/criar/[occasion]` existe agora, estática para as oito ocasiões. Sete templates
+por ocasião (seis no memorial), e o preview é **real**: o mesmo `BlockRenderer`
+dentro do `PhoneFrame`, com o conteúdo exato que o rascunho vai nascer. Sem pasta
+de `.webp` — mais um lugar para o template e a imagem divergirem.
+
+Um template aqui é **só um tema**: tipografia e efeito ambiental. Ele não troca
+os blocos, porque trocar de template no editor apagaria o que a pessoa escreveu.
+
+Ao implementar a tela apareceu que **`theme.effect` não fazia nada**. O campo
+estava no schema, no zod, no seed e na página publicada desde a Fase 3, e nenhuma
+linha de CSS o lia — escolher "neve" ou "confete" não mudava nada em lugar
+nenhum. Agora existe, em CSS puro (nenhum JS por frame, SPEC 6.4), em `.blocks` e
+não no `<main>` da página publicada, para o preview do editor mostrar o mesmo que
+o presente entregue. `prefers-reduced-motion` para a animação e deixa a textura.
+
+**Divergência anotada da SPEC 8.2:** lá o rascunho nasce ao clicar na ocasião;
+aqui nasce ao clicar no template, uma tela depois. Criar no primeiro clique
+deixaria uma linha de banco para cada visitante que chega na escolha de template
+e desiste — e é exatamente ali que se desiste.
+
 ### Trabalhos agendados (SPEC 9.2)
 
 Três varreduras periódicas, em `lib/jobs.ts`, disparadas por cron da Vercel
@@ -381,8 +403,6 @@ Cada uma está anotada também no lugar certo do código:
   próprio. A página expirada já tem o CTA de renovação apontando para o painel.
   **Excluir já existe** (`lib/drafts.ts` → `deleteSite`), com confirmação
   digitada e purga do R2 junto — é o direito de exclusão da SPEC 9.4.
-- `/criar/[occasion]` (escolha de template, SPEC 8.3) não existe — o editor entra
-  direto com o preset da ocasião.
 - **Reembolso não tira a página do ar.** O pedido vira `REFUNDED` e o site
   continua publicado; o e2e trava esse comportamento para ele não mudar sem
   querer. Se a regra de negócio for despublicar, o lugar é `transitionOrder`.

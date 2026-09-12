@@ -9,59 +9,37 @@ import { track } from "@/lib/analytics";
 import { OCCASIONS } from "@/lib/occasions";
 
 /**
- * Grid de ocasiões que cria o rascunho — SPEC 8.2.
+ * Grid de ocasiões — SPEC 8.2.
  *
- * Aceite da tela: "rascunho criado no servidor **antes** da navegação". Por isso
- * o clique espera o POST responder. Enquanto espera, o card mostra o estado —
- * ninguém fica olhando para uma tela parada sem saber se clicou.
+ * O clique leva para `/criar/[occasion]`, a escolha do template (SPEC 8.3). O
+ * rascunho nasce lá, um clique depois — ver a divergência anotada na própria
+ * `/criar/[occasion]/page.tsx`.
+ *
+ * Navegação e não `fetch`: a página de destino é estática, então o clique é
+ * instantâneo e não há estado de espera para mostrar.
  */
 export function OccasionPicker() {
   const router = useRouter();
   const [creating, setCreating] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  async function choose(occasionId: string) {
+  function choose(occasionId: string) {
     if (creating) return;
 
     setCreating(occasionId);
-    setError(null);
     void track("occasion_selected", { occasion: occasionId, from: "criar" });
 
-    try {
-      const response = await fetch("/api/drafts", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ occasion: occasionId }),
-      });
-
-      if (!response.ok) throw new Error();
-
-      const draft = (await response.json()) as { id: string };
-      router.push(`/editor/${draft.id}`);
-    } catch {
-      setCreating(null);
-      // Erro explica o que houve e o que fazer (SPEC 11).
-      setError(
-        "Não deu para começar sua página agora. Verifique a conexão e toque de novo.",
-      );
-    }
+    router.push(`/criar/${occasionId}`);
   }
 
   return (
     <>
-      {error ? (
-        <p role="alert" className="create-page__error">
-          {error}
-        </p>
-      ) : null}
-
       <ul className="create-page__grid">
         {OCCASIONS.map((occasion) => (
           <li key={occasion.id} data-occasion={occasion.id}>
             <SpotlightCard accent={occasion.accent} className="h-full">
               <button
                 type="button"
-                onClick={() => void choose(occasion.id)}
+                onClick={() => choose(occasion.id)}
                 disabled={creating !== null}
                 aria-busy={creating === occasion.id}
                 className="occasion-card__link w-full text-left"

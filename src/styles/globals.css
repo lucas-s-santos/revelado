@@ -1064,6 +1064,141 @@
     --block-body-font: var(--font-sans);
   }
 
+  /* --- efeito ambiental (SPEC 7.2, theme.effect) -----------------------
+     O campo existia no schema, no seed, no zod e na página publicada desde a
+     Fase 3, e nenhuma linha de CSS o lia: escolher "neve" ou "confete" não
+     mudava nada em lugar nenhum. Fica aqui, no `.blocks`, e não no `<main>` da
+     página publicada, porque é o que faz o preview do editor mostrar o mesmo
+     que o presente entregue (regra inviolável 2).
+
+     Tudo em CSS puro: nenhum JS por frame (SPEC 6.4). São camadas de
+     `background-image` deslocadas por `background-position`, que o navegador
+     compõe sem tocar no layout.
+
+     As opacidades são baixas de propósito. Na primeira tentativa os corações
+     saíram grandes e chapados, disputando espaço com o contador — pior que não
+     ter efeito nenhum. O teto aqui é "textura", não "partícula": se der para
+     contar os corações, está forte demais (CLAUDE.md, identidade visual). */
+  .blocks {
+    position: relative;
+  }
+
+  .blocks[data-effect]:not([data-effect="none"])::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    /* Decorativo: `::before` já é invisível para leitor de tela (SPEC 11). */
+  }
+
+  .blocks > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Neve: três camadas de pontos em velocidades diferentes dão profundidade
+     sem precisar de partícula de verdade. */
+  .blocks[data-effect="snow"]::before {
+    background-image:
+      radial-gradient(
+        2px 2px at 20% 10%,
+        rgb(var(--color-paper) / 0.5),
+        transparent
+      ),
+      radial-gradient(
+        2px 2px at 70% 30%,
+        rgb(var(--color-paper) / 0.35),
+        transparent
+      ),
+      radial-gradient(
+        1px 1px at 45% 60%,
+        rgb(var(--color-paper) / 0.45),
+        transparent
+      );
+    background-size:
+      180px 180px,
+      240px 240px,
+      140px 140px;
+    animation: ambient-fall 26s linear infinite;
+  }
+
+  /* Estrelas: não caem, piscam. É o efeito do memorial, e movimento seria a
+     escolha errada ali. */
+  .blocks[data-effect="stars"]::before {
+    background-image:
+      radial-gradient(
+        1.5px 1.5px at 15% 20%,
+        rgb(var(--color-paper) / 0.6),
+        transparent
+      ),
+      radial-gradient(
+        1.5px 1.5px at 80% 15%,
+        rgb(var(--color-accent) / 0.5),
+        transparent
+      ),
+      radial-gradient(
+        1px 1px at 55% 45%,
+        rgb(var(--color-paper) / 0.5),
+        transparent
+      ),
+      radial-gradient(
+        1px 1px at 30% 75%,
+        rgb(var(--color-paper) / 0.4),
+        transparent
+      );
+    background-size: 260px 260px;
+    animation: ambient-twinkle 7s ease-in-out infinite;
+  }
+
+  /* Corações e confete usam SVG embutido: gradiente não desenha forma. Data URI
+     e não arquivo, para não custar uma requisição na página que precisa abrir
+     instantaneamente (SPEC 8.8). */
+  .blocks[data-effect="hearts"]::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill='%23E0508F'%3E%3Cpath d='M40 44c-1.6-2-4.4-1.6-5.2.8-.8 2 1.2 4 5.2 6.8 4-2.8 6-4.8 5.2-6.8-.8-2.4-3.6-2.8-5.2-.8z' fill-opacity='.16'/%3E%3Cpath d='M186 112c-1.2-1.5-3.3-1.2-3.9.6-.6 1.5.9 3 3.9 5.1 3-2.1 4.5-3.6 3.9-5.1-.6-1.8-2.7-2.1-3.9-.6z' fill-opacity='.12'/%3E%3Cpath d='M104 196c-1.2-1.5-3.3-1.2-3.9.6-.6 1.5.9 3 3.9 5.1 3-2.1 4.5-3.6 3.9-5.1-.6-1.8-2.7-2.1-3.9-.6z' fill-opacity='.1'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 260px 260px;
+    animation: ambient-fall 34s linear infinite;
+  }
+
+  .blocks[data-effect="confetti"]::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Crect x='30' y='38' width='5' height='2' rx='1' fill='%23F2B457' fill-opacity='.26' transform='rotate(24 30 38)'/%3E%3Crect x='158' y='82' width='4' height='2' rx='1' fill='%23E0508F' fill-opacity='.22' transform='rotate(-38 158 82)'/%3E%3Crect x='92' y='164' width='5' height='2' rx='1' fill='%2358D6D0' fill-opacity='.2' transform='rotate(62 92 164)'/%3E%3Crect x='202' y='196' width='4' height='2' rx='1' fill='%23F2B457' fill-opacity='.18' transform='rotate(-12 202 196)'/%3E%3C/svg%3E");
+    background-size: 240px 240px;
+    animation: ambient-fall 22s linear infinite;
+  }
+
+  @keyframes ambient-fall {
+    from {
+      background-position:
+        0 0,
+        0 0,
+        0 0;
+    }
+    to {
+      background-position:
+        0 720px,
+        0 960px,
+        0 560px;
+    }
+  }
+
+  @keyframes ambient-twinkle {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* Regra inviolável 14: `prefers-reduced-motion` desliga tudo. O efeito não
+     some — vira uma textura parada, que é decoração sem movimento. */
+  @media (prefers-reduced-motion: reduce) {
+    .blocks[data-effect]:not([data-effect="none"])::before {
+      animation: none;
+    }
+  }
+
   /* --- hero ------------------------------------------------------------ */
   .block-hero {
     position: relative;
@@ -1474,6 +1609,128 @@
   .occasion-card__cta[data-always] {
     opacity: 1;
     transform: none;
+  }
+
+  /* --- escolha do template (SPEC 8.3) ----------------------------------
+     Cada card traz um PhoneFrame de verdade dentro. A altura do preview é
+     fixa para os cards não dançarem enquanto os previews montam. */
+  .template-grid {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+    margin-top: 1.5rem;
+  }
+
+  .template-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    overflow: hidden;
+    text-align: left;
+    border-radius: var(--radius-md);
+    background: rgb(var(--color-noir-2));
+    border: 1px solid rgb(var(--color-paper) / 0.08);
+    transition:
+      border-color 180ms ease,
+      transform 180ms ease;
+  }
+
+  .template-card:hover,
+  .template-card:focus-visible {
+    border-color: rgb(var(--color-accent) / 0.55);
+  }
+
+  .template-card:focus-visible {
+    outline: 2px solid rgb(var(--color-accent));
+    outline-offset: 3px;
+  }
+
+  .template-card[aria-busy="true"] {
+    opacity: 0.6;
+  }
+
+  .template-card:disabled {
+    cursor: default;
+  }
+
+  /* Miniatura de verdade.
+     `--phone-scale` sozinho encolhe só a moldura: a tipografia continua no
+     tamanho de uma tela cheia e vaza pelas bordas. Para o card mostrar a
+     proporção real da página, o mockup é renderizado em tamanho natural e
+     reduzido por `transform` — e sai do fluxo, para os 390px dele não
+     definirem a largura do card. */
+  .template-card__preview {
+    position: relative;
+    /* Alto o bastante para o efeito ambiental aparecer: a 0.4 de escala as
+       partículas ficavam de 1px e o card não ajudava a escolher nada. */
+    height: 330px;
+    overflow: hidden;
+    background:
+      radial-gradient(
+        120% 80% at 50% 0%,
+        rgb(var(--color-accent) / 0.14) 0%,
+        transparent 60%
+      ),
+      rgb(var(--color-noir));
+    /* O preview é decorativo aqui: quem comanda é o nome e a descrição. */
+    pointer-events: none;
+    /* A página continua para baixo — o corte seco mentiria sobre isso. */
+    mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, #000 76%, transparent 100%);
+  }
+
+  .template-card__preview .phone-frame {
+    --phone-scale: 1;
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%) scale(0.52);
+    transform-origin: top center;
+  }
+
+  .template-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.9rem 1rem 1.1rem;
+  }
+
+  .template-card__name {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 1rem;
+  }
+
+  .template-card__plan {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgb(var(--color-accent));
+  }
+
+  .template-card__desc {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: rgb(var(--color-muted));
+  }
+
+  .template-card__cta {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    color: rgb(var(--color-accent));
+  }
+
+  /* Reduz o tamanho do preview quando a tela é estreita: o card já é a coluna
+     inteira, e 280px de mockup empurraria o texto para fora da dobra. */
+  @media (max-width: 420px) {
+    .template-card__preview {
+      height: 300px;
+    }
+
+    .template-card__preview .phone-frame {
+      transform: translateX(-50%) scale(0.46);
+    }
   }
 
   /* --- shell ----------------------------------------------------------- */

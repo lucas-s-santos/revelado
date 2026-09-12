@@ -17,6 +17,8 @@ const BUDGETS = [
   { route: "/page", label: "landing", limitKB: 220 },
   { route: "/p/[slug]/page", label: "página publicada", limitKB: 120 },
   { route: "/editor/[draftId]/page", label: "editor", limitKB: 300 },
+  // Seis previews reais numa tela só (SPEC 8.3) — vale vigiar.
+  { route: "/criar/[occasion]/page", label: "templates", limitKB: 220 },
 ];
 
 const manifestPath = join(process.cwd(), ".next", "app-build-manifest.json");

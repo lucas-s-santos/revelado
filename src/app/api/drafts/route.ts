@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { ensureAnonId } from "@/lib/anon";
-import { defaultContent } from "@/lib/blocks/defaults";
 import { createDraft } from "@/lib/drafts";
 import { OCCASION_IDS, type OccasionId } from "@/lib/occasions";
+import { contentForTemplate } from "@/lib/templates";
 import { limitOr429 } from "@/lib/rate-limit";
 
 /**
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const draft = await createDraft({
     occasionId: occasion,
     templateId: parsed.data.template ?? null,
-    content: defaultContent(occasion, parsed.data.template),
+    content: contentForTemplate(occasion, parsed.data.template),
     anonId,
   });
 

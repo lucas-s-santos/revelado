@@ -172,7 +172,9 @@ test.describe("os quatro desfechos do pagamento", () => {
 });
 
 test.describe("o caminho de quem monta a página", () => {
-  test("o rascunho nasce no servidor antes de navegar", async ({ page }) => {
+  test("ocasião, template e editor — o funil de criação inteiro", async ({
+    page,
+  }) => {
     await page.goto("/criar");
 
     await page
@@ -180,8 +182,49 @@ test.describe("o caminho de quem monta a página", () => {
       .getByRole("button")
       .click();
 
-    // Aceite da SPEC 8.2: a URL já traz o id que o servidor criou.
+    // SPEC 8.3: a escolha do template, com preview real dentro do mockup.
+    await expect(page).toHaveURL(/\/criar\/namorados/, { timeout: 20_000 });
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(
+      "clima",
+    );
+
+    const cards = page.locator(".template-card");
+    const quantos = await cards.count();
+    expect(quantos, "SPEC 8.3 pede de 6 a 8 templates").toBeGreaterThanOrEqual(
+      6,
+    );
+    expect(quantos).toBeLessThanOrEqual(8);
+
+    // Preview real e não imagem: cada card traz o PhoneFrame montado.
+    await expect(page.locator(".phone-frame").first()).toBeVisible();
+
+    await cards.first().click();
+
+    // O rascunho nasce no servidor e a URL já traz o id que ele criou.
     await expect(page).toHaveURL(/\/editor\/[\w-]+/, { timeout: 20_000 });
+    await expect(page.getByLabel("Título da capa")).toBeVisible();
+  });
+
+  test("o template escolhido chega no rascunho", async ({ page }) => {
+    await page.goto("/criar/casamento");
+
+    // "Manuscrito" é serifa sem efeito — dá para conferir no conteúdo salvo.
+    await page
+      .locator(".template-card")
+      .filter({ hasText: "Manuscrito" })
+      .click();
+
+    await expect(page).toHaveURL(/\/editor\/[\w-]+/, { timeout: 20_000 });
+
+    const draftId = page.url().split("/editor/")[1] ?? "";
+    const resposta = await page.request.get(`/api/drafts/${draftId}`);
+    const { content } = (await resposta.json()) as {
+      content: { theme: { template: string; font: string; effect: string } };
+    };
+
+    expect(content.theme.template).toBe("casamento-manuscrito");
+    expect(content.theme.font).toBe("serif");
+    expect(content.theme.effect).toBe("none");
   });
 
   test("fecha a aba, volta e encontra tudo salvo", async ({ page }) => {
