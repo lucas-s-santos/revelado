@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 
 import { Logo } from "@/components/chrome/logo";
 import { SuccessActions } from "@/components/checkout/success-actions";
+import { verifyAccessToken } from "@/lib/access-token";
+import { isDraftOwner } from "@/lib/anon";
 import { getDraft } from "@/lib/drafts";
 import { getOrder } from "@/lib/orders";
 
@@ -15,6 +17,7 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 type Params = Promise<{ orderId: string }>;
+type Search = Promise<{ t?: string }>;
 
 /**
  * `/sucesso/[orderId]` — SPEC 8.6.
@@ -22,14 +25,31 @@ type Params = Promise<{ orderId: string }>;
  * "Link · copiar · QR em PNG/SVG · PDF do cartão A6 · compartilhar (WhatsApp
  * primeiro) · upsell do cartão impresso. E-mail já enviado neste ponto."
  */
-export default async function SuccessPage({ params }: { params: Params }) {
+export default async function SuccessPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: Search;
+}) {
   const { orderId } = await params;
+  const { t } = await searchParams;
   const order = await getOrder(orderId);
 
   if (!order) notFound();
 
   const draft = await getDraft(order.siteId);
   if (!draft) notFound();
+
+  // Esta tela imprime o e-mail de quem comprou: sem porteiro, vira dado pessoal
+  // exposto por URL (SPEC 9.4, LGPD). Duas chaves abrem, e só elas — o cookie de
+  // quem montou a página, ou o token assinado que foi dentro do e-mail (é o que
+  // faz o link funcionar no computador depois de pagar no celular).
+  const allowed =
+    verifyAccessToken("order", orderId, t) ||
+    (await isDraftOwner(draft.anonId));
+
+  if (!allowed) notFound();
 
   // Chegou aqui sem o webhook ter confirmado: não mentir que está no ar.
   if (order.status !== "PAID") {

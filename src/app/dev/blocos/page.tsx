@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 
 import { BlockRenderer } from "@/components/blocks/block-renderer";
 import { registry } from "@/components/blocks/registry";
@@ -21,6 +22,9 @@ export const metadata: Metadata = {
  * modos; esta página é a prova visual.
  */
 export default function BlocksLabPage() {
+  // Página de aceite de fase: não tem por que existir em produção (SPEC 9.4).
+  if (process.env.NODE_ENV === "production") notFound();
+
   // Fixo, para os dois lados renderizarem exatamente o mesmo contador.
   const now = Date.parse("2026-07-26T15:00:00.000Z");
 

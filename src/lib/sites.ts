@@ -54,9 +54,7 @@ export async function getPublishedSite(
   return cached();
 }
 
-async function readPublishedSite(
-  slug: string,
-): Promise<PublishedSite | null> {
+async function readPublishedSite(slug: string): Promise<PublishedSite | null> {
   if (!hasDatabase) {
     if (slug === DEMO_SLUG) return demoSite();
 

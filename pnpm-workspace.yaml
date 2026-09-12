@@ -9,3 +9,15 @@ allowBuilds:
   prisma: true
   sharp: true
   unrs-resolver: true
+
+# O preset `eslint-config-next` carrega plugins que são dependência **dele**
+# (@next/eslint-plugin-next, eslint-plugin-react-hooks, @typescript-eslint/*).
+# Com o node_modules isolado do pnpm, o ESLint não enxerga nenhum deles a partir
+# da raiz e o `pnpm lint` morre antes de analisar uma linha — foi o que manteve
+# o portão de qualidade do CI caído.
+#
+# Hoisting em vez de declarar cópias no package.json: assim a versão continua
+# sendo a que o preset escolheu, sem risco de divergir dele numa atualização.
+publicHoistPattern:
+  - "*eslint*"
+  - "@typescript-eslint/*"

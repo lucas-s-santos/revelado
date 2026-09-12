@@ -11,6 +11,8 @@
  * este arquivo.
  */
 
+import { successUrl } from "@/lib/access-token";
+
 const RESEND_CONFIGURED = Boolean(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "Revelado <ola@revelado.com.br>";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -68,7 +70,9 @@ export async function sendPublishedEmail(input: {
   orderId: string;
 }): Promise<void> {
   const pageUrl = `${SITE_URL}/p/${input.slug}`;
-  const successUrl = `${SITE_URL}/sucesso/${input.orderId}`;
+  // Link assinado: funciona no computador de quem pagou no celular, sem abrir a
+  // tela para quem só adivinhou o id do pedido (SPEC 9.4).
+  const successLink = successUrl(SITE_URL, input.orderId);
 
   await send({
     to: input.to,
@@ -78,10 +82,10 @@ export async function sendPublishedEmail(input: {
       `<p style="line-height:1.6;color:#F6EFE6">Está pronta. Este é o link para presentear:</p>
        <p style="margin:16px 0"><a href="${pageUrl}" style="color:#F2B457">${pageUrl}</a></p>
        <p style="line-height:1.6;color:#9B90AA">Na página de sucesso você baixa o QR Code em PNG, SVG e o cartão A6 pronto para imprimir.</p>
-       <p style="margin:24px 0">${button(successUrl, "Baixar meu QR Code")}</p>
+       <p style="margin:24px 0">${button(successLink, "Baixar meu QR Code")}</p>
        <p style="line-height:1.6;color:#9B90AA;font-size:13px">Guarde este e-mail: é por ele que você edita a página depois.</p>`,
     ),
-    text: `Sua página está no ar!\n\nLink: ${pageUrl}\nQR Code e cartão para imprimir: ${successUrl}\n\nGuarde este e-mail: é por ele que você edita a página depois.`,
+    text: `Sua página está no ar!\n\nLink: ${pageUrl}\nQR Code e cartão para imprimir: ${successLink}\n\nGuarde este e-mail: é por ele que você edita a página depois.`,
   });
 }
 

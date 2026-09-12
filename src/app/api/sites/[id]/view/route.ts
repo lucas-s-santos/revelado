@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getDraft } from "@/lib/drafts";
+import { limitOr429 } from "@/lib/rate-limit";
 import { recordView } from "@/lib/views";
 
 /**
@@ -20,6 +21,11 @@ import { recordView } from "@/lib/views";
 type Params = Promise<{ id: string }>;
 
 export async function POST(_request: Request, { params }: { params: Params }) {
+  // Generoso de propósito: a página pode viralizar de verdade. O teto existe
+  // para o contador não ser inflável por script (SPEC 9.4).
+  const limited = await limitOr429("view");
+  if (limited) return new NextResponse(null, { status: 204 });
+
   const { id } = await params;
 
   const draft = await getDraft(id);

@@ -3,9 +3,11 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { readAnonId } from "@/lib/anon";
+import { isDraftOwner } from "@/lib/anon";
 import { getDraft } from "@/lib/drafts";
 import { PLANS } from "@/lib/plans";
+import { limitOr429 } from "@/lib/rate-limit";
+import { logDenied } from "@/lib/security-log";
 import {
   isAcceptedMime,
   LOCAL_MEDIA_ENABLED,
@@ -33,6 +35,13 @@ const bodySchema = z.object({
 const HARD_PHOTO_LIMIT = Math.max(...PLANS.map((plan) => plan.maxPhotos));
 
 export async function POST(request: Request) {
+  // Emitir permissão de escrita no R2 sem teto é convite para lotar o bucket.
+  const limited = await limitOr429(
+    "upload",
+    "Muitas fotos de uma vez. Espere um minuto e continue enviando.",
+  );
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -75,7 +84,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (draft.anonId && draft.anonId !== (await readAnonId())) {
+  if (!(await isDraftOwner(draft.anonId))) {
+    await logDenied("owner-mismatch", { rota: "upload.sign", draftId });
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }
 

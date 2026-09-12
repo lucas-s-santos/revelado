@@ -254,6 +254,27 @@ cápsula, motivos, stats — os seis já estão no schema), mais quatro ocasiõe
 estatísticas no painel, SEO programático (`/ocasioes`, `/exemplos`,
 `/mensagens`), admin completo, moderação, cupons e afiliados.
 
+### Segurança — o que está travado e o que você precisa configurar
+
+O funil inteiro é aberto: ninguém faz login antes do editor (SPEC 1). Por isso as
+travas são todas do lado do servidor e estão em três arquivos.
+
+| Trava                      | Onde                           | O que impede                                                                                                                                                                        |
+| -------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Teto de requisições por IP | `lib/rate-limit.ts`            | Derrubar o app pelo `/api/qr` (PDF custa segundos de CPU), queimar cobranças no Mercado Pago, encher o banco de rascunhos, força bruta na senha da página                           |
+| Dono do rascunho           | `lib/anon.ts` → `isDraftOwner` | Abrir o editor, o checkout, o painel ou o `/sucesso` de outra pessoa. **Uma função só** — quando o login chegar, a regra por `userId` entra aqui e todas as telas ganham de uma vez |
+| Link assinado              | `lib/access-token.ts`          | `/sucesso` abre no computador de quem pagou no celular (o link vai no e-mail) sem abrir para quem só adivinhou o id do pedido                                                       |
+| Registro de recusa         | `lib/security-log.ts`          | Ataque acontecer em silêncio. Manda para o Sentry com a tag `security`                                                                                                              |
+| Cabeçalhos                 | `next.config.ts`               | Clickjacking no checkout, sniffing de tipo, vazamento do slug no `referer`                                                                                                          |
+
+**Duas variáveis são obrigatórias em produção:**
+
+- `MERCADOPAGO_WEBHOOK_SECRET` — sem ela o webhook **recusa** toda notificação
+  (`lib/mercadopago.ts`). Antes ele aceitava qualquer POST, o que significava
+  publicar página de graça para quem descobrisse a URL.
+- `AUTH_SECRET` — assina os links de `/sucesso` e os cookies de senha. Sem ela,
+  o app usa um valor de reserva que é público e grita no log.
+
 ### Pendências conhecidas
 
 Cada uma está anotada também no lugar certo do código:
@@ -264,16 +285,25 @@ Cada uma está anotada também no lugar certo do código:
 - **Filas Inngest** não estão montadas. `site.publish` roda inline dentro do
   webhook; `order.abandoned`, `site.expiring` e `site.purge` (SPEC 9.2) ainda não
   existem — o template do e-mail de abandono já está pronto em `lib/email.ts`.
+  Junto com elas falta `media.process`: as fotos vão para o R2 do jeito que o
+  navegador comprimiu (WebP, 1600px, teto de 245KB em `use-uploads.ts`), sem as
+  variantes 400/800/1600 nem blurhash.
+- **A tabela `Media` não é escrita.** O `SiteContent` guarda só o `mediaId` e a
+  URL é derivada dele, então nada quebra — mas não existe inventário do que está
+  no bucket. `deleteSiteMedia` contorna isso varrendo pelo prefixo `sites/<id>/`.
+- **O bucket do R2 é público para leitura.** A SPEC 9.4 pede privado com URL
+  assinada. As chaves são cuid + uuid, não adivinháveis, mas uma URL que vaze
+  vale para sempre — inclusive depois da página expirar. `signReadUrl` em
+  `lib/r2.ts` já existe para a virada; ela exige que `mediaMapFor` vire async na
+  página publicada e que o editor passe a pedir a URL ao servidor.
 - **Login por magic link** não existe. O `/painel` lista pelo mesmo cookie
   anônimo que segura os rascunhos, então trocar de aparelho perde o acesso — e
   é o mesmo cookie que autoriza trocar a senha em `/painel/[siteId]`.
-- **Renovar, trocar de plano e excluir** ainda não estão em `/painel/[siteId]`:
-  os três dependem de uma tela de cobrança para página já publicada, que é
-  assunto próprio. A página expirada já tem o CTA de renovação apontando para o
-  painel.
-- **Sem limite de tentativas na senha da página.** O slug tem sufixo aleatório
-  (SPEC 9.4), então não há lista de páginas para varrer, e o `scrypt` já é lento
-  de propósito. Se a senha virar barreira séria, entra um contador por IP.
+- **Renovar e trocar de plano** ainda não estão em `/painel/[siteId]`: os dois
+  dependem de uma tela de cobrança para página já publicada, que é assunto
+  próprio. A página expirada já tem o CTA de renovação apontando para o painel.
+  **Excluir já existe** (`lib/drafts.ts` → `deleteSite`), com confirmação
+  digitada e purga do R2 junto — é o direito de exclusão da SPEC 9.4.
 - `/criar/[occasion]` (escolha de template, SPEC 8.3) não existe — o editor entra
   direto com o preset da ocasião.
 - Modo avançado do editor é Fase 8 no próprio SPEC.

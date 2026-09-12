@@ -5,6 +5,7 @@ import { ensureAnonId } from "@/lib/anon";
 import { defaultContent } from "@/lib/blocks/defaults";
 import { createDraft } from "@/lib/drafts";
 import { OCCASION_IDS, type OccasionId } from "@/lib/occasions";
+import { limitOr429 } from "@/lib/rate-limit";
 
 /**
  * Cria um rascunho — SPEC 8.2: "cria um `Site` em DRAFT com `anonId` de cookie",
@@ -17,6 +18,14 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Rascunho é gratuito e sem login: o teto é o que impede encher o banco de
+  // linhas vazias (SPEC 9.4).
+  const limited = await limitOr429(
+    "drafts",
+    "Muitas páginas criadas seguidas. Espere um minuto para começar outra.",
+  );
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await request.json();

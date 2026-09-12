@@ -66,7 +66,14 @@ export const blockProps = {
 
   music: z.object({
     provider: z.enum(["spotify", "youtube"]),
-    trackId: z.string(),
+    // O id entra numa URL de embed montada por concatenação. A origem está
+    // travada no literal (ver music-block.tsx), mas o formato fechado impede
+    // que `?`, `#` ou `..` mudem para onde o iframe aponta dentro dela.
+    trackId: z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[A-Za-z0-9_-]+$/, "Confira o link da música."),
     // Política de autoplay do navegador exige gesto: nunca toca sozinho (SPEC 8.8).
     autoplay: z.boolean().default(false),
   }),

@@ -145,9 +145,10 @@ export async function fetchPaymentStatus(
 /**
  * Assinatura do webhook (header `x-signature`).
  *
- * Sem segredo configurado, aceita — é o modo local. Com segredo, **exige**:
- * webhook de pagamento sem verificação é porta aberta para alguém publicar
- * página de graça.
+ * Com segredo, **exige**. Sem segredo, só aceita fora de produção — é o modo
+ * local, que existe para rodar o funil sem conta no Mercado Pago. Em produção,
+ * a ausência do segredo recusa a notificação: webhook de pagamento sem
+ * verificação é porta aberta para alguém publicar página de graça.
  */
 export function verifySignature(
   signatureHeader: string | null,
@@ -155,7 +156,20 @@ export function verifySignature(
   dataId: string,
 ): boolean {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  if (!secret) return true;
+
+  if (!secret) {
+    // Em produção, webhook de pagamento sem segredo é porta aberta: quem
+    // descobrir a URL publica página de graça. Recusa em vez de confiar.
+    if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+      console.error(
+        "[webhook] MERCADOPAGO_WEBHOOK_SECRET ausente em produção — notificação recusada.",
+      );
+      return false;
+    }
+
+    return true; // modo local, sem conta no provedor
+  }
+
   if (!signatureHeader) return false;
 
   const parts = Object.fromEntries(

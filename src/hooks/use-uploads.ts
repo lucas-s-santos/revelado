@@ -30,7 +30,15 @@ export interface UploadItem {
 
 const MAX_ATTEMPTS = 3;
 const TARGET_MAX_WIDTH = 1600;
-const TARGET_MAX_MB = 0.3;
+
+/**
+ * Teto da foto comprimida — SPEC 10: "maior imagem servida < 250KB".
+ *
+ * Estava em 0,3 MB, que são 307KB: acima do orçamento, e o orçamento existe
+ * porque 90% do tráfego é celular à noite em 4G (SPEC 1). 0,24 MB deixa 245KB,
+ * com folga para o overhead do container WebP.
+ */
+const TARGET_MAX_MB = 0.24;
 
 interface SignResponse {
   mediaId: string;

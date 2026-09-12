@@ -40,3 +40,23 @@ export async function ensureAnonId(): Promise<string> {
 
   return anonId;
 }
+
+/**
+ * O dono do cookie é o dono do rascunho? — SPEC 9.4.
+ *
+ * Uma função só, usada por toda tela e toda rota que abre um rascunho: editor,
+ * checkout, painel, sucesso, autosave e assinatura de upload. Antes a regra
+ * estava copiada em cinco lugares, e todas as cópias tinham a mesma brecha —
+ * rascunho **sem** `anonId` era liberado para qualquer um, na esperança de que
+ * um dia significasse "já migrado para uma conta".
+ *
+ * Aqui a regra é a oposta e é a segura: sem dono identificável, ninguém entra.
+ * Quando o login por magic link chegar, a comparação por `userId` entra **nesta
+ * função** e todas as telas ganham a proteção de uma vez.
+ */
+export async function isDraftOwner(
+  draftAnonId: string | null,
+): Promise<boolean> {
+  if (!draftAnonId) return false;
+  return (await readAnonId()) === draftAnonId;
+}
