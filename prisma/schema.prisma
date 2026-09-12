@@ -29,24 +29,26 @@ enum Role {
 }
 
 model Site {
-  id            String     @id @default(cuid())
-  userId        String?
-  anonId        String? // cookie do rascunho pré-login
-  slug          String     @unique
-  occasionId    String
-  templateId    String?
-  content       Json // SiteContent — ver SPEC 7.2
-  schemaVersion Int        @default(1)
-  status        SiteStatus @default(DRAFT)
-  passwordHash  String?
-  indexable     Boolean    @default(false)
-  publishedAt   DateTime?
-  expiresAt     DateTime? // null = vitalício
-  viewsCount    Int        @default(0)
-  firstViewedAt DateTime?
-  deletedAt     DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  id                 String     @id @default(cuid())
+  userId             String?
+  anonId             String? // cookie do rascunho pré-login
+  slug               String     @unique
+  occasionId         String
+  templateId         String?
+  content            Json // SiteContent — ver SPEC 7.2
+  schemaVersion      Int        @default(1)
+  status             SiteStatus @default(DRAFT)
+  passwordHash       String?
+  indexable          Boolean    @default(false)
+  publishedAt        DateTime?
+  expiresAt          DateTime? // null = vitalício
+  viewsCount         Int        @default(0)
+  firstViewedAt      DateTime?
+  // Aviso de 15 dias antes de expirar (SPEC 9.2), uma vez só.
+  expiringNotifiedAt DateTime?
+  deletedAt          DateTime?
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
 
   user      User?            @relation(fields: [userId], references: [id])
   occasion  Occasion         @relation(fields: [occasionId], references: [id])
@@ -58,6 +60,7 @@ model Site {
   @@index([userId])
   @@index([anonId])
   @@index([status, expiresAt])
+  @@index([expiresAt, expiringNotifiedAt])
 }
 
 enum SiteStatus {
@@ -127,22 +130,24 @@ model Plan {
 }
 
 model Order {
-  id           String      @id @default(cuid())
-  userId       String
-  siteId       String
-  planId       String
-  bumpForever  Boolean     @default(false)
-  amountCents  Int
-  couponId     String?
-  status       OrderStatus @default(PENDING)
-  provider     String      @default("mercadopago")
-  providerRef  String?     @unique
+  id                  String      @id @default(cuid())
+  userId              String
+  siteId              String
+  planId              String
+  bumpForever         Boolean     @default(false)
+  amountCents         Int
+  couponId            String?
+  status              OrderStatus @default(PENDING)
+  provider            String      @default("mercadopago")
+  providerRef         String?     @unique
   // Copia-e-cola do Pix. Sem isto, recarregar a tela de pagamento perde o
   // código e a pessoa fica sem como pagar (SPEC 8.5).
-  pixCode      String?
-  pixExpiresAt DateTime?
-  paidAt       DateTime?
-  createdAt    DateTime    @default(now())
+  pixCode             String?
+  pixExpiresAt        DateTime?
+  // Carrinho abandonado (SPEC 9.2): marca o envio para o aviso sair uma vez só.
+  abandonedNotifiedAt DateTime?
+  paidAt              DateTime?
+  createdAt           DateTime    @default(now())
 
   user   User    @relation(fields: [userId], references: [id])
   site   Site    @relation(fields: [siteId], references: [id])
@@ -152,6 +157,7 @@ model Order {
   @@index([status, createdAt])
   @@index([siteId])
   @@index([pixExpiresAt])
+  @@index([status, abandonedNotifiedAt])
 }
 
 enum OrderStatus {

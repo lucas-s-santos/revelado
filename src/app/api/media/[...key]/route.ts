@@ -3,6 +3,7 @@ import { join, normalize } from "node:path";
 
 import { NextResponse } from "next/server";
 
+import { devPath } from "@/lib/dev-store";
 import { isAcceptedMime, LOCAL_MEDIA_ENABLED } from "@/lib/r2";
 
 /**
@@ -12,7 +13,7 @@ import { isAcceptedMime, LOCAL_MEDIA_ENABLED } from "@/lib/r2";
  * existir.
  */
 
-const DEV_MEDIA_DIR = join(process.cwd(), ".drafts", "media");
+const DEV_MEDIA_DIR = devPath("media");
 
 type Params = Promise<{ key: string[] }>;
 

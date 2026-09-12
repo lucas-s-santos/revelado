@@ -6,6 +6,7 @@ import { migrate } from "@/lib/blocks/migrate";
 import { revalidateSite } from "@/lib/cache";
 import { parseSiteContent, type SiteContent } from "@/lib/blocks/schema";
 import { db, notDeleted } from "@/lib/db";
+import { devRoot } from "@/lib/dev-store";
 import { deleteSiteMedia } from "@/lib/r2";
 
 /**
@@ -24,7 +25,6 @@ import { deleteSiteMedia } from "@/lib/r2";
  */
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
-const DEV_DIR = join(process.cwd(), ".drafts");
 
 export interface Draft {
   id: string;
@@ -43,6 +43,8 @@ export interface Draft {
   indexable: boolean;
   /** null = vitalícia */
   expiresAt: Date | null;
+  /** quando o aviso de "vai expirar" saiu (SPEC 9.2) */
+  expiringNotifiedAt: Date | null;
 }
 
 export interface CreateDraftInput {
@@ -54,15 +56,19 @@ export interface CreateDraftInput {
 
 // --- backend de arquivo (dev) --------------------------------------------
 
-interface DevRecord extends Omit<Draft, "updatedAt" | "expiresAt"> {
+interface DevRecord extends Omit<
+  Draft,
+  "updatedAt" | "expiresAt" | "expiringNotifiedAt"
+> {
   updatedAt: string;
   expiresAt: string | null;
+  expiringNotifiedAt?: string | null;
 }
 
 async function devWrite(record: DevRecord): Promise<void> {
-  await mkdir(DEV_DIR, { recursive: true });
+  await mkdir(devRoot(), { recursive: true });
   await writeFile(
-    join(DEV_DIR, `${record.id}.json`),
+    join(devRoot(), `${record.id}.json`),
     JSON.stringify(record, null, 2),
     "utf8",
   );
@@ -70,7 +76,7 @@ async function devWrite(record: DevRecord): Promise<void> {
 
 async function devRead(id: string): Promise<DevRecord | null> {
   try {
-    const raw = await readFile(join(DEV_DIR, `${id}.json`), "utf8");
+    const raw = await readFile(join(devRoot(), `${id}.json`), "utf8");
     return JSON.parse(raw) as DevRecord;
   } catch {
     return null;
@@ -85,6 +91,50 @@ function devToDraft(record: DevRecord): Draft {
     // Rascunhos criados antes destes campos existirem não têm as chaves.
     passwordHash: record.passwordHash ?? null,
     indexable: record.indexable ?? false,
+    expiringNotifiedAt: record.expiringNotifiedAt
+      ? new Date(record.expiringNotifiedAt)
+      : null,
+  };
+}
+
+/**
+ * Linha do Postgres → `Draft`.
+ *
+ * Existia copiado em quatro lugares, e foi assim que acrescentar um campo novo
+ * quebrou a compilação em três deles. Um mapeador só: campo novo entra aqui e
+ * chega em todo mundo.
+ *
+ * O `content` vem de fora porque cada chamador já passou pelo `migrate` — o
+ * JSON do banco pode ser de uma versão de schema anterior (SPEC 7.2).
+ */
+type SiteRow = {
+  id: string;
+  slug: string;
+  occasionId: string;
+  templateId: string | null;
+  status: Draft["status"];
+  anonId: string | null;
+  passwordHash: string | null;
+  indexable: boolean;
+  expiresAt: Date | null;
+  expiringNotifiedAt: Date | null;
+  updatedAt: Date;
+};
+
+function rowToDraft(site: SiteRow, content: SiteContent): Draft {
+  return {
+    id: site.id,
+    slug: site.slug,
+    occasionId: site.occasionId,
+    templateId: site.templateId,
+    content,
+    status: site.status,
+    anonId: site.anonId,
+    passwordHash: site.passwordHash,
+    indexable: site.indexable,
+    expiresAt: site.expiresAt,
+    expiringNotifiedAt: site.expiringNotifiedAt,
+    updatedAt: site.updatedAt,
   };
 }
 
@@ -105,6 +155,7 @@ export async function createDraft(input: CreateDraftInput): Promise<Draft> {
       passwordHash: null,
       indexable: false,
       expiresAt: null,
+      expiringNotifiedAt: null,
       updatedAt: new Date().toISOString(),
     };
     await devWrite(record);
@@ -121,19 +172,7 @@ export async function createDraft(input: CreateDraftInput): Promise<Draft> {
     },
   });
 
-  return {
-    id: site.id,
-    slug: site.slug,
-    occasionId: site.occasionId,
-    templateId: site.templateId,
-    content: input.content,
-    status: site.status,
-    anonId: site.anonId,
-    passwordHash: site.passwordHash,
-    indexable: site.indexable,
-    expiresAt: site.expiresAt,
-    updatedAt: site.updatedAt,
-  };
+  return rowToDraft(site, input.content);
 }
 
 export async function getDraft(id: string): Promise<Draft | null> {
@@ -148,19 +187,7 @@ export async function getDraft(id: string): Promise<Draft | null> {
   const result = migrate(site.content);
   if (!result.content) return null;
 
-  return {
-    id: site.id,
-    slug: site.slug,
-    occasionId: site.occasionId,
-    templateId: site.templateId,
-    content: result.content,
-    status: site.status,
-    anonId: site.anonId,
-    passwordHash: site.passwordHash,
-    indexable: site.indexable,
-    expiresAt: site.expiresAt,
-    updatedAt: site.updatedAt,
-  };
+  return rowToDraft(site, result.content);
 }
 
 export type SaveResult =
@@ -217,22 +244,7 @@ export async function saveDraftContent(
 
   const updated = await db.site.update({ where: { id }, data: { content } });
 
-  return {
-    ok: true,
-    draft: {
-      id: updated.id,
-      slug: updated.slug,
-      occasionId: updated.occasionId,
-      templateId: updated.templateId,
-      content,
-      status: updated.status,
-      anonId: updated.anonId,
-      passwordHash: updated.passwordHash,
-      indexable: updated.indexable,
-      expiresAt: updated.expiresAt,
-      updatedAt: updated.updatedAt,
-    },
-  };
+  return { ok: true, draft: rowToDraft(updated, content) };
 }
 
 /**
@@ -300,7 +312,7 @@ export async function updateSitePrivacy(
 export async function findDraftBySlug(slug: string): Promise<Draft | null> {
   if (!hasDatabase) {
     try {
-      const files = await readdir(DEV_DIR);
+      const files = await readdir(devRoot());
 
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
@@ -322,7 +334,7 @@ export async function findDraftBySlug(slug: string): Promise<Draft | null> {
 export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
   if (!hasDatabase) {
     try {
-      const files = await readdir(DEV_DIR);
+      const files = await readdir(devRoot());
       const records = await Promise.all(
         files
           .filter((file) => file.endsWith(".json"))
@@ -347,21 +359,7 @@ export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
   return sites.flatMap((site) => {
     const result = migrate(site.content);
     if (!result.content) return [];
-    return [
-      {
-        id: site.id,
-        slug: site.slug,
-        occasionId: site.occasionId,
-        templateId: site.templateId,
-        content: result.content,
-        status: site.status,
-        anonId: site.anonId,
-        passwordHash: site.passwordHash,
-        indexable: site.indexable,
-        expiresAt: site.expiresAt,
-        updatedAt: site.updatedAt,
-      },
-    ];
+    return [rowToDraft(site, result.content)];
   });
 }
 
@@ -369,7 +367,7 @@ export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
 async function slugTaken(slug: string): Promise<boolean> {
   if (!hasDatabase) {
     try {
-      const files = await readdir(DEV_DIR);
+      const files = await readdir(devRoot());
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
         const record = await devRead(file.replace(/\.json$/, ""));
@@ -444,7 +442,7 @@ export async function deleteSite(id: string): Promise<boolean> {
   });
 
   if (!hasDatabase) {
-    await rm(join(DEV_DIR, `${id}.json`), { force: true });
+    await rm(join(devRoot(), `${id}.json`), { force: true });
   } else {
     await db.site.update({
       where: { id },
@@ -456,4 +454,117 @@ export async function deleteSite(id: string): Promise<boolean> {
   console.warn(`[exclusao:${id}] site apagado, ${removed} mídias removidas`);
 
   return true;
+}
+
+// --- consultas dos jobs agendados (SPEC 9.2) ------------------------------
+
+/** Todos os registros do backend de arquivo. Só existe fora de produção. */
+async function devAllRecords(): Promise<DevRecord[]> {
+  try {
+    const files = await readdir(devRoot());
+    const records = await Promise.all(
+      files
+        .filter((file) => file.endsWith(".json"))
+        .map((file) => devRead(file.replace(/\.json$/, ""))),
+    );
+    return records.filter((record): record is DevRecord => record !== null);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Páginas que vão expirar — SPEC 9.2 (`site.expiring`), aviso 15 dias antes.
+ *
+ * Só as que ainda não receberam o aviso, e só as que **ainda estão no ar**: uma
+ * página que já expirou não tem o que avisar, tem o que renovar.
+ */
+export async function listExpiringSoon(
+  withinMs: number,
+  now = new Date(),
+  take = 100,
+): Promise<Draft[]> {
+  const limite = new Date(now.getTime() + withinMs);
+
+  if (!hasDatabase) {
+    return (await devAllRecords())
+      .map(devToDraft)
+      .filter(
+        (draft) =>
+          draft.status === "PUBLISHED" &&
+          draft.expiresAt !== null &&
+          draft.expiringNotifiedAt === null &&
+          draft.expiresAt.getTime() > now.getTime() &&
+          draft.expiresAt.getTime() <= limite.getTime(),
+      )
+      .slice(0, take);
+  }
+
+  const sites = await db.site.findMany({
+    where: {
+      status: "PUBLISHED",
+      expiringNotifiedAt: null,
+      expiresAt: { gt: now, lte: limite },
+      ...notDeleted,
+    },
+    orderBy: { expiresAt: "asc" },
+    take,
+  });
+
+  return sites.flatMap((site) => {
+    const result = migrate(site.content);
+    return result.content ? [rowToDraft(site, result.content)] : [];
+  });
+}
+
+/** Marca o aviso de expiração como enviado, para ele não sair duas vezes. */
+export async function markExpiringNotified(
+  id: string,
+  at = new Date(),
+): Promise<void> {
+  if (!hasDatabase) {
+    const record = await devRead(id);
+    if (!record) return;
+    await devWrite({ ...record, expiringNotifiedAt: at.toISOString() });
+    return;
+  }
+
+  await db.site.update({ where: { id }, data: { expiringNotifiedAt: at } });
+}
+
+/**
+ * Páginas expiradas há mais de `graceMs` — SPEC 9.2 (`site.purge`), 30 dias
+ * depois de expirar.
+ *
+ * A carência é o ponto: expirar não apaga nada, só tira do ar com CTA de
+ * renovação (SPEC 8.8). Quem renova no dia 29 não perde as fotos.
+ */
+export async function listPurgeable(
+  graceMs: number,
+  now = new Date(),
+  take = 100,
+): Promise<Draft[]> {
+  const limite = new Date(now.getTime() - graceMs);
+
+  if (!hasDatabase) {
+    return (await devAllRecords())
+      .map(devToDraft)
+      .filter(
+        (draft) =>
+          draft.expiresAt !== null &&
+          draft.expiresAt.getTime() <= limite.getTime(),
+      )
+      .slice(0, take);
+  }
+
+  const sites = await db.site.findMany({
+    where: { expiresAt: { lte: limite }, ...notDeleted },
+    orderBy: { expiresAt: "asc" },
+    take,
+  });
+
+  return sites.flatMap((site) => {
+    const result = migrate(site.content);
+    return result.content ? [rowToDraft(site, result.content)] : [];
+  });
 }
