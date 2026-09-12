@@ -1,6 +1,3 @@
-import { rm } from "node:fs/promises";
-import { join } from "node:path";
-
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { defaultContent } from "@/lib/blocks/defaults";
@@ -12,6 +9,7 @@ import {
   verifyPassword,
 } from "@/lib/site-password";
 import { sitePasswordHash } from "@/lib/sites";
+import { testDevStore } from "@/lib/test-dev-store";
 
 /**
  * Senha da página publicada — SPEC 8.8 e 9.4.
@@ -21,17 +19,15 @@ import { sitePasswordHash } from "@/lib/sites";
  * cookies antigos** e que o hash nunca vira previsível.
  */
 
-const DEV_DIR = join(process.cwd(), ".drafts");
+/**
+ * Pasta própria: estes testes gravam no backend de arquivo, e o vitest roda
+ * arquivos em paralelo. Ver `lib/test-dev-store.ts`.
+ */
+const store = testDevStore();
+beforeEach(store.arm);
+afterAll(store.clean);
 
 describe("senha da página", () => {
-  beforeEach(() => {
-    delete process.env.DATABASE_URL;
-  });
-
-  afterAll(async () => {
-    await rm(DEV_DIR, { recursive: true, force: true });
-  });
-
   it("aceita a senha certa e recusa a errada", async () => {
     const stored = await hashPassword("nosso-lugar");
 

@@ -3,6 +3,7 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { db } from "@/lib/db";
+import { devPath } from "@/lib/dev-store";
 import type { PlanId } from "@/lib/plans";
 
 /**
@@ -18,7 +19,6 @@ import type { PlanId } from "@/lib/plans";
  */
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
-const DEV_DIR = join(process.cwd(), ".drafts", "orders");
 
 export type OrderStatus =
   "PENDING" | "PAID" | "REFUNDED" | "FAILED" | "EXPIRED";
@@ -38,6 +38,8 @@ export interface Order {
   /** dados do Pix, quando é Pix */
   pixCode: string | null;
   pixExpiresAt: Date | null;
+  /** quando o aviso de carrinho abandonado saiu (SPEC 9.2) */
+  abandonedNotifiedAt: Date | null;
   paidAt: Date | null;
   createdAt: Date;
 }
@@ -53,23 +55,31 @@ export interface CreateOrderInput {
 
 // --- backend de arquivo (dev) --------------------------------------------
 
-type DevOrder = Omit<Order, "paidAt" | "createdAt" | "pixExpiresAt"> & {
+type DevOrder = Omit<
+  Order,
+  "paidAt" | "createdAt" | "pixExpiresAt" | "abandonedNotifiedAt"
+> & {
   paidAt: string | null;
   createdAt: string;
   pixExpiresAt: string | null;
+  abandonedNotifiedAt?: string | null;
 };
 
 const toOrder = (record: DevOrder): Order => ({
   ...record,
   paidAt: record.paidAt ? new Date(record.paidAt) : null,
   pixExpiresAt: record.pixExpiresAt ? new Date(record.pixExpiresAt) : null,
+  // Pedidos criados antes desta coluna existir não têm a chave.
+  abandonedNotifiedAt: record.abandonedNotifiedAt
+    ? new Date(record.abandonedNotifiedAt)
+    : null,
   createdAt: new Date(record.createdAt),
 });
 
 async function devWrite(record: DevOrder): Promise<void> {
-  await mkdir(DEV_DIR, { recursive: true });
+  await mkdir(devPath("orders"), { recursive: true });
   await writeFile(
-    join(DEV_DIR, `${record.id}.json`),
+    join(devPath("orders"), `${record.id}.json`),
     JSON.stringify(record, null, 2),
     "utf8",
   );
@@ -78,7 +88,7 @@ async function devWrite(record: DevOrder): Promise<void> {
 async function devRead(id: string): Promise<DevOrder | null> {
   try {
     return JSON.parse(
-      await readFile(join(DEV_DIR, `${id}.json`), "utf8"),
+      await readFile(join(devPath("orders"), `${id}.json`), "utf8"),
     ) as DevOrder;
   } catch {
     return null;
@@ -87,7 +97,7 @@ async function devRead(id: string): Promise<DevOrder | null> {
 
 async function devAll(): Promise<DevOrder[]> {
   try {
-    const files = await readdir(DEV_DIR);
+    const files = await readdir(devPath("orders"));
     const records = await Promise.all(
       files
         .filter((file) => file.endsWith(".json"))
@@ -115,6 +125,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     providerRef: null,
     pixCode: null,
     pixExpiresAt: null,
+    abandonedNotifiedAt: null,
     paidAt: null,
     createdAt: new Date().toISOString(),
   };
@@ -189,6 +200,7 @@ export async function getOrder(id: string): Promise<Order | null> {
     providerRef: order.providerRef,
     pixCode: order.pixCode,
     pixExpiresAt: order.pixExpiresAt,
+    abandonedNotifiedAt: order.abandonedNotifiedAt,
     paidAt: order.paidAt,
     createdAt: order.createdAt,
   };
@@ -296,4 +308,89 @@ export async function listOrdersByEmail(email: string): Promise<Order[]> {
 
   const resolved = await Promise.all(orders.map((order) => getOrder(order.id)));
   return resolved.filter((order): order is Order => order !== null);
+}
+
+/**
+ * E-mail de quem pagou por um site.
+ *
+ * Sem login ainda, o dono de uma página publicada é quem pagou por ela. Mora
+ * aqui e não em `lib/views.ts` porque a resposta está no pedido — e agora três
+ * lugares precisam dela: a notificação de primeira visita, o aviso de expiração
+ * e o de carrinho abandonado.
+ */
+export async function ownerEmailForSite(
+  siteId: string,
+): Promise<string | null> {
+  if (hasDatabase) {
+    const order = await db.order.findFirst({
+      where: { siteId, status: "PAID" },
+      include: { user: { select: { email: true } } },
+    });
+    return order?.user.email ?? null;
+  }
+
+  const all = await devAll();
+  return (
+    all.find((order) => order.siteId === siteId && order.status === "PAID")
+      ?.email ?? null
+  );
+}
+
+/**
+ * Pedidos parados no Pix — SPEC 9.2 (`order.abandoned`).
+ *
+ * "Carrinho abandonado, 30 minutos depois, com link de volta" (SPEC 8.5). Pega
+ * só quem ainda não recebeu o aviso: uma pessoa que desistiu não precisa ser
+ * lembrada disso todo dia.
+ */
+export async function listAbandoned(
+  olderThanMs: number,
+  now = new Date(),
+  take = 100,
+): Promise<Order[]> {
+  const limite = new Date(now.getTime() - olderThanMs);
+
+  if (!hasDatabase) {
+    const all = await devAll();
+    return all
+      .map(toOrder)
+      .filter(
+        (order) =>
+          order.status === "PENDING" &&
+          order.abandonedNotifiedAt === null &&
+          order.createdAt.getTime() <= limite.getTime(),
+      )
+      .slice(0, take);
+  }
+
+  const orders = await db.order.findMany({
+    where: {
+      status: "PENDING",
+      abandonedNotifiedAt: null,
+      createdAt: { lte: limite },
+    },
+    orderBy: { createdAt: "asc" },
+    take,
+  });
+
+  const resolved = await Promise.all(orders.map((order) => getOrder(order.id)));
+  return resolved.filter((order): order is Order => order !== null);
+}
+
+/** Marca o aviso como enviado, para ele não sair duas vezes. */
+export async function markAbandonedNotified(
+  id: string,
+  at = new Date(),
+): Promise<void> {
+  if (!hasDatabase) {
+    const record = await devRead(id);
+    if (!record) return;
+    await devWrite({ ...record, abandonedNotifiedAt: at.toISOString() });
+    return;
+  }
+
+  await db.order.update({
+    where: { id },
+    data: { abandonedNotifiedAt: at },
+  });
 }

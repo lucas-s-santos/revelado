@@ -108,6 +108,47 @@ export async function sendAbandonedEmail(input: {
   });
 }
 
+/**
+ * "Sua página vai sair do ar" — SPEC 9.2 (`site.expiring`), 15 dias antes.
+ *
+ * O tom importa: não é cobrança, é aviso. A página é um presente que alguém
+ * deu, e a pessoa precisa poder decidir com calma — por isso o prazo aparece
+ * por extenso e o botão leva ao painel, não a um checkout.
+ */
+export async function sendExpiringEmail(input: {
+  to: string;
+  slug: string;
+  siteId: string;
+  expiresAt: Date;
+}): Promise<void> {
+  const quando = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Sao_Paulo",
+  }).format(input.expiresAt);
+
+  const painelUrl = `${SITE_URL}/painel/${input.siteId}`;
+  const pageUrl = `${SITE_URL}/p/${input.slug}`;
+
+  await send({
+    to: input.to,
+    subject: "Sua página sai do ar em 15 dias",
+    html: layout(
+      "Sua página sai do ar em 15 dias",
+      `<p style="line-height:1.6;color:#F6EFE6">A página <a href="${pageUrl}" style="color:#F2B457">${pageUrl}</a> fica no ar até <strong>${quando}</strong>.</p>
+       <p style="line-height:1.6;color:#9B90AA">Renovando, o endereço continua o mesmo — o QR Code que você imprimiu não muda e nada precisa ser reimpresso.</p>
+       <p style="margin:24px 0">${button(painelUrl, "Renovar minha página")}</p>
+       <p style="line-height:1.6;color:#9B90AA;font-size:13px">Se preferir deixar sair do ar, não precisa fazer nada. As fotos ficam guardadas por mais 30 dias.</p>`,
+    ),
+    text: `Sua página ${pageUrl} fica no ar até ${quando}.
+
+Renovando, o endereço continua o mesmo e o QR Code impresso segue valendo: ${painelUrl}
+
+Se preferir deixar sair do ar, não precisa fazer nada.`,
+  });
+}
+
 /** Primeira visita — SPEC 8.7: o maior gatilho emocional do produto. */
 export async function sendFirstViewEmail(input: {
   to: string;

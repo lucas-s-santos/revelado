@@ -275,6 +275,34 @@ travas são todas do lado do servidor e estão em três arquivos.
 - `AUTH_SECRET` — assina os links de `/sucesso` e os cookies de senha. Sem ela,
   o app usa um valor de reserva que é público e grita no log.
 
+### Trabalhos agendados (SPEC 9.2)
+
+Três varreduras periódicas, em `lib/jobs.ts`, disparadas por cron da Vercel
+(`vercel.json`) através de `/api/cron/[job]`:
+
+| Trabalho          | Quando       | O que faz                                                                                                                                                                            |
+| ----------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `order.abandoned` | a cada 15min | Quem gerou o Pix e não pagou há mais de 30min recebe o link de volta. **O template existia desde a Fase 5 e nunca tinha sido enviado uma vez sequer** — faltava exatamente o disparo |
+| `site.expiring`   | 09:00 (BRT)  | Avisa 15 dias antes de a página sair do ar, com link para renovar                                                                                                                    |
+| `site.purge`      | 01:30 (BRT)  | Apaga o que expirou há mais de 30 dias, **inclusive do R2**                                                                                                                          |
+
+O SPEC pede Inngest. Estes três são varreduras periódicas sem fan-out, sem retry
+por evento e sem passo encadeado — o que um cron resolve. As funções não sabem
+quem as chamou, então migram inteiras quando a fila entrar por causa do
+`media.process`.
+
+Três regras valem para os três, e estão travadas em `jobs.test.ts`: **um aviso
+sai uma vez** (cada trabalho marca o que fez — cron erra para os dois lados),
+**um registro com problema não derruba a leva**, e **o lote é limitado** a 100
+por execução.
+
+`site.purge` é a única operação destrutiva do sistema. A carência de 30 dias é o
+que a torna segura: expirar só tira do ar, com CTA de renovação. Quem renovar no
+dia 29 encontra tudo no lugar.
+
+**`CRON_SECRET` é obrigatório em produção** — sem ele a rota recusa tudo, porque
+ela dispara e-mails em massa e a purga.
+
 ### Dois defeitos que só o e2e encontrou
 
 Ambos na página publicada — a tela que é o produto entregue — e ambos invisíveis
@@ -332,12 +360,11 @@ Cada uma está anotada também no lugar certo do código:
 - **Cartão de crédito** não existe: só Pix. O SPEC pede os dois; o Pix é 70% do
   volume esperado (seção 14) e o cartão precisa do Checkout Transparente, que é
   um trabalho próprio.
-- **Filas Inngest** não estão montadas. `site.publish` roda inline dentro do
-  webhook; `order.abandoned`, `site.expiring` e `site.purge` (SPEC 9.2) ainda não
-  existem — o template do e-mail de abandono já está pronto em `lib/email.ts`.
-  Junto com elas falta `media.process`: as fotos vão para o R2 do jeito que o
-  navegador comprimiu (WebP, 1600px, teto de 245KB em `use-uploads.ts`), sem as
-  variantes 400/800/1600 nem blurhash.
+- **`media.process` não existe.** As fotos vão para o R2 do jeito que o navegador
+  comprimiu (WebP, 1600px, teto de 245KB em `use-uploads.ts`), sem as variantes
+  400/800/1600 nem blurhash. É o trabalho que vai justificar uma fila de verdade:
+  é disparado por evento e precisa de retry, ao contrário dos três periódicos.
+- **`site.publish` roda inline dentro do webhook**, não numa fila.
 - **A tabela `Media` não é escrita.** O `SiteContent` guarda só o `mediaId` e a
   URL é derivada dele, então nada quebra — mas não existe inventário do que está
   no bucket. `deleteSiteMedia` contorna isso varrendo pelo prefixo `sites/<id>/`.

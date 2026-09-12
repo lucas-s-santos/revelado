@@ -1,6 +1,8 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { devRoot } from "@/lib/dev-store";
+
 /**
  * Marca o rascunho como publicado no backend de arquivo.
  *
@@ -12,15 +14,13 @@ import { join } from "node:path";
  * cuida do modo local.
  */
 
-const DEV_DIR = join(process.cwd(), ".drafts");
-
 export async function markDraftPublished(
   draftId: string,
   expiresAt: Date | null,
 ): Promise<void> {
   if (process.env.DATABASE_URL) return;
 
-  const path = join(DEV_DIR, `${draftId}.json`);
+  const path = join(devRoot(), `${draftId}.json`);
 
   try {
     const record = JSON.parse(await readFile(path, "utf8")) as Record<
