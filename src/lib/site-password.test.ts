@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import { defaultContent } from "@/lib/blocks/defaults";
+import { defaultContent, DEFAULT_TEMPLATE } from "@/lib/blocks/defaults";
 import { createDraft, updateSitePrivacy } from "@/lib/drafts";
 import {
   hashPassword,
@@ -69,8 +69,7 @@ describe("senha da página", () => {
 
   it("define, troca e remove a senha de um rascunho", async () => {
     const draft = await createDraft({
-      occasionId: "namorados",
-      content: defaultContent("namorados"),
+      content: defaultContent(DEFAULT_TEMPLATE),
       anonId: "teste-senha",
     });
 
@@ -91,7 +90,6 @@ describe("senha da página", () => {
 
   it("mexer na indexação não apaga a senha por tabela", async () => {
     const draft = await createDraft({
-      occasionId: "aniversario",
       content: defaultContent("aniversario"),
       anonId: "teste-senha",
     });

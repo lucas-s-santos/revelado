@@ -32,9 +32,7 @@ interface Rascunho {
  * quatro desfechos deixaria o e2e lento e frágil sem provar nada novo.
  */
 async function rascunhoPublicavel(page: Page): Promise<Rascunho> {
-  const criado = await page.request.post("/api/drafts", {
-    data: { occasion: "namorados" },
-  });
+  const criado = await page.request.post("/api/drafts", { data: {} });
   expect(criado.status(), "criar rascunho").toBe(201);
 
   const { id, slug } = (await criado.json()) as Rascunho;
@@ -172,59 +170,34 @@ test.describe("os quatro desfechos do pagamento", () => {
 });
 
 test.describe("o caminho de quem monta a página", () => {
-  test("ocasião, template e editor — o funil de criação inteiro", async ({
+  test("de /criar ao editor: o rascunho nasce no servidor antes de navegar", async ({
     page,
   }) => {
     await page.goto("/criar");
 
-    await page
-      .locator('[data-occasion="namorados"]')
-      .getByRole("button")
-      .click();
+    await page.getByRole("button", { name: "Começar agora" }).click();
 
-    // SPEC 8.3: a escolha do template, com preview real dentro do mockup.
-    await expect(page).toHaveURL(/\/criar\/namorados/, { timeout: 20_000 });
-    await expect(page.locator("h1.create-page__title")).toContainText("clima", {
-      timeout: 20_000,
-    });
-
-    const cards = page.locator(".template-card");
-    const quantos = await cards.count();
-    expect(quantos, "SPEC 8.3 pede de 6 a 8 templates").toBeGreaterThanOrEqual(
-      6,
-    );
-    expect(quantos).toBeLessThanOrEqual(8);
-
-    // Preview real e não imagem: cada card traz o PhoneFrame montado.
-    await expect(page.locator(".phone-frame").first()).toBeVisible();
-
-    await cards.first().click();
-
-    // O rascunho nasce no servidor e a URL já traz o id que ele criou.
+    // Aceite da SPEC 8.2: a URL já traz o id que o servidor criou.
     await expect(page).toHaveURL(/\/editor\/[\w-]+/, { timeout: 20_000 });
     await expect(page.getByLabel("Título da capa")).toBeVisible();
   });
 
-  test("o template escolhido chega no rascunho", async ({ page }) => {
-    await page.goto("/criar/casamento");
+  test("o template escolhido chega no conteúdo do rascunho", async ({
+    page,
+  }) => {
+    // "Revelação" existe no catálogo e traz um preset próprio.
+    const criado = await page.request.post("/api/drafts", {
+      data: { template: "revelacao" },
+    });
+    expect(criado.status()).toBe(201);
 
-    // "Manuscrito" é serifa sem efeito — dá para conferir no conteúdo salvo.
-    await page
-      .locator(".template-card")
-      .filter({ hasText: "Manuscrito" })
-      .click();
-
-    await expect(page).toHaveURL(/\/editor\/[\w-]+/, { timeout: 20_000 });
-
-    const draftId = page.url().split("/editor/")[1] ?? "";
-    const resposta = await page.request.get(`/api/drafts/${draftId}`);
+    const { id } = (await criado.json()) as Rascunho;
+    const resposta = await page.request.get(`/api/drafts/${id}`);
     const { content } = (await resposta.json()) as {
-      content: { theme: { template: string; font: string; effect: string } };
+      content: { theme: { template: string } };
     };
 
-    expect(content.theme.template).toBe("casamento-manuscrito");
-    expect(content.theme.font).toBe("serif");
-    expect(content.theme.effect).toBe("none");
+    expect(content.theme.template).toBe("revelacao");
   });
 
   test("fecha a aba, volta e encontra tudo salvo", async ({ page }) => {

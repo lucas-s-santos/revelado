@@ -1,7 +1,8 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
+import { devDir } from "@/lib/dev-store";
+
 import { db } from "@/lib/db";
-import { devPath, devRoot } from "@/lib/dev-store";
 import { sendFirstViewEmail } from "@/lib/email";
 import { findDraftBySlug } from "@/lib/drafts";
 import { listOrdersByEmail, ownerEmailForSite } from "@/lib/orders";
@@ -16,6 +17,8 @@ import { listOrdersByEmail, ownerEmailForSite } from "@/lib/orders";
  * A primeira visita dispara a notificação que a SPEC 8.7 chama de "maior gatilho
  * emocional do produto e a maior fonte de compartilhamento".
  */
+
+const DEV_FILE = devDir("views.json");
 
 interface DevViews {
   [siteId: string]: {
@@ -34,9 +37,7 @@ function today(): string {
 
 async function devRead(): Promise<DevViews> {
   try {
-    return JSON.parse(
-      await readFile(devPath("views.json"), "utf8"),
-    ) as DevViews;
+    return JSON.parse(await readFile(DEV_FILE, "utf8")) as DevViews;
   } catch {
     return {};
   }
@@ -66,9 +67,9 @@ export async function recordView(
       days: { ...current.days, [day]: (current.days[day] ?? 0) + 1 },
     };
 
-    await mkdir(devRoot(), { recursive: true });
+    await mkdir(devDir(), { recursive: true });
     await writeFile(
-      devPath("views.json"),
+      DEV_FILE,
       JSON.stringify({ ...all, [siteId]: updated }, null, 2),
       "utf8",
     );

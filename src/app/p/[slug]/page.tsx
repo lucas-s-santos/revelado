@@ -95,7 +95,15 @@ export default async function PublishedPage({ params }: { params: Params }) {
   const expired = isExpired(site);
 
   return (
-    <main className="published" data-occasion={site.content.theme.palette}>
+    // `data-effect` não vem para cá: ele mora no `.blocks` do BlockRenderer, que
+    // é o que faz o preview do editor mostrar o mesmo que o presente entregue
+    // (regra inviolável 2). Skin e paleta ficam, porque valem para a página
+    // inteira e não só para os blocos.
+    <main
+      className="published"
+      data-skin={site.content.theme.skin}
+      data-palette={site.content.theme.palette}
+    >
       {expired ? (
         // SPEC 8.8: expirada mostra CTA de renovação, nunca 404.
         <section className="published__expired">

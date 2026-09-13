@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
+
+import { devDir } from "@/lib/dev-store";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { db } from "@/lib/db";
-import { devPath } from "@/lib/dev-store";
 import type { PlanId } from "@/lib/plans";
 
 /**
@@ -19,6 +20,7 @@ import type { PlanId } from "@/lib/plans";
  */
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
+const DEV_DIR = devDir("orders");
 
 export type OrderStatus =
   "PENDING" | "PAID" | "REFUNDED" | "FAILED" | "EXPIRED";
@@ -77,9 +79,9 @@ const toOrder = (record: DevOrder): Order => ({
 });
 
 async function devWrite(record: DevOrder): Promise<void> {
-  await mkdir(devPath("orders"), { recursive: true });
+  await mkdir(DEV_DIR, { recursive: true });
   await writeFile(
-    join(devPath("orders"), `${record.id}.json`),
+    join(DEV_DIR, `${record.id}.json`),
     JSON.stringify(record, null, 2),
     "utf8",
   );
@@ -88,7 +90,7 @@ async function devWrite(record: DevOrder): Promise<void> {
 async function devRead(id: string): Promise<DevOrder | null> {
   try {
     return JSON.parse(
-      await readFile(join(devPath("orders"), `${id}.json`), "utf8"),
+      await readFile(join(DEV_DIR, `${id}.json`), "utf8"),
     ) as DevOrder;
   } catch {
     return null;
@@ -97,7 +99,7 @@ async function devRead(id: string): Promise<DevOrder | null> {
 
 async function devAll(): Promise<DevOrder[]> {
   try {
-    const files = await readdir(devPath("orders"));
+    const files = await readdir(DEV_DIR);
     const records = await Promise.all(
       files
         .filter((file) => file.endsWith(".json"))

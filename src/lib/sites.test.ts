@@ -22,7 +22,6 @@ function site(expiresAt: Date | null): PublishedSite {
     id: "site-1",
     slug: DEMO_SLUG,
     content: demoContent,
-    occasionId: demoContent.occasion,
     hasPassword: false,
     indexable: false,
     expiresAt,

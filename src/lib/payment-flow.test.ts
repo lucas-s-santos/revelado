@@ -28,8 +28,7 @@ import { testDevStore } from "@/lib/test-dev-store";
 
 async function novaCompra() {
   const draft = await createDraft({
-    occasionId: "namorados",
-    content: defaultContent("namorados"),
+    content: defaultContent(),
     anonId: "teste",
   });
 

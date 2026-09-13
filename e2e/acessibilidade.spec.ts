@@ -54,7 +54,7 @@ function relatar(tela: string, violacoes: Violacao[]): string {
 
 async function rascunhoPublicavel(page: Page): Promise<{ id: string }> {
   const criado = await page.request.post("/api/drafts", {
-    data: { occasion: "namorados", template: "essencial" },
+    data: { template: "essencial" },
   });
   const { id } = (await criado.json()) as { id: string };
 
@@ -83,14 +83,6 @@ test.describe("acessibilidade do funil", () => {
     expect(relatar("/criar", violacoes)).toBe("/criar: limpo");
   });
 
-  test("escolha do template", async ({ page }) => {
-    await page.goto("/criar/namorados");
-    const violacoes = await auditar(page);
-    expect(relatar("/criar/namorados", violacoes)).toBe(
-      "/criar/namorados: limpo",
-    );
-  });
-
   test("editor", async ({ page }) => {
     const { id } = await rascunhoPublicavel(page);
     await page.goto(`/editor/${id}`);
@@ -112,7 +104,7 @@ test.describe("acessibilidade do funil", () => {
   test("página publicada — a tela que é o produto entregue", async ({
     page,
   }) => {
-    await page.goto("/p/exemplo-namorados");
+    await page.goto("/p/exemplo-marina-e-teo");
     await expect(page.locator("main.published")).toBeVisible();
 
     const violacoes = await auditar(page);

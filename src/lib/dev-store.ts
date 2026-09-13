@@ -1,25 +1,24 @@
 import { join } from "node:path";
 
 /**
- * Raiz do backend de arquivo — o `.drafts/` que substitui o Postgres quando não
- * há `DATABASE_URL` (ver `lib/drafts.ts`).
+ * O diretório do backend de arquivo do modo local.
  *
- * É uma **função**, não uma constante, por um motivo específico: cada arquivo de
- * teste precisa da sua própria pasta. Antes todos gravavam no mesmo diretório e
- * rodavam em paralelo, então o `afterAll` de uma suíte apagava os dados de outra
- * no meio da execução — e o job de purga, que varre tudo que expirou, apagava as
- * páginas de quem estivesse rodando ao lado. Os testes passavam sozinhos e
- * falhavam juntos, que é o jeito mais caro de descobrir qualquer coisa.
+ * Existe para o projeto rodar sem Neon nem R2 configurados: rascunhos, pedidos,
+ * mídias e contagem de views caem aqui em vez de no banco (ver `lib/drafts.ts`).
  *
- * Em produção a variável nunca é preenchida e isto devolve `.drafts` — e em
- * produção nem o backend de arquivo existe, porque há banco.
+ * **Por que é uma função e não uma constante espalhada:** o caminho estava
+ * escrito à mão em seis arquivos. A suíte de testes limpa este diretório com
+ * `rm -rf`, então bastou um deles discordar dos outros para o `publishSite`
+ * gravar num lugar e o teste ler de outro — e, pior, para `pnpm test` apagar os
+ * rascunhos locais de quem estivesse desenvolvendo. Um lugar só resolve os dois.
+ *
+ * `REVELADO_DEV_DIR` é o desvio que o `vitest.config.ts` usa para isolar a
+ * suíte. Fora dos testes, ninguém define e o padrão vale.
  */
-export function devRoot(): string {
-  const custom = process.env.REVELADO_DEV_DIR;
-  return custom ? custom : join(process.cwd(), ".drafts");
-}
-
-/** Subpasta da raiz: `devPath("orders")`, `devPath("media")`. */
-export function devPath(...segments: string[]): string {
-  return join(devRoot(), ...segments);
+export function devDir(...segments: string[]): string {
+  return join(
+    process.cwd(),
+    process.env.REVELADO_DEV_DIR ?? ".drafts",
+    ...segments,
+  );
 }

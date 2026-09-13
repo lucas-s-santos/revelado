@@ -1,12 +1,13 @@
 import { randomInt, randomUUID } from "node:crypto";
 import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+
+import { devDir } from "@/lib/dev-store";
 import { join } from "node:path";
 
 import { migrate } from "@/lib/blocks/migrate";
 import { revalidateSite } from "@/lib/cache";
 import { parseSiteContent, type SiteContent } from "@/lib/blocks/schema";
 import { db, notDeleted } from "@/lib/db";
-import { devRoot } from "@/lib/dev-store";
 import { deleteSiteMedia } from "@/lib/r2";
 
 /**
@@ -25,11 +26,11 @@ import { deleteSiteMedia } from "@/lib/r2";
  */
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
+const DEV_DIR = devDir();
 
 export interface Draft {
   id: string;
   slug: string;
-  occasionId: string;
   templateId: string | null;
   content: SiteContent;
   status: "DRAFT" | "PENDING_PAYMENT" | "PUBLISHED" | "EXPIRED";
@@ -51,7 +52,6 @@ export interface Draft {
 }
 
 export interface CreateDraftInput {
-  occasionId: string;
   templateId?: string | null;
   content: SiteContent;
   anonId: string;
@@ -69,9 +69,9 @@ interface DevRecord extends Omit<
 }
 
 async function devWrite(record: DevRecord): Promise<void> {
-  await mkdir(devRoot(), { recursive: true });
+  await mkdir(DEV_DIR, { recursive: true });
   await writeFile(
-    join(devRoot(), `${record.id}.json`),
+    join(DEV_DIR, `${record.id}.json`),
     JSON.stringify(record, null, 2),
     "utf8",
   );
@@ -79,7 +79,7 @@ async function devWrite(record: DevRecord): Promise<void> {
 
 async function devRead(id: string): Promise<DevRecord | null> {
   try {
-    const raw = await readFile(join(devRoot(), `${id}.json`), "utf8");
+    const raw = await readFile(join(DEV_DIR, `${id}.json`), "utf8");
     return JSON.parse(raw) as DevRecord;
   } catch {
     return null;
@@ -113,7 +113,6 @@ function devToDraft(record: DevRecord): Draft {
 type SiteRow = {
   id: string;
   slug: string;
-  occasionId: string;
   templateId: string | null;
   status: Draft["status"];
   anonId: string | null;
@@ -129,7 +128,6 @@ function rowToDraft(site: SiteRow, content: SiteContent): Draft {
   return {
     id: site.id,
     slug: site.slug,
-    occasionId: site.occasionId,
     templateId: site.templateId,
     content,
     status: site.status,
@@ -146,13 +144,12 @@ function rowToDraft(site: SiteRow, content: SiteContent): Draft {
 // --- API pública ----------------------------------------------------------
 
 export async function createDraft(input: CreateDraftInput): Promise<Draft> {
-  const slug = await generateSlug(input.occasionId);
+  const slug = await generateSlug();
 
   if (!hasDatabase) {
     const record: DevRecord = {
       id: randomUUID(),
       slug,
-      occasionId: input.occasionId,
       templateId: input.templateId ?? null,
       content: input.content,
       status: "DRAFT",
@@ -171,7 +168,6 @@ export async function createDraft(input: CreateDraftInput): Promise<Draft> {
   const site = await db.site.create({
     data: {
       slug,
-      occasionId: input.occasionId,
       templateId: input.templateId ?? null,
       content: input.content,
       anonId: input.anonId,
@@ -318,7 +314,7 @@ export async function updateSitePrivacy(
 export async function findDraftBySlug(slug: string): Promise<Draft | null> {
   if (!hasDatabase) {
     try {
-      const files = await readdir(devRoot());
+      const files = await readdir(DEV_DIR);
 
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
@@ -384,7 +380,7 @@ export async function listDraftsForOwner(
 async function slugTaken(slug: string): Promise<boolean> {
   if (!hasDatabase) {
     try {
-      const files = await readdir(devRoot());
+      const files = await readdir(DEV_DIR);
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
         const record = await devRead(file.replace(/\.json$/, ""));
@@ -404,10 +400,13 @@ async function slugTaken(slug: string): Promise<boolean> {
 }
 
 /**
- * Slug com sufixo aleatório — SPEC 9.4: não pode ser adivinhável, senão dá para
- * varrer as páginas dos outros. Imutável depois de publicado (SPEC 7.1).
+ * Slug aleatório — SPEC 9.4: não pode ser adivinhável, senão dá para varrer as
+ * páginas dos outros. Imutável depois de publicado (SPEC 7.1).
  *
- * Duas coisas que o sorteio precisa ter e antes não tinha:
+ * Sem o prefixo de ocasião (removido na v2 do SPEC), o sorteio carrega a página
+ * inteira — por isso dez caracteres, não oito.
+ *
+ * Duas coisas que ele precisa ter e antes não tinha:
  *  - **`randomInt` do `node:crypto`**, não `Math.random`. O sufixo é a única
  *    coisa que separa a página de quem não deveria vê-la, e `Math.random` é
  *    previsível a partir de saídas anteriores — quem coletasse alguns slugs
@@ -415,21 +414,20 @@ async function slugTaken(slug: string): Promise<boolean> {
  *  - **conferência de colisão**. O slug é `@unique` no banco: sem conferir,
  *    um empate vira erro 500 na cara de quem estava criando a página.
  */
-async function generateSlug(occasionId: string): Promise<string> {
+async function generateSlug(): Promise<string> {
   const alphabet = "abcdefghijkmnpqrstuvwxyz23456789"; // sem 0/o/1/l
 
   for (let attempt = 0; attempt < 5; attempt++) {
-    const suffix = Array.from({ length: 8 }, () =>
+    const slug = Array.from({ length: 10 }, () =>
       alphabet.charAt(randomInt(alphabet.length)),
     ).join("");
 
-    const slug = `${occasionId}-${suffix}`;
     if (!(await slugTaken(slug))) return slug;
   }
 
-  // Cinco empates seguidos em 32^8 não acontece: se aconteceu, alguma coisa
+  // Cinco empates seguidos em 32^10 não acontece: se aconteceu, alguma coisa
   // está errada no sorteio. Cai para um sufixo maior em vez de insistir.
-  return `${occasionId}-${randomUUID().replace(/-/g, "").slice(0, 12)}`;
+  return randomUUID().replace(/-/g, "").slice(0, 14);
 }
 
 /**
@@ -459,7 +457,7 @@ export async function deleteSite(id: string): Promise<boolean> {
   });
 
   if (!hasDatabase) {
-    await rm(join(devRoot(), `${id}.json`), { force: true });
+    await rm(join(DEV_DIR, `${id}.json`), { force: true });
   } else {
     await db.site.update({
       where: { id },
@@ -478,7 +476,7 @@ export async function deleteSite(id: string): Promise<boolean> {
 /** Todos os registros do backend de arquivo. Só existe fora de produção. */
 async function devAllRecords(): Promise<DevRecord[]> {
   try {
-    const files = await readdir(devRoot());
+    const files = await readdir(DEV_DIR);
     const records = await Promise.all(
       files
         .filter((file) => file.endsWith(".json"))

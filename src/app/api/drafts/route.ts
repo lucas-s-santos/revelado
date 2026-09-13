@@ -2,19 +2,21 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { ensureAnonId } from "@/lib/anon";
+import { defaultContent, DEFAULT_TEMPLATE } from "@/lib/blocks/defaults";
 import { createDraft } from "@/lib/drafts";
-import { OCCASION_IDS, type OccasionId } from "@/lib/occasions";
-import { contentForTemplate } from "@/lib/templates";
 import { limitOr429 } from "@/lib/rate-limit";
+import { TEMPLATE_IDS } from "@/lib/templates";
 
 /**
- * Cria um rascunho — SPEC 8.2: "cria um `Site` em DRAFT com `anonId` de cookie",
- * e o aceite pede o rascunho criado **no servidor antes da navegação**.
+ * Cria um rascunho — SPEC 8.2: "cria um `Site` em DRAFT com `anonId` de cookie".
+ *
+ * Sem ocasião para escolher, o corpo virou opcional: `POST` sem nada já devolve
+ * um rascunho no template essencial. É o que `/criar` usa para mandar a pessoa
+ * direto ao editor.
  */
 
 const bodySchema = z.object({
-  occasion: z.enum(OCCASION_IDS),
-  template: z.string().max(64).optional(),
+  template: z.enum(TEMPLATE_IDS as [string, ...string[]]).optional(),
 });
 
 export async function POST(request: Request) {
@@ -26,9 +28,11 @@ export async function POST(request: Request) {
   );
   if (limited) return limited;
 
-  let body: unknown;
+  // Corpo vazio é o caminho normal agora — só é erro se vier algo inválido.
+  let body: unknown = {};
   try {
-    body = await request.json();
+    const text = await request.text();
+    if (text.trim()) body = JSON.parse(text);
   } catch {
     return NextResponse.json(
       { error: "Corpo da requisição inválido." },
@@ -39,23 +43,19 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Escolha uma ocasião válida para começar." },
+      { error: "Esse template não existe. Escolha um da lista." },
       { status: 400 },
     );
   }
 
-  const occasion = parsed.data.occasion as OccasionId;
+  const template = parsed.data.template ?? DEFAULT_TEMPLATE;
   const anonId = await ensureAnonId();
 
   const draft = await createDraft({
-    occasionId: occasion,
-    templateId: parsed.data.template ?? null,
-    content: contentForTemplate(occasion, parsed.data.template),
+    templateId: template,
+    content: defaultContent(template),
     anonId,
   });
 
-  return NextResponse.json(
-    { id: draft.id, slug: draft.slug, occasion: draft.occasionId },
-    { status: 201 },
-  );
+  return NextResponse.json({ id: draft.id, slug: draft.slug }, { status: 201 });
 }

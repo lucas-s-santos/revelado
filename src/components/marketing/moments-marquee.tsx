@@ -1,29 +1,26 @@
 "use client";
 
-import { OccasionIcon } from "@/components/marketing/occasion-icon";
 import { Marquee } from "@/components/ui/marquee";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { copy } from "@/lib/copy";
-import { OCCASIONS } from "@/lib/occasions";
+import { MOMENTS } from "@/lib/moments";
 
 /**
- * Faixa de ocasiões rolando — SPEC 8.1 seção 4 e 6.3 (pausar no hover).
+ * Faixa dos momentos do casal — SPEC 8.1 seção 4 e 6.3 (pausar no hover).
+ *
+ * Era a faixa das oito ocasiões. Agora não oferece escolha nenhuma: só mostra
+ * que a mesma página serve do primeiro mês às bodas. Por isso os itens não são
+ * links — quem clica em qualquer um cairia no mesmo editor.
+ *
  * Em `prefers-reduced-motion` vira uma lista estática, não some: o conteúdo é
  * informação, só o movimento é decoração (SPEC 11).
  */
-export function OccasionsMarquee() {
+export function MomentsMarquee() {
   const reduced = useReducedMotion();
 
-  const chips = OCCASIONS.map((occasion) => (
-    <span
-      key={occasion.id}
-      data-occasion={occasion.id}
-      className="occasion-chip"
-    >
-      <span style={{ color: "rgb(var(--color-accent))" }}>
-        <OccasionIcon name={occasion.icon} size={16} />
-      </span>
-      {occasion.name}
+  const chips = MOMENTS.map((moment) => (
+    <span key={moment.id} className="moment-chip">
+      {moment.label}
     </span>
   ));
 
