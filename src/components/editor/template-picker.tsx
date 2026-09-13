@@ -91,7 +91,13 @@ export function TemplatePicker({
               aria-busy={creating === template.slug}
               className="template-card"
             >
-              <span className="template-card__preview" aria-hidden>
+              {/* `inert` e não `aria-hidden`: o preview é o BlockRenderer de
+                  verdade, e ele traz links e botões dentro (o rodapé, a música).
+                  Só esconder do leitor de tela deixava elementos focáveis dentro
+                  de algo marcado como oculto, e interativos dentro de um
+                  <button> — duas violações de WCAG que o axe pegou. `inert` tira
+                  a subárvore do foco e da árvore de acessibilidade de uma vez. */}
+              <span className="template-card__preview" inert>
                 {/* Sem `scale`: a miniatura é resolvida no CSS por transform,
                     para a tipografia manter a proporção da página real. */}
                 <PhoneFrame

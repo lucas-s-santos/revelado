@@ -385,6 +385,38 @@ dia 29 encontra tudo no lugar.
 **`CRON_SECRET` é obrigatório em produção** — sem ele a rota recusa tudo, porque
 ela dispara e-mails em massa e a purga.
 
+### Acessibilidade: de aceite nunca medido a portão
+
+O aceite da Fase 2 pedia "≥ 95 em acessibilidade" desde sempre e **nunca tinha
+sido medido**. Agora `e2e/acessibilidade.spec.ts` roda o axe (WCAG 2.1 A/AA) nas
+sete telas do funil, nos dois navegadores, e reprova o build igual ao orçamento
+de bundle. As sete passam limpas.
+
+O que a primeira rodada encontrou:
+
+| Onde                                          | O quê                                                                                                                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Todo cabeçalho e o rodapé da página publicada | **Não havia regra base para `<a>`**, então o nome "Revelado" saía na cor padrão de link do Chrome — um azul-lavanda que não é da marca, reprovado no contraste |
+| Cartão do QR na landing                       | A dica "aponte a câmera" estava escrita em `@layer components` e **nunca aplicou**: texto claro sobre cartão claro, 2,6:1                                      |
+| `StickyActs`                                  | Atos inativos parados em 30% de opacidade — 1,6:1, e é estado de repouso, não transição                                                                        |
+| Carrossel da galeria                          | Rola por scroll-snap e **não recebia foco**: quem usa teclado não alcançava da segunda foto em diante. Na tela que é o produto entregue                        |
+| `/criar/[occasion]`                           | Bug meu, novo: o preview tinha links dentro de um `aria-hidden` e interativos dentro de `<button>`. Resolvido com `inert`                                      |
+| `.hero__note`                                 | `--color-muted` a 75% dá 4,1:1 em texto pequeno                                                                                                                |
+
+Duas lições que ficaram no código:
+
+1. **A ordem das camadas do Tailwind v4 é `components` antes de `utilities`**, então
+   uma regra de componente não vence uma classe utilitária por mais específica que
+   seja. Foi o que fez a dica do QR não aplicar — o desenho "parecia" certo no
+   arquivo e não chegava na tela.
+2. **O teste roda com `prefers-reduced-motion`** (`playwright.config.ts`). Não é
+   só higiene: com animação correndo, o axe media a cor no estado em que pegou a
+   tela e a mesma página passava numa rodada e reprovava na seguinte. E o estado
+   sem movimento é justamente o que a regra inviolável 14 promete a quem pede.
+
+O que o axe **não** cobre e continua sendo trabalho humano: percorrer o funil só
+com teclado, e conferir se o texto alternativo diz alguma coisa.
+
 ### Dois defeitos que só o e2e encontrou
 
 Ambos na página publicada — a tela que é o produto entregue — e ambos invisíveis

@@ -24,7 +24,21 @@ export function GalleryBlock({
 
   return (
     <section className={cn("block-gallery", `is-${props.layout}`)}>
-      <ul className="block-gallery__list">
+      {/* O carrossel rola na horizontal por scroll-snap do CSS, sem botões.
+          Sem `tabIndex`, quem navega por teclado não consegue chegar nele e as
+          fotos depois da primeira ficam inalcançáveis — é a foto da pessoa, na
+          tela que é o produto entregue. Com `tabIndex` o contêiner recebe foco e
+          as setas rolam, que é o comportamento nativo.
+
+          Sem `role="group"`: ele substitui a semântica de lista do <ul> e deixa
+          os <li> órfãos — o axe reprovou na primeira tentativa. `tabIndex`
+          sozinho já dá o foco, e o <ul> aceita `aria-label` do jeito que é. */}
+      <ul
+        className="block-gallery__list"
+        {...(props.layout === "carousel"
+          ? { tabIndex: 0, "aria-label": "Fotos, role para ver" }
+          : {})}
+      >
         {slots.map((mediaId, index) => {
           const src = mediaId ? media?.[mediaId] : undefined;
           const caption = mediaId ? props.captions?.[mediaId] : undefined;
