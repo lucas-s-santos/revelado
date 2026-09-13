@@ -11,13 +11,24 @@
 
 const PUBLIC_HOST = process.env.NEXT_PUBLIC_R2_PUBLIC_HOST;
 
+/**
+ * Com o bucket privado (SPEC 9.4), a leitura passa por `/api/media`, que confere
+ * quem está pedindo. Tem que bater com `publicUrlFor` de `lib/r2.ts` — são as
+ * duas pontas da mesma decisão, uma para quem assina o upload e outra para quem
+ * monta a página.
+ */
+const PRIVATE = process.env.R2_PRIVATE === "true";
+
 export function mediaPath(draftId: string, mediaId: string): string {
   return `sites/${draftId}/${mediaId}`;
 }
 
 export function publicUrlFor(draftId: string, mediaId: string): string {
   const key = mediaPath(draftId, mediaId);
-  return PUBLIC_HOST ? `https://${PUBLIC_HOST}/${key}` : `/api/media/${key}`;
+
+  return PUBLIC_HOST && !PRIVATE
+    ? `https://${PUBLIC_HOST}/${key}`
+    : `/api/media/${key}`;
 }
 
 /**
