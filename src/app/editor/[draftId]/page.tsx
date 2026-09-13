@@ -29,7 +29,7 @@ export default async function EditorPage({ params }: { params: Params }) {
   if (!draft) notFound();
 
   // Rascunho é privado: só o cookie que criou abre (SPEC 9.4).
-  if (!(await isDraftOwner(draft.anonId))) notFound();
+  if (!(await isDraftOwner(draft))) notFound();
 
   return (
     <EditorShell

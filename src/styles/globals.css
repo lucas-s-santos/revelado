@@ -2770,6 +2770,31 @@
     margin-top: 1.5rem;
   }
 
+  /* --- barra do painel com sessão (SPEC 2 e 8.7) ----------------------- */
+  .panel__bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .panel__hint {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: rgb(var(--color-muted));
+  }
+
+  .link-quiet {
+    color: rgb(var(--color-accent));
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .link-quiet:focus-visible {
+    outline: 2px solid rgb(var(--color-accent));
+    outline-offset: 3px;
+  }
+
   /* --- exclusão (SPEC 8.7 e 9.4) ---------------------------------------
      Sóbrio como o resto do painel. O vermelho aparece só na borda e no botão:
      apagar a própria página é uma decisão, não um susto. */

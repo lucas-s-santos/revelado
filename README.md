@@ -275,6 +275,34 @@ travas são todas do lado do servidor e estão em três arquivos.
 - `AUTH_SECRET` — assina os links de `/sucesso` e os cookies de senha. Sem ela,
   o app usa um valor de reserva que é público e grita no log.
 
+### Login por magic link (SPEC 2)
+
+Auth.js v5 com adapter do Prisma e provider Resend. Sem senha: o e-mail é a
+chave, e quem comprou já tem conta — ela nasce no checkout (SPEC 1), então
+entrar é **reencontrar**, não cadastrar.
+
+Três coisas que valem a pena saber:
+
+- **login nunca é exigido** (regra inviolável 8). Não há middleware, não há
+  redirecionamento para `/entrar`. A sessão é informação a mais que algumas
+  telas usam; o cookie anônimo continua funcionando sozinho para quem nunca
+  pedir o link;
+- **sessão em banco, não JWT.** A SPEC 9.4 fala em direito de exclusão e em
+  tirar acesso — com sessão em tabela isso é apagar uma linha;
+- **`isDraftOwner` é o único lugar que decide dono.** Foi centralizada no
+  primeiro commit desta leva justamente para este momento: a regra por `userId`
+  entrou lá e todas as telas ganharam de uma vez. O compilador apontou os nove
+  pontos de chamada sozinho.
+
+Liga com `DATABASE_URL` + `AUTH_SECRET` + `RESEND_API_KEY`. Faltando qualquer um,
+`/entrar` explica que não está disponível e o resto do app segue inteiro.
+
+No caminho apareceu outro divergente dev/produção: `listDraftsByAnon` filtrava
+`status: "DRAFT"` só no Postgres, então **em produção o painel nunca mostraria
+uma página publicada** — justamente a que a pessoa vai lá gerenciar. Em
+desenvolvimento funcionava. Virou `listDraftsForOwner`, sem filtro de status e
+somando os dois donos possíveis.
+
 ### Fechando o bucket do R2 (SPEC 9.4)
 
 Hoje as fotos são lidas do host público da Cloudflare. As chaves são cuid + uuid,
@@ -424,9 +452,10 @@ Cada uma está anotada também no lugar certo do código:
   no bucket. `deleteSiteMedia` contorna isso varrendo pelo prefixo `sites/<id>/`.
 - **O bucket do R2 ainda está público para leitura**, mas a virada está pronta:
   ver "Fechando o bucket" abaixo.
-- **Login por magic link** não existe. O `/painel` lista pelo mesmo cookie
-  anônimo que segura os rascunhos, então trocar de aparelho perde o acesso — e
-  é o mesmo cookie que autoriza trocar a senha em `/painel/[siteId]`.
+- **O fluxo completo do magic link não foi testado de ponta a ponta**: precisa de
+  `DATABASE_URL` + `RESEND_API_KEY` de verdade. O que foi conferido rodando é o
+  caminho desligado (a rota do Auth.js devolve 404 limpo, `/entrar` explica) e
+  que nada do funil quebrou.
 - **Renovar e trocar de plano** ainda não estão em `/painel/[siteId]`: os dois
   dependem de uma tela de cobrança para página já publicada, que é assunto
   próprio. A página expirada já tem o CTA de renovação apontando para o painel.

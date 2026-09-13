@@ -28,7 +28,7 @@ export async function accessForSite(
 
   return decideAccess(draft, {
     unlocked: await hasUnlockCookie(draft),
-    owner: await isDraftOwner(draft.anonId),
+    owner: await isDraftOwner(draft),
     at,
   });
 }
