@@ -534,6 +534,24 @@ export async function listExpiringSoon(
   });
 }
 
+/**
+ * Zera a marca do aviso de expiração.
+ *
+ * Chamada ao renovar: sem isto, uma página renovada carregaria para sempre a
+ * marca do ciclo anterior e **nunca mais seria avisada** de que vai expirar de
+ * novo — o cliente descobriria pela página fora do ar.
+ */
+export async function clearExpiringNotice(id: string): Promise<void> {
+  if (!hasDatabase) {
+    const record = await devRead(id);
+    if (!record) return;
+    await devWrite({ ...record, expiringNotifiedAt: null });
+    return;
+  }
+
+  await db.site.update({ where: { id }, data: { expiringNotifiedAt: null } });
+}
+
 /** Marca o aviso de expiração como enviado, para ele não sair duas vezes. */
 export async function markExpiringNotified(
   id: string,

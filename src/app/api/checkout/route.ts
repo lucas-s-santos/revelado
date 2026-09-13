@@ -71,12 +71,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }
 
-  if (draft.status === "PUBLISHED") {
-    return NextResponse.json(
-      { error: "Esta página já está publicada." },
-      { status: 409 },
-    );
-  }
+  // Página já no ar **não** é erro: é renovação (SPEC 8.7). O que muda é o que
+  // o webhook faz ao confirmar — estica o prazo em vez de estrear (ver
+  // `nextExpiry` em lib/publish.ts). Aqui o fluxo é o mesmo.
 
   // Portão da publicação (SPEC 7.2): não cobrar por uma página que sairia vazia.
   const issues = validateForPublish(draft.content);

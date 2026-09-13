@@ -164,9 +164,22 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     },
   });
 
+  // A página vira PENDING_PAYMENT só se ainda não estiver no ar.
+  //
+  // Numa renovação ela **está** no ar, e mudar o status tiraria do ar uma página
+  // que está funcionando durante os trinta minutos do Pix — o presente sairia do
+  // ar justamente porque a pessoa decidiu pagar para ele continuar.
+  const site = await db.site.findUnique({
+    where: { id: input.siteId },
+    select: { status: true },
+  });
+
   await db.site.update({
     where: { id: input.siteId },
-    data: { userId: user.id, status: "PENDING_PAYMENT" },
+    data: {
+      userId: user.id,
+      ...(site?.status === "PUBLISHED" ? {} : { status: "PENDING_PAYMENT" }),
+    },
   });
 
   return { ...toOrder(record), id: order.id };

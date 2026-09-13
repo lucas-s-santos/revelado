@@ -14,8 +14,11 @@ import { cn } from "@/lib/utils";
  * editor importa este módulo, ele é compilado como client junto — mesmo código,
  * dois contextos.
  *
- * `mode` só muda o que é cosmético: no preview as revelações por scroll saem do
- * caminho, porque dentro do mockup de 40vh elas atrapalhariam a edição.
+ * `mode` chega em todo bloco. Ele muda o que é cosmético — no preview as
+ * revelações por scroll saem do caminho, porque dentro do mockup de 40vh elas
+ * atrapalhariam a edição — e uma coisa que não é cosmética: o hero só emite
+ * `h1` quando a página publicada é o documento. Num preview, o `h1` é de quem
+ * hospeda o preview.
  */
 export interface BlockRendererProps {
   content: SiteContent;
@@ -61,6 +64,7 @@ export function BlockRenderer({
         const rendered = (
           <Component
             props={block.props}
+            mode={mode}
             {...(now !== undefined ? { now } : {})}
             {...(media ? { media } : {})}
           />

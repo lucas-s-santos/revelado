@@ -385,6 +385,34 @@ dia 29 encontra tudo no lugar.
 **`CRON_SECRET` é obrigatório em produção** — sem ele a rota recusa tudo, porque
 ela dispara e-mails em massa e a purga.
 
+### Renovação (SPEC 8.7)
+
+O job `site.expiring` manda um e-mail dizendo "renove sua página", e a página
+expirada mostra o mesmo CTA. **Os dois levavam a uma tela sem botão de renovar** —
+tráfego dirigido para um beco sem saída, criado junto com o job.
+
+Agora `/painel/[siteId]` tem o botão e o checkout aceita página já publicada. A
+regra que manda é a conta do prazo, em `nextExpiry`:
+
+**renovar cedo soma, não substitui.** O aviso sai quinze dias antes; se renovar
+antes custasse esses quinze dias, o e-mail estaria pedindo para a pessoa se
+prejudicar por ser precavida. A contagem parte do que for mais tarde — o prazo
+atual, se ainda valer, ou hoje. Página já expirada recomeça de hoje: o tempo
+fora do ar não era tempo de serviço.
+
+Três armadilhas que apareceram no caminho e estão travadas em `renovacao.test.ts`:
+
+1. **`createOrder` punha o site em `PENDING_PAYMENT`.** Numa renovação isso
+   tiraria do ar uma página que está funcionando durante os trinta minutos do
+   Pix — o presente sairia do ar justamente porque a pessoa decidiu pagar para
+   ele continuar.
+2. **A marca de "já avisei" precisa ser zerada.** Sem isso, uma página renovada
+   carregaria a marca do ciclo anterior para sempre e nunca mais seria avisada:
+   o cliente descobriria o próximo vencimento pela página fora do ar.
+3. **O CTA da página expirada apontava para `/painel`**, a lista. Agora aponta
+   para a própria página — quem abre um link vencido quer renovar **aquela**, e
+   o dono pode estar num aparelho onde a lista vem vazia.
+
 ### Acessibilidade: de aceite nunca medido a portão
 
 O aceite da Fase 2 pedia "≥ 95 em acessibilidade" desde sempre e **nunca tinha
@@ -488,11 +516,8 @@ Cada uma está anotada também no lugar certo do código:
   `DATABASE_URL` + `RESEND_API_KEY` de verdade. O que foi conferido rodando é o
   caminho desligado (a rota do Auth.js devolve 404 limpo, `/entrar` explica) e
   que nada do funil quebrou.
-- **Renovar e trocar de plano** ainda não estão em `/painel/[siteId]`: os dois
-  dependem de uma tela de cobrança para página já publicada, que é assunto
-  próprio. A página expirada já tem o CTA de renovação apontando para o painel.
-  **Excluir já existe** (`lib/drafts.ts` → `deleteSite`), com confirmação
-  digitada e purga do R2 junto — é o direito de exclusão da SPEC 9.4.
+- **Trocar de plano** ainda não está em `/painel/[siteId]`. **Renovar e excluir
+  já existem.**
 - **Reembolso não tira a página do ar.** O pedido vira `REFUNDED` e o site
   continua publicado; o e2e trava esse comportamento para ele não mudar sem
   querer. Se a regra de negócio for despublicar, o lugar é `transitionOrder`.

@@ -149,6 +149,57 @@ Se preferir deixar sair do ar, não precisa fazer nada.`,
   });
 }
 
+/**
+ * "Renovada" — SPEC 8.7.
+ *
+ * O que a pessoa quer saber é uma coisa só: até quando agora. O endereço não
+ * mudou e o QR impresso continua valendo, e dizer isso de novo é o que tira a
+ * dúvida de quem já distribuiu cartão.
+ */
+export async function sendRenewedEmail(input: {
+  to: string;
+  slug: string;
+  siteId: string;
+  expiresAt: Date | null;
+}): Promise<void> {
+  const pageUrl = `${SITE_URL}/p/${input.slug}`;
+  const painelUrl = `${SITE_URL}/painel/${input.siteId}`;
+
+  const prazo = input.expiresAt
+    ? `no ar até <strong>${new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        timeZone: "America/Sao_Paulo",
+      }).format(input.expiresAt)}</strong>`
+    : "no ar <strong>para sempre</strong>";
+
+  const prazoTexto = input.expiresAt
+    ? `no ar até ${new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        timeZone: "America/Sao_Paulo",
+      }).format(input.expiresAt)}`
+    : "no ar para sempre";
+
+  await send({
+    to: input.to,
+    subject: "Sua página continua no ar",
+    html: layout(
+      "Renovado",
+      `<p style="line-height:1.6;color:#F6EFE6">A página <a href="${pageUrl}" style="color:#F2B457">${pageUrl}</a> está ${prazo}.</p>
+       <p style="line-height:1.6;color:#9B90AA">O endereço não mudou: o QR Code que você imprimiu continua valendo, e nada precisa ser reimpresso.</p>
+       <p style="margin:24px 0">${button(painelUrl, "Ver minha página")}</p>`,
+    ),
+    text: `A página ${pageUrl} está ${prazoTexto}.
+
+O endereço não mudou — o QR Code impresso continua valendo.
+
+Painel: ${painelUrl}`,
+  });
+}
+
 /** Primeira visita — SPEC 8.7: o maior gatilho emocional do produto. */
 export async function sendFirstViewEmail(input: {
   to: string;

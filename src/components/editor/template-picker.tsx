@@ -89,6 +89,15 @@ export function TemplatePicker({
               onClick={() => void choose(template)}
               disabled={creating !== null}
               aria-busy={creating === template.slug}
+              /**
+               * Nome explícito, senão o botão se chama pelo conteúdo inteiro do
+               * preview: `inert` tira a subárvore do foco, mas o texto dela
+               * continua entrando no nome acessível. Um leitor de tela lia
+               * "Para você, com todo o meu amor, juntos há 01 anos…" antes de
+               * chegar em "Essencial". O axe não pega isso — nome ruim não é
+               * violação, é só inútil.
+               */
+              aria-label={`Usar o estilo ${template.name}`}
               className="template-card"
             >
               {/* `inert` e não `aria-hidden`: o preview é o BlockRenderer de

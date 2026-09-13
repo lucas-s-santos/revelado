@@ -212,6 +212,32 @@ export default async function SiteDetailPage({
 
       {published ? (
         <section className="detail__card">
+          <h2 className="detail__card-title">Prazo</h2>
+          <p className="detail__renew-prazo">
+            {draft.expiresAt
+              ? `No ar até ${formatDate(draft.expiresAt)}.`
+              : "No ar para sempre. Não há nada para renovar."}
+          </p>
+
+          {draft.expiresAt ? (
+            <>
+              <p className="field__hint">
+                Renovando, o prazo soma a partir do que ainda falta — renovar
+                cedo não desperdiça os dias que sobraram. O endereço continua o
+                mesmo, então o QR Code que você imprimiu não muda.
+              </p>
+              <div className="detail__form-row">
+                <Link href={`/checkout/${draft.id}`} className="btn-primary">
+                  Renovar minha página
+                </Link>
+              </div>
+            </>
+          ) : null}
+        </section>
+      ) : null}
+
+      {published ? (
+        <section className="detail__card">
           <h2 className="detail__card-title">QR Code</h2>
           <p className="field__hint">
             O mesmo código de sempre: o slug não muda, então o cartão já

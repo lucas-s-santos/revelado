@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { isDraftOwner } from "@/lib/anon";
@@ -29,8 +29,10 @@ export default async function CheckoutPage({ params }: { params: Params }) {
   if (!draft) notFound();
   if (!(await isDraftOwner(draft))) notFound();
 
-  // Já publicada: a pessoa voltou no histórico. Manda para o lugar certo.
-  if (draft.status === "PUBLISHED") redirect(`/p/${draft.slug}`);
+  // Já publicada: isto é renovação, não engano de histórico. Antes a tela
+  // devolvia a pessoa para a página dela — e como o painel e o e-mail de
+  // expiração mandavam para cá, renovar era literalmente impossível.
+  const renewal = draft.status === "PUBLISHED";
 
   const issues = validateForPublish(draft.content);
   const hero = draft.content.blocks.find((block) => block.type === "hero");
@@ -50,6 +52,8 @@ export default async function CheckoutPage({ params }: { params: Params }) {
         0,
       )}
       issues={issues}
+      renewal={renewal}
+      expiresAt={draft.expiresAt?.toISOString() ?? null}
     />
   );
 }
