@@ -47,7 +47,8 @@ export function BlockRenderer({
     <div
       className={cn("blocks", className)}
       data-mode={mode}
-      data-occasion={content.theme.palette}
+      data-skin={content.theme.skin}
+      data-palette={content.theme.palette}
       data-font={content.theme.font}
       // O efeito vive aqui, e não no `<main>` da página publicada, para o
       // preview do editor mostrar o mesmo que o presente entregue (regra 2).

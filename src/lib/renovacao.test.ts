@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import { defaultContent } from "@/lib/blocks/defaults";
+import { defaultContent, DEFAULT_TEMPLATE } from "@/lib/blocks/defaults";
 import { getDraft } from "@/lib/drafts";
 import { EXPIRING_WITHIN_MS, siteExpiring } from "@/lib/jobs";
 import { createDraft } from "@/lib/drafts";
@@ -96,8 +96,7 @@ describe("a conta do novo prazo", () => {
 
 async function paginaNoAr() {
   const draft = await createDraft({
-    occasionId: "namorados",
-    content: defaultContent("namorados"),
+    content: defaultContent(DEFAULT_TEMPLATE),
     anonId: "dono-teste",
   });
 

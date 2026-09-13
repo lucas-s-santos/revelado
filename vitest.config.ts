@@ -15,5 +15,12 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     exclude: ["e2e/**", "node_modules/**"],
+    /**
+     * O backend de arquivo dos rascunhos vive em `.drafts/` (ver lib/drafts.ts),
+     * e o teste do fluxo de pagamento limpa esse diretório com `rm -rf`. Sem
+     * isolar, rodar `pnpm test` apagava os rascunhos locais de quem estava
+     * desenvolvendo — o teste destruía trabalho de verdade.
+     */
+    env: { REVELADO_DEV_DIR: ".drafts-test" },
   },
 });

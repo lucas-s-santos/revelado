@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import { defaultContent } from "@/lib/blocks/defaults";
+import { defaultContent, DEFAULT_TEMPLATE } from "@/lib/blocks/defaults";
 import { createDraft, getDraft, updateSitePrivacy } from "@/lib/drafts";
 import {
   ABANDONED_AFTER_MS,
@@ -34,8 +34,7 @@ const DIA = 24 * 60 * MINUTO;
 
 async function novoRascunho() {
   return createDraft({
-    occasionId: "namorados",
-    content: defaultContent("namorados"),
+    content: defaultContent(DEFAULT_TEMPLATE),
     anonId: "teste-jobs",
   });
 }

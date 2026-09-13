@@ -95,10 +95,10 @@ describe("editor store", () => {
   });
 
   it("guarda o tema no conteúdo", () => {
-    useEditorStore.getState().setTheme({ palette: "maes", effect: "stars" });
+    useEditorStore.getState().setTheme({ palette: "ciano", effect: "stars" });
 
     const theme = useEditorStore.getState().content?.theme;
-    expect(theme?.palette).toBe("maes");
+    expect(theme?.palette).toBe("ciano");
     expect(theme?.effect).toBe("stars");
   });
 

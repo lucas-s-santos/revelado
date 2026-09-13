@@ -1,9 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
+
+import { devDir } from "@/lib/dev-store";
 import { dirname, join, normalize } from "node:path";
 
 import { NextResponse } from "next/server";
 
-import { devPath } from "@/lib/dev-store";
 import { LOCAL_MEDIA_ENABLED, MAX_UPLOAD_BYTES } from "@/lib/r2";
 
 /**
@@ -14,7 +15,7 @@ import { LOCAL_MEDIA_ENABLED, MAX_UPLOAD_BYTES } from "@/lib/r2";
  * recusa a existir (SPEC 2 e anti-padrão 8).
  */
 
-const DEV_MEDIA_DIR = devPath("media");
+const DEV_MEDIA_DIR = devDir("media");
 
 export async function PUT(request: Request) {
   if (!LOCAL_MEDIA_ENABLED) {

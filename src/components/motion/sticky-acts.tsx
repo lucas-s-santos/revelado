@@ -50,11 +50,7 @@ export function StickyActs({
           >
             <p className="eyebrow">{act.eyebrow}</p>
             <h3 className="sticky-acts__title">{act.title}</h3>
-            {/* Sem a classe utilitária de `--color-muted`: o ato inativo já
-                é apagado pela opacidade do contêiner, e muted por cima disso
-                cai para 2,4:1 de contraste (SPEC 11 pede 4.5:1). A cor vem do
-                CSS do ato, que usa paper. */}
-            <p className="sticky-acts__text">{act.text}</p>
+            <p className="text-[rgb(var(--color-ink-muted))]">{act.text}</p>
           </li>
         ))}
       </ol>

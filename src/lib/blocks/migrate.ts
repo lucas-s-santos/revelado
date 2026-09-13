@@ -3,6 +3,7 @@ import {
   SCHEMA_VERSION,
   type SiteContent,
 } from "@/lib/blocks/schema";
+import { DEFAULT_PALETTE, isPaletteId } from "@/lib/palettes";
 
 /**
  * Migração entre versões de schema — SPEC 7.2.
@@ -20,12 +21,51 @@ import {
 type Step = (content: Record<string, unknown>) => Record<string, unknown>;
 
 /**
- * `steps[n]` leva da versão `n` para `n + 1`.
+ * Mapa das oito ocasiões antigas para as paletas de revelação.
  *
- * Exemplo de como o próximo vai parecer:
- *   1: (content) => ({ ...content, schemaVersion: 2, theme: {...} })
+ * Existe só aqui dentro, e só para trás: página publicada na v1 tem o QR
+ * impresso e não pode mudar de cor sozinha. Ocasião fora da lista cai no padrão.
  */
-const steps: Record<number, Step> = {};
+const PALETTE_FROM_OCCASION: Record<string, string> = {
+  namorados: "magenta",
+  aniversario: "ambar",
+  maes: "magenta",
+  pais: "ciano",
+  casamento: "papel",
+  bebe: "ciano",
+  natal: "rubi",
+  memorial: "papel",
+};
+
+/**
+ * `steps[n]` leva da versão `n` para `n + 1`.
+ */
+const steps: Record<number, Step> = {
+  /**
+   * 1 → 2: o produto virou um só (página de casal). Sai `occasion` da raiz e
+   * `theme.palette` deixa de ser texto livre para ser uma das paletas.
+   *
+   * Nada é jogado fora que não dê para reconstruir: a paleta antiga carregava a
+   * cor da ocasião, então é dela que a nova sai.
+   */
+  1: (content) => {
+    const { occasion, ...rest } = content as {
+      occasion?: unknown;
+      theme?: Record<string, unknown>;
+    } & Record<string, unknown>;
+
+    const theme = (rest.theme ?? {}) as Record<string, unknown>;
+    const previous = theme.palette ?? occasion;
+
+    const palette = isPaletteId(previous)
+      ? previous
+      : typeof previous === "string"
+        ? (PALETTE_FROM_OCCASION[previous] ?? DEFAULT_PALETTE)
+        : DEFAULT_PALETTE;
+
+    return { ...rest, schemaVersion: 2, theme: { ...theme, palette } };
+  },
+};
 
 export interface MigrateResult {
   content: SiteContent | null;
@@ -35,6 +75,15 @@ export interface MigrateResult {
   migrated: boolean;
   /** mensagem quando não deu para validar */
   error?: string;
+}
+
+/**
+ * O `content` vem do banco como `Json`: pode ser null, número, lista. Os passos
+ * são declarados recebendo um objeto, então quem garante isso é aqui — assim
+ * nenhum passo futuro precisa se defender de entrada torta.
+ */
+function isRecord(input: unknown): input is Record<string, unknown> {
+  return typeof input === "object" && input !== null && !Array.isArray(input);
 }
 
 function versionOf(input: unknown): number {
@@ -64,7 +113,7 @@ export function migrate(input: unknown): MigrateResult {
     };
   }
 
-  let current = input as Record<string, unknown>;
+  let current = isRecord(input) ? input : {};
   let version = from;
   let migrated = false;
 

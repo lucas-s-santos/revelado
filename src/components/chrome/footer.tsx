@@ -10,7 +10,7 @@ export function Footer() {
       <div className="container-page grid gap-12 py-16 md:grid-cols-[1.4fr_repeat(3,1fr)]">
         <div className="flex flex-col gap-4">
           <Logo href={null} />
-          <p className="max-w-[34ch] text-sm text-[rgb(var(--color-muted))]">
+          <p className="max-w-[34ch] text-sm text-[rgb(var(--color-ink-muted))]">
             {copy.footer.tagline}
           </p>
         </div>
@@ -23,7 +23,7 @@ export function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-[rgb(var(--color-muted))] transition-colors hover:text-[rgb(var(--color-paper))]"
+                    className="text-[rgb(var(--color-ink-muted))] transition-colors hover:text-[rgb(var(--color-ink))]"
                   >
                     {link.label}
                   </Link>
@@ -34,7 +34,7 @@ export function Footer() {
         ))}
       </div>
 
-      <div className="container-page flex flex-col gap-1 border-t border-[rgb(var(--color-paper)/0.08)] py-6 text-xs text-[rgb(var(--color-muted))] sm:flex-row sm:justify-between">
+      <div className="container-page flex flex-col gap-1 border-t border-[rgb(var(--color-ink)/0.08)] py-6 text-xs text-[rgb(var(--color-ink-muted))] sm:flex-row sm:justify-between">
         <p>
           © {new Date().getFullYear()} {copy.brand.name}. {copy.footer.rights}
         </p>

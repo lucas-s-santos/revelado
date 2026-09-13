@@ -54,5 +54,8 @@ next-env.d.ts
 # rascunhos e mídias do modo local de desenvolvimento (ver lib/drafts.ts)
 /.drafts/
 
-# dados do backend de arquivo durante o e2e (ver playwright.config.ts)
+# o mesmo, isolado para a suíte de testes (ver vitest.config.ts)
+/.drafts-test/
+
+# e para o e2e, que sobe um servidor de verdade (ver playwright.config.ts)
 /.e2e-drafts/

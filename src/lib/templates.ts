@@ -1,175 +1,120 @@
-import { defaultContent } from "@/lib/blocks/defaults";
-import type { SiteContent } from "@/lib/blocks/schema";
-import type { OccasionId } from "@/lib/occasions";
-import type { PlanId } from "@/lib/plans";
-
 /**
- * Templates — SPEC 7.1 (model Template) e 8.3.
+ * Templates — SPEC 7.1 (`model Template`) e 8.3.
  *
- * Em TypeScript pelo mesmo motivo de `lib/plans.ts` e `lib/occasions.ts`: é a
- * fonte de verdade do seed, e o app funciona sem banco configurado.
+ * Antes eram dois por ocasião, o que dava dezesseis páginas quase iguais. Com um
+ * produto só, eles voltam a ser o que deveriam ser: cinco jeitos diferentes de
+ * contar a mesma história.
  *
- * **Um template aqui é só um tema.** Ele não troca os blocos — a ocasião já
- * decide quais blocos a página tem (`lib/blocks/defaults.ts`), e deixar o
- * template mexer nisso faria a pessoa perder o que escreveu ao trocar de
- * template no editor. O que ele muda é tipografia e efeito ambiental, que é o
- * que separa "Dia dos Namorados discreto" de "Dia dos Namorados exagerado".
+ * O que o template carrega é **preset**, não conteúdo: paleta, fonte, efeito e
+ * a ordem dos blocos. Trocar de template no editor não apaga o que a pessoa já
+ * escreveu — só remonta a moldura.
  *
- * Sem `previewUrl`: a SPEC 8.3 pede "preview **real**, não imagem estática", e
- * o preview real é o próprio `BlockRenderer` dentro do `PhoneFrame`. Uma pasta
- * de `.webp` seria mais um lugar para o template e a imagem divergirem.
+ * Fonte de verdade para o seed do banco. Em runtime o app lê do banco, porque o
+ * admin cria template novo sem deploy (SPEC 8.9).
  */
 
-type Font = SiteContent["theme"]["font"];
-type Effect = SiteContent["theme"]["effect"];
+import type { BlockType } from "@/lib/blocks/schema";
+import type { PaletteId } from "@/lib/palettes";
 
 export interface TemplateSeed {
-  /** único dentro da ocasião: o id completo é `${occasion}-${slug}` */
-  slug: string;
+  id: string;
   name: string;
-  /** uma linha, no tom da interface (SPEC 11) */
-  description: string;
-  font: Font;
-  /**
-   * `"signature"` usa o efeito característico da ocasião — corações no Dia dos
-   * Namorados, neve no Natal. Qualquer outro valor é literal.
-   */
-  effect: Effect | "signature";
-  planRequired: PlanId | null;
-  /** ocasiões em que este template não faz sentido */
-  excludeOccasions?: readonly OccasionId[];
+  /** uma linha, para o card de escolha */
+  hint: string;
+  previewUrl: string;
+  /** null = incluso em todos os planos */
+  planRequired: string | null;
+  order: number;
+  preset: {
+    palette: PaletteId;
+    font: "serif" | "sans" | "mixed";
+    effect: "none" | "hearts" | "confetti" | "snow" | "stars";
+    /** ordem dos blocos; o editor completa o resto com os padrões */
+    blocks: readonly BlockType[];
+  };
 }
-
-/**
- * O efeito que é a cara de cada ocasião.
- *
- * Memorial recebe estrelas, não confete nem corações: céu estrelado é um motivo
- * de lembrança, festa numa página de memória é a diferença entre um presente e
- * uma ofensa.
- */
-const SIGNATURE_EFFECT: Record<OccasionId, Effect> = {
-  namorados: "hearts",
-  aniversario: "confetti",
-  maes: "hearts",
-  pais: "stars",
-  casamento: "confetti",
-  bebe: "stars",
-  natal: "snow",
-  memorial: "stars",
-};
 
 export const TEMPLATES: readonly TemplateSeed[] = [
   {
-    slug: "essencial",
+    id: "essencial",
     name: "Essencial",
-    description: "A página limpa. Nada disputa atenção com a foto.",
-    font: "mixed",
-    effect: "none",
+    hint: "capa, contador, fotos e a carta",
+    previewUrl: "/templates/essencial.webp",
     planRequired: null,
+    order: 1,
+    preset: {
+      palette: "magenta",
+      font: "mixed",
+      effect: "hearts",
+      blocks: ["hero", "counter", "gallery", "letter", "footer"],
+    },
   },
   {
-    slug: "revelacao",
+    id: "revelacao",
     name: "Revelação",
-    description: "Serifa grande e o efeito da ocasião ao fundo.",
-    font: "serif",
-    effect: "signature",
+    hint: "as fotos aparecem conforme a pessoa rola",
+    previewUrl: "/templates/revelacao.webp",
     planRequired: null,
+    order: 2,
+    preset: {
+      palette: "magenta",
+      font: "serif",
+      effect: "hearts",
+      blocks: ["hero", "counter", "letter", "gallery", "timeline", "footer"],
+    },
   },
   {
-    slug: "manuscrito",
-    name: "Manuscrito",
-    description: "Tudo em serifa, como uma carta escrita à mão.",
-    font: "serif",
-    effect: "none",
+    id: "linha-do-tempo",
+    name: "Linha do tempo",
+    hint: "de onde começou até aqui, data por data",
+    previewUrl: "/templates/linha-do-tempo.webp",
     planRequired: null,
+    order: 3,
+    preset: {
+      palette: "ambar",
+      font: "mixed",
+      effect: "none",
+      blocks: ["hero", "timeline", "gallery", "counter", "letter", "footer"],
+    },
   },
   {
-    slug: "editorial",
-    name: "Editorial",
-    description: "Sem serifa, espaçado, com ar de revista.",
-    font: "sans",
-    effect: "none",
-    planRequired: null,
-  },
-  {
-    slug: "festa",
-    name: "Festa",
-    description: "Confete caindo o tempo todo. Para quem quer barulho.",
-    font: "sans",
-    effect: "confetti",
+    id: "motivos",
+    name: "Motivos",
+    hint: "a lista de por que você gosta dela ou dele",
+    previewUrl: "/templates/motivos.webp",
     planRequired: "especial",
-    excludeOccasions: ["memorial"],
+    order: 4,
+    preset: {
+      palette: "rubi",
+      font: "sans",
+      effect: "hearts",
+      blocks: ["hero", "reasons", "gallery", "counter", "music", "footer"],
+    },
   },
   {
-    slug: "noturno",
-    name: "Noturno",
-    description: "Céu estrelado atrás do texto, sem pressa.",
-    font: "mixed",
-    effect: "stars",
+    id: "capsula",
+    name: "Cápsula do tempo",
+    hint: "uma carta que só abre na data que você marcar",
+    previewUrl: "/templates/capsula.webp",
     planRequired: "especial",
-  },
-  {
-    slug: "neve",
-    name: "Neve",
-    description: "Neve caindo devagar, mesmo fora de dezembro.",
-    font: "mixed",
-    effect: "snow",
-    planRequired: "especial",
+    order: 5,
+    preset: {
+      palette: "ciano",
+      font: "mixed",
+      effect: "stars",
+      blocks: ["hero", "counter", "capsule", "gallery", "letter", "footer"],
+    },
   },
 ] as const;
 
-export interface Template extends Omit<TemplateSeed, "effect"> {
-  /** id completo, como fica em `content.theme.template` */
-  id: string;
-  effect: Effect;
-}
+export const TEMPLATE_IDS = TEMPLATES.map(
+  (template) => template.id,
+) as readonly string[];
 
-/** Os templates que fazem sentido para uma ocasião, já com o efeito resolvido. */
-export function templatesFor(occasion: OccasionId): Template[] {
-  return TEMPLATES.filter(
-    (template) => !template.excludeOccasions?.includes(occasion),
-  ).map((template) => ({
-    ...template,
-    id: `${occasion}-${template.slug}`,
-    effect:
-      template.effect === "signature"
-        ? SIGNATURE_EFFECT[occasion]
-        : template.effect,
-  }));
-}
+const TEMPLATE_BY_ID = new Map(
+  TEMPLATES.map((template) => [template.id, template]),
+);
 
-export function findTemplate(
-  occasion: OccasionId,
-  slug: string,
-): Template | undefined {
-  return templatesFor(occasion).find(
-    (template) => template.slug === slug || template.id === slug,
-  );
-}
-
-/**
- * O conteúdo inicial de um rascunho com este template.
- *
- * Blocos vêm da ocasião, tema vem do template. Se o template pedido não existir
- * — link velho, ocasião que perdeu um template — cai no conteúdo padrão em vez
- * de falhar: ninguém perde a página por causa de um tema.
- */
-export function contentForTemplate(
-  occasion: OccasionId,
-  slug?: string | null,
-): SiteContent {
-  const base = defaultContent(occasion);
-  const template = slug ? findTemplate(occasion, slug) : undefined;
-
-  if (!template) return base;
-
-  return {
-    ...base,
-    theme: {
-      ...base.theme,
-      template: template.id,
-      font: template.font,
-      effect: template.effect,
-    },
-  };
+export function getTemplate(id: string): TemplateSeed | undefined {
+  return TEMPLATE_BY_ID.get(id);
 }

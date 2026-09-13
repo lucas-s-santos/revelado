@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 import { publicUrlFor } from "@/lib/media";
-import { getOccasion } from "@/lib/occasions";
+import { getPalette } from "@/lib/palettes";
 import { getPublishedSite, isExpired } from "@/lib/sites";
 
 /**
@@ -14,7 +14,7 @@ import { getPublishedSite, isExpired } from "@/lib/sites";
  * As cores estão escritas em hexadecimal aqui, como em `lib/email.ts` e pelo
  * mesmo motivo: o Satori renderiza fora do navegador e não enxerga as custom
  * properties de `styles/theme.css`. O accent, que é o que muda por ocasião,
- * continua vindo de uma fonte só (`lib/occasions.ts`).
+ * continua vindo de uma fonte só (`lib/palettes.ts`).
  */
 
 export const runtime = "nodejs";
@@ -36,7 +36,7 @@ export default async function OpengraphImage({
   const site = await getPublishedSite(slug);
 
   const accent = rgb(
-    (site && getOccasion(site.occasionId)?.accent) || "242 180 87",
+    site ? getPalette(site.content.theme.palette).accent : "242 180 87",
   );
 
   const hero = site?.content.blocks.find((block) => block.type === "hero");

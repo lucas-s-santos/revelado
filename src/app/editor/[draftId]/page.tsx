@@ -35,7 +35,6 @@ export default async function EditorPage({ params }: { params: Params }) {
     <EditorShell
       draftId={draft.id}
       slug={draft.slug}
-      occasionId={draft.occasionId}
       content={draft.content}
       published={draft.status === "PUBLISHED"}
     />
