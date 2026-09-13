@@ -104,7 +104,10 @@ export default async function PublishedPage({ params }: { params: Params }) {
             O prazo dela terminou, mas nada foi perdido: dá para colocar de
             volta no ar em um clique.
           </p>
-          <Link href="/painel" className="btn-primary">
+          {/* Aponta para esta página no painel, e não para a lista: quem abre
+              um link expirado quer renovar **esta**, e o dono pode estar em
+              outro aparelho, onde a lista viria vazia. */}
+          <Link href={`/painel/${site.id}`} className="btn-primary">
             Renovar minha página
           </Link>
         </section>

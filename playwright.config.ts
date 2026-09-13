@@ -43,6 +43,19 @@ export default defineConfig({
       // o padrão que o limitador existe para barrar. A folga só tem efeito
       // fora de um host (ver lib/rate-limit.ts); num deploy é ignorada.
       RATE_LIMIT_TEST_SLACK: "50",
+
+      /**
+       * Pasta própria para os dados do backend de arquivo.
+       *
+       * Sem isto o e2e gravava no mesmo `.drafts/` do desenvolvimento e nunca
+       * limpava: depois de algumas dezenas de rodadas eram 157 rascunhos, e
+       * `findDraftBySlug` lê **todos** a cada acesso a página publicada. A
+       * suíte, que roda em 15s no começo, passou a levar horas.
+       *
+       * Mesma solução dos unitários (`lib/test-dev-store.ts`): cada contexto
+       * com o seu, e o do desenvolvimento fica intacto.
+       */
+      REVELADO_DEV_DIR: ".e2e-drafts",
     },
   },
 });

@@ -184,9 +184,9 @@ test.describe("o caminho de quem monta a página", () => {
 
     // SPEC 8.3: a escolha do template, com preview real dentro do mockup.
     await expect(page).toHaveURL(/\/criar\/namorados/, { timeout: 20_000 });
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(
-      "clima",
-    );
+    await expect(page.locator("h1.create-page__title")).toContainText("clima", {
+      timeout: 20_000,
+    });
 
     const cards = page.locator(".template-card");
     const quantos = await cards.count();
@@ -259,6 +259,49 @@ test.describe("o caminho de quem monta a página", () => {
     await expect(
       page.getByRole("button", { name: "Pagar com Pix" }),
     ).toBeDisabled();
+  });
+});
+
+test.describe("renovação", () => {
+  test("do aviso ao botão: dá para renovar uma página que está no ar", async ({
+    page,
+  }) => {
+    const { id } = await rascunhoPublicavel(page);
+
+    await abrirPix(page, id);
+    await simular(page, "Pagar");
+    await expect(page).toHaveURL(/\/sucesso\//, { timeout: 20_000 });
+
+    // É para cá que o e-mail de "vai expirar" manda a pessoa.
+    await page.goto(`/painel/${id}`);
+
+    const prazoAntes = await page.locator(".detail__renew-prazo").textContent();
+    expect(prazoAntes, "o painel diz até quando").toContain("No ar até");
+
+    // O botão que não existia — e para o qual o job já mandava tráfego.
+    await page.getByRole("link", { name: "Renovar minha página" }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/checkout/${id}`));
+    await expect(page.getByText("renovar", { exact: true })).toBeVisible();
+    await expect(page.locator(".checkout__renewal")).toContainText(
+      "o QR Code que você imprimiu não muda",
+    );
+
+    // Paga a renovação.
+    await page.getByLabel("Seu e-mail").fill(EMAIL);
+    await page.getByRole("button", { name: "Pagar com Pix" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Escaneie para pagar" }),
+    ).toBeVisible();
+    await simular(page, "Pagar");
+    await expect(page).toHaveURL(/\/sucesso\//, { timeout: 20_000 });
+
+    // O prazo andou para frente.
+    await page.goto(`/painel/${id}`);
+    const prazoDepois = await page
+      .locator(".detail__renew-prazo")
+      .textContent();
+    expect(prazoDepois).not.toBe(prazoAntes);
   });
 });
 

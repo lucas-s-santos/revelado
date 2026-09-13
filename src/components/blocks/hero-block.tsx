@@ -13,8 +13,20 @@ import { cn } from "@/lib/utils";
 export function HeroBlock({
   props,
   media,
+  mode = "published",
 }: {
   props: PropsOf<"hero">;
+  /**
+   * Na página publicada este título **é** o título do documento, então é `h1`.
+   * Num preview ele não é: o preview é a figura de uma página dentro de outra,
+   * que já tem o `h1` dela.
+   *
+   * A tela de escolha de template mostra sete previews de uma vez — sem isto a
+   * página nascia com oito `h1`, e quem navega por cabeçalho ouvia "Para você"
+   * sete vezes antes de chegar em qualquer coisa útil. O axe não reprova
+   * cabeçalho repetido; continua sendo errado.
+   */
+  mode?: "preview" | "published";
   /**
    * Mapa `mediaId → URL`. Mapa e não função: o renderer atravessa a fronteira
    * server→client e função não é serializável (ver lib/media.ts).
@@ -22,6 +34,7 @@ export function HeroBlock({
   media?: Record<string, string>;
 }) {
   const src = props.mediaId ? media?.[props.mediaId] : undefined;
+  const Titulo = mode === "published" ? "h1" : "p";
 
   return (
     <section
@@ -41,7 +54,7 @@ export function HeroBlock({
       </div>
 
       <div className="block-hero__text">
-        <h1 className="block-hero__title">{props.title}</h1>
+        <Titulo className="block-hero__title">{props.title}</Titulo>
         {props.subtitle ? (
           <p className="block-hero__subtitle">{props.subtitle}</p>
         ) : null}
