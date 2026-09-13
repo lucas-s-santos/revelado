@@ -25,7 +25,7 @@ export async function GET(_request: Request, { params }: { params: Params }) {
     );
   }
 
-  if (!(await isDraftOwner(draft.anonId))) {
+  if (!(await isDraftOwner(draft))) {
     await logDenied("owner-mismatch", { rota: "drafts.GET", draftId: id });
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }
@@ -60,7 +60,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     );
   }
 
-  if (!(await isDraftOwner(existing.anonId))) {
+  if (!(await isDraftOwner(existing))) {
     await logDenied("owner-mismatch", { rota: "drafts.PATCH", draftId: id });
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }

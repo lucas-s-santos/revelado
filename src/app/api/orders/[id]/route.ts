@@ -28,7 +28,7 @@ export async function GET(_request: Request, { params }: { params: Params }) {
   const draft = await getDraft(order.siteId);
 
   // O polling da tela de Pix é do comprador, não do mundo (SPEC 9.4).
-  if (draft && !(await isDraftOwner(draft.anonId))) {
+  if (draft && !(await isDraftOwner(draft))) {
     await logDenied("owner-mismatch", { rota: "orders.GET", orderId: id });
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }

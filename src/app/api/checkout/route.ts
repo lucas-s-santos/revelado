@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!(await isDraftOwner(draft.anonId))) {
+  if (!(await isDraftOwner(draft))) {
     await logDenied("owner-mismatch", { rota: "checkout", draftId });
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }

@@ -33,7 +33,10 @@ export interface Draft {
   templateId: string | null;
   content: SiteContent;
   status: "DRAFT" | "PENDING_PAYMENT" | "PUBLISHED" | "EXPIRED";
+  /** dono anônimo, antes do login (SPEC 1) */
   anonId: string | null;
+  /** dono com conta, a partir do checkout (SPEC 1) */
+  userId: string | null;
   updatedAt: Date;
 
   // --- estado da página publicada (SPEC 8.8)
@@ -114,6 +117,7 @@ type SiteRow = {
   templateId: string | null;
   status: Draft["status"];
   anonId: string | null;
+  userId: string | null;
   passwordHash: string | null;
   indexable: boolean;
   expiresAt: Date | null;
@@ -130,6 +134,7 @@ function rowToDraft(site: SiteRow, content: SiteContent): Draft {
     content,
     status: site.status,
     anonId: site.anonId,
+    userId: site.userId,
     passwordHash: site.passwordHash,
     indexable: site.indexable,
     expiresAt: site.expiresAt,
@@ -152,6 +157,7 @@ export async function createDraft(input: CreateDraftInput): Promise<Draft> {
       content: input.content,
       status: "DRAFT",
       anonId: input.anonId,
+      userId: null,
       passwordHash: null,
       indexable: false,
       expiresAt: null,
@@ -330,30 +336,41 @@ export async function findDraftBySlug(slug: string): Promise<Draft | null> {
   return site ? getDraft(site.id) : null;
 }
 
-/** Rascunhos de um visitante anônimo, para a recuperação ao voltar. */
-export async function listDraftsByAnon(anonId: string): Promise<Draft[]> {
-  if (!hasDatabase) {
-    try {
-      const files = await readdir(devRoot());
-      const records = await Promise.all(
-        files
-          .filter((file) => file.endsWith(".json"))
-          .map((file) => devRead(file.replace(/\.json$/, ""))),
-      );
+/**
+ * As páginas de quem está pedindo — SPEC 8.7, o painel.
+ *
+ * Soma os dois donos possíveis (ver `isDraftOwner`): a conta, quando existe, e o
+ * cookie anônimo deste navegador. É o que faz o painel mostrar tanto as páginas
+ * montadas neste aparelho quanto as que chegaram pela conta.
+ *
+ * **Sem filtro de status.** Antes o backend de arquivo trazia tudo e o Postgres
+ * filtrava `status: "DRAFT"`, então em produção o painel nunca mostraria uma
+ * página publicada — justamente a que a pessoa vai lá gerenciar. Em
+ * desenvolvimento funcionava, o que é o pior tipo de divergência.
+ */
+export async function listDraftsForOwner(
+  owner: { anonId: string | null; userId: string | null },
+  take = 20,
+): Promise<Draft[]> {
+  if (!owner.anonId && !owner.userId) return [];
 
-      return records
-        .filter((record): record is DevRecord => record?.anonId === anonId)
-        .map(devToDraft)
-        .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-    } catch {
-      return [];
-    }
+  if (!hasDatabase) {
+    return (await devAllRecords())
+      .filter((record) => owner.anonId && record.anonId === owner.anonId)
+      .map(devToDraft)
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+      .slice(0, take);
   }
 
+  const donos = [
+    ...(owner.userId ? [{ userId: owner.userId }] : []),
+    ...(owner.anonId ? [{ anonId: owner.anonId }] : []),
+  ];
+
   const sites = await db.site.findMany({
-    where: { anonId, status: "DRAFT", ...notDeleted },
+    where: { OR: donos, ...notDeleted },
     orderBy: { updatedAt: "desc" },
-    take: 10,
+    take,
   });
 
   return sites.flatMap((site) => {

@@ -42,7 +42,7 @@ export default async function SiteDetailPage({
   const { erro } = await searchParams;
 
   const draft = await getDraft(siteId);
-  if (!draft || !(await isDraftOwner(draft.anonId))) notFound();
+  if (!draft || !(await isDraftOwner(draft))) notFound();
 
   const published = draft.status === "PUBLISHED";
   const views = published ? await viewsFor(draft.id) : 0;
@@ -64,7 +64,7 @@ export default async function SiteDetailPage({
     "use server";
 
     const owned = await getDraft(siteId);
-    if (!owned || !(await isDraftOwner(owned.anonId))) {
+    if (!owned || !(await isDraftOwner(owned))) {
       await logDenied("owner-mismatch", {
         rota: "painel.savePassword",
         siteId,
@@ -87,7 +87,7 @@ export default async function SiteDetailPage({
     "use server";
 
     const owned = await getDraft(siteId);
-    if (!owned || !(await isDraftOwner(owned.anonId))) notFound();
+    if (!owned || !(await isDraftOwner(owned))) notFound();
 
     await updateSitePrivacy(siteId, { indexable: !owned.indexable });
 
@@ -106,7 +106,7 @@ export default async function SiteDetailPage({
     "use server";
 
     const owned = await getDraft(siteId);
-    if (!owned || !(await isDraftOwner(owned.anonId))) {
+    if (!owned || !(await isDraftOwner(owned))) {
       await logDenied("owner-mismatch", { rota: "painel.removeSite", siteId });
       notFound();
     }

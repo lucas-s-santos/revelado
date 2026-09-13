@@ -27,7 +27,7 @@ export default async function CheckoutPage({ params }: { params: Params }) {
   const draft = await getDraft(draftId);
 
   if (!draft) notFound();
-  if (!(await isDraftOwner(draft.anonId))) notFound();
+  if (!(await isDraftOwner(draft))) notFound();
 
   // Já publicada: a pessoa voltou no histórico. Manda para o lugar certo.
   if (draft.status === "PUBLISHED") redirect(`/p/${draft.slug}`);

@@ -46,8 +46,7 @@ export default async function SuccessPage({
   // quem montou a página, ou o token assinado que foi dentro do e-mail (é o que
   // faz o link funcionar no computador depois de pagar no celular).
   const allowed =
-    verifyAccessToken("order", orderId, t) ||
-    (await isDraftOwner(draft.anonId));
+    verifyAccessToken("order", orderId, t) || (await isDraftOwner(draft));
 
   if (!allowed) notFound();
 
