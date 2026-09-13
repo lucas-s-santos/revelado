@@ -95,9 +95,23 @@ export async function signUploadUrl(
   );
 }
 
-/** URL pública de leitura da mídia. */
+/**
+ * O bucket é privado? — SPEC 9.4 ("storage privado com URL assinada").
+ *
+ * Desligado por padrão, e não por preguiça: virar a chave exige fechar o bucket
+ * na Cloudflare **junto**, senão as fotos param de carregar. Com a variável
+ * ligada, toda leitura passa por `/api/media`, que confere quem está pedindo e
+ * redireciona para uma URL assinada de vida curta.
+ *
+ * Custo: uma ida ao servidor por imagem, em troca de a foto valer exatamente o
+ * que a página dela vale — some quando a página expira, exige senha quando a
+ * página exige, e não sobrevive à exclusão.
+ */
+export const R2_PRIVATE = process.env.R2_PRIVATE === "true";
+
+/** URL de leitura da mídia. */
 export function publicUrlFor(key: string): string {
-  if (!R2_CONFIGURED) return `/api/media/${key}`;
+  if (!R2_CONFIGURED || R2_PRIVATE) return `/api/media/${key}`;
 
   const host = process.env.NEXT_PUBLIC_R2_PUBLIC_HOST;
   return host ? `https://${host}/${key}` : `/api/media/${key}`;

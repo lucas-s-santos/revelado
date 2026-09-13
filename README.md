@@ -275,6 +275,38 @@ travas são todas do lado do servidor e estão em três arquivos.
 - `AUTH_SECRET` — assina os links de `/sucesso` e os cookies de senha. Sem ela,
   o app usa um valor de reserva que é público e grita no log.
 
+### Fechando o bucket do R2 (SPEC 9.4)
+
+Hoje as fotos são lidas do host público da Cloudflare. As chaves são cuid + uuid,
+não adivinháveis, mas **uma URL que vaze vale para sempre** — inclusive depois de
+a página expirar, ganhar senha ou ser apagada. Proteger o HTML e deixar a imagem
+aberta protege pouco: o endereço da imagem está dentro do HTML.
+
+O caminho privado já existe e está desligado por padrão. Para ligar:
+
+1. feche o acesso público do bucket no painel da Cloudflare;
+2. `R2_PRIVATE=true` nas variáveis de ambiente.
+
+A partir daí toda leitura passa por `/api/media/[...key]`, que confere quem está
+pedindo (`lib/media-access.ts`) e redireciona para uma URL assinada de 2h. A
+regra é uma frase: **a foto vale o que a página dela vale.**
+
+| Estado da página     | Visitante  | Quem digitou a senha | Dono |
+| -------------------- | ---------- | -------------------- | ---- |
+| Publicada, aberta    | vê         | vê                   | vê   |
+| Publicada, com senha | **não vê** | vê                   | vê   |
+| Expirada             | **não vê** | **não vê**           | vê   |
+| Ainda rascunho       | **não vê** | **não vê**           | vê   |
+
+Custo: uma ida ao servidor por imagem, em troca de a foto obedecer à página. O
+redirect é cacheado no navegador de quem pediu (`private`, nunca em
+intermediário — a resposta depende de quem está pedindo).
+
+Os dois lados precisam virar juntos: só a variável deixa as fotos sem carregar,
+só o bucket deixa as fotos abertas. A tabela acima está travada em
+`media-access.test.ts`; o caminho assinado não tem teste automatizado porque
+exige credencial real do R2.
+
 ### Escolha do template (SPEC 8.3)
 
 `/criar/[occasion]` existe agora, estática para as oito ocasiões. Sete templates
@@ -390,11 +422,8 @@ Cada uma está anotada também no lugar certo do código:
 - **A tabela `Media` não é escrita.** O `SiteContent` guarda só o `mediaId` e a
   URL é derivada dele, então nada quebra — mas não existe inventário do que está
   no bucket. `deleteSiteMedia` contorna isso varrendo pelo prefixo `sites/<id>/`.
-- **O bucket do R2 é público para leitura.** A SPEC 9.4 pede privado com URL
-  assinada. As chaves são cuid + uuid, não adivinháveis, mas uma URL que vaze
-  vale para sempre — inclusive depois da página expirar. `signReadUrl` em
-  `lib/r2.ts` já existe para a virada; ela exige que `mediaMapFor` vire async na
-  página publicada e que o editor passe a pedir a URL ao servidor.
+- **O bucket do R2 ainda está público para leitura**, mas a virada está pronta:
+  ver "Fechando o bucket" abaixo.
 - **Login por magic link** não existe. O `/painel` lista pelo mesmo cookie
   anônimo que segura os rascunhos, então trocar de aparelho perde o acesso — e
   é o mesmo cookie que autoriza trocar a senha em `/painel/[siteId]`.
