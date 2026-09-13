@@ -58,7 +58,9 @@ jobs:
       - name: Navegadores do Playwright
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: e2e do funil
+      # Roda o funil e a auditoria de acessibilidade (WCAG 2.1 A/AA) — o aceite
+      # da Fase 2 pedia "≥ 95 em acessibilidade" e nunca tinha sido medido.
+      - name: e2e do funil e acessibilidade
         run: pnpm test:e2e
         env:
           # Um IP só percorrendo o funil inteiro várias vezes por minuto é

@@ -16,6 +16,18 @@ export default defineConfig({
     locale: "pt-BR",
     timezoneId: "America/Sao_Paulo",
     trace: "on-first-retry",
+    /**
+     * Movimento desligado em todo teste.
+     *
+     * Não é só higiene de estabilidade: a auditoria de acessibilidade mede cor
+     * no estado em que a tela está, e com as animações correndo o resultado
+     * mudava entre execuções — a mesma página passava numa rodada e reprovava na
+     * seguinte. Um portão que depende de timing não é portão.
+     *
+     * E o estado sem movimento é justamente o que a regra inviolável 14 promete
+     * a quem pede `prefers-reduced-motion`: é o que mais merece ser auditado.
+     */
+    contextOptions: { reducedMotion: "reduce" },
   },
   projects: [
     { name: "mobile", use: { ...devices["Pixel 7"] } },
