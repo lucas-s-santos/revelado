@@ -4,7 +4,7 @@ import { devDir } from "@/lib/dev-store";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { db } from "@/lib/db";
+import { db, hasDatabase } from "@/lib/db";
 import type { PlanId } from "@/lib/plans";
 
 /**
@@ -18,8 +18,6 @@ import type { PlanId } from "@/lib/plans";
  * arquivo em `.drafts/orders/` quando não há, para o fluxo ser testável sem
  * Neon nem conta no Mercado Pago.
  */
-
-const hasDatabase = Boolean(process.env.DATABASE_URL);
 
 export type OrderStatus =
   "PENDING" | "PAID" | "REFUNDED" | "FAILED" | "EXPIRED";
@@ -131,7 +129,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
     createdAt: new Date().toISOString(),
   };
 
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     await devWrite(record);
     return toOrder(record);
   }
@@ -187,7 +185,7 @@ export async function createOrder(input: CreateOrderInput): Promise<Order> {
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record = await devRead(id);
     return record ? toOrder(record) : null;
   }
@@ -225,7 +223,7 @@ export async function attachCharge(
   id: string,
   charge: { providerRef: string; pixCode?: string; pixExpiresAt?: Date },
 ): Promise<void> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record = await devRead(id);
     if (!record) return;
 
@@ -251,7 +249,7 @@ export async function attachCharge(
 export async function findByProviderRef(
   providerRef: string,
 ): Promise<Order | null> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const all = await devAll();
     const record = all.find((order) => order.providerRef === providerRef);
     return record ? toOrder(record) : null;
@@ -283,7 +281,7 @@ export async function transitionOrder(
 
   const paidAt = status === "PAID" ? new Date() : current.paidAt;
 
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record = await devRead(id);
     if (!record) return { order: null, changed: false };
 
@@ -306,7 +304,7 @@ export async function transitionOrder(
 
 /** Pedidos de um e-mail — a base do painel enquanto não há login. */
 export async function listOrdersByEmail(email: string): Promise<Order[]> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const all = await devAll();
     return all
       .filter((order) => order.email === email)
@@ -335,7 +333,7 @@ export async function listOrdersByEmail(email: string): Promise<Order[]> {
 export async function ownerEmailForSite(
   siteId: string,
 ): Promise<string | null> {
-  if (hasDatabase) {
+  if (hasDatabase()) {
     const order = await db.order.findFirst({
       where: { siteId, status: "PAID" },
       include: { user: { select: { email: true } } },
@@ -364,7 +362,7 @@ export async function listAbandoned(
 ): Promise<Order[]> {
   const limite = new Date(now.getTime() - olderThanMs);
 
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const all = await devAll();
     return all
       .map(toOrder)
@@ -396,7 +394,7 @@ export async function markAbandonedNotified(
   id: string,
   at = new Date(),
 ): Promise<void> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record = await devRead(id);
     if (!record) return;
     await devWrite({ ...record, abandonedNotifiedAt: at.toISOString() });

@@ -56,6 +56,18 @@ export default defineConfig({
        * com o seu, e o do desenvolvimento fica intacto.
        */
       REVELADO_DEV_DIR: ".e2e-drafts",
+
+      /**
+       * Sem banco, de propósito.
+       *
+       * O CI define `DATABASE_URL` para o `prisma generate` funcionar, mas não
+       * sobe Postgres nenhum. Herdando a variável, o servidor do e2e usaria o
+       * Prisma e toda página publicada tentaria falar com um banco que não
+       * existe. Vazio é falso para `hasDatabase()`, então vale o backend de
+       * arquivo — que é o que este e2e exercita.
+       */
+      DATABASE_URL: "",
+      DIRECT_DATABASE_URL: "",
     },
   },
 });

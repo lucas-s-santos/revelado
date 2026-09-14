@@ -7,7 +7,7 @@ import { join } from "node:path";
 import { migrate } from "@/lib/blocks/migrate";
 import { revalidateSite } from "@/lib/cache";
 import { parseSiteContent, type SiteContent } from "@/lib/blocks/schema";
-import { db, notDeleted } from "@/lib/db";
+import { db, hasDatabase, notDeleted } from "@/lib/db";
 import { deleteSiteMedia } from "@/lib/r2";
 
 /**
@@ -24,8 +24,6 @@ import { deleteSiteMedia } from "@/lib/r2";
  *    reiniciar o servidor, que é o que o aceite da fase exige. Não é para
  *    produção: sem `DATABASE_URL`, o app grita no log.
  */
-
-const hasDatabase = Boolean(process.env.DATABASE_URL);
 
 export interface Draft {
   id: string;
@@ -145,7 +143,7 @@ function rowToDraft(site: SiteRow, content: SiteContent): Draft {
 export async function createDraft(input: CreateDraftInput): Promise<Draft> {
   const slug = await generateSlug();
 
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record: DevRecord = {
       id: randomUUID(),
       slug,
@@ -177,7 +175,7 @@ export async function createDraft(input: CreateDraftInput): Promise<Draft> {
 }
 
 export async function getDraft(id: string): Promise<Draft | null> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record = await devRead(id);
     return record ? devToDraft(record) : null;
   }
@@ -221,7 +219,7 @@ export async function saveDraftContent(
 
   const content = parsed.data;
 
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record = await devRead(id);
     if (!record) return { ok: false, reason: "not-found" };
     if (record.status === "PUBLISHED")
@@ -266,7 +264,7 @@ export async function updateSitePrivacy(
   id: string,
   patch: PrivacyPatch,
 ): Promise<Draft | null> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record = await devRead(id);
     if (!record) return null;
 
@@ -311,7 +309,7 @@ export async function updateSitePrivacy(
  * `@unique` no slug.
  */
 export async function findDraftBySlug(slug: string): Promise<Draft | null> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     try {
       const files = await readdir(devDir());
 
@@ -349,7 +347,7 @@ export async function listDraftsForOwner(
 ): Promise<Draft[]> {
   if (!owner.anonId && !owner.userId) return [];
 
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     return (await devAllRecords())
       .filter((record) => owner.anonId && record.anonId === owner.anonId)
       .map(devToDraft)
@@ -377,7 +375,7 @@ export async function listDraftsForOwner(
 
 /** O slug já existe? Ignora `deletedAt`: apagada ou não, a vaga está ocupada. */
 async function slugTaken(slug: string): Promise<boolean> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     try {
       const files = await readdir(devDir());
       for (const file of files) {
@@ -455,7 +453,7 @@ export async function deleteSite(id: string): Promise<boolean> {
     return 0;
   });
 
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     await rm(join(devDir(), `${id}.json`), { force: true });
   } else {
     await db.site.update({
@@ -500,7 +498,7 @@ export async function listExpiringSoon(
 ): Promise<Draft[]> {
   const limite = new Date(now.getTime() + withinMs);
 
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     return (await devAllRecords())
       .map(devToDraft)
       .filter(
@@ -539,7 +537,7 @@ export async function listExpiringSoon(
  * novo — o cliente descobriria pela página fora do ar.
  */
 export async function clearExpiringNotice(id: string): Promise<void> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record = await devRead(id);
     if (!record) return;
     await devWrite({ ...record, expiringNotifiedAt: null });
@@ -554,7 +552,7 @@ export async function markExpiringNotified(
   id: string,
   at = new Date(),
 ): Promise<void> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     const record = await devRead(id);
     if (!record) return;
     await devWrite({ ...record, expiringNotifiedAt: at.toISOString() });
@@ -578,7 +576,7 @@ export async function listPurgeable(
 ): Promise<Draft[]> {
   const limite = new Date(now.getTime() - graceMs);
 
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     return (await devAllRecords())
       .map(devToDraft)
       .filter(
