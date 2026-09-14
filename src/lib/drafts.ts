@@ -26,7 +26,6 @@ import { deleteSiteMedia } from "@/lib/r2";
  */
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
-const DEV_DIR = devDir();
 
 export interface Draft {
   id: string;
@@ -69,9 +68,9 @@ interface DevRecord extends Omit<
 }
 
 async function devWrite(record: DevRecord): Promise<void> {
-  await mkdir(DEV_DIR, { recursive: true });
+  await mkdir(devDir(), { recursive: true });
   await writeFile(
-    join(DEV_DIR, `${record.id}.json`),
+    join(devDir(), `${record.id}.json`),
     JSON.stringify(record, null, 2),
     "utf8",
   );
@@ -79,7 +78,7 @@ async function devWrite(record: DevRecord): Promise<void> {
 
 async function devRead(id: string): Promise<DevRecord | null> {
   try {
-    const raw = await readFile(join(DEV_DIR, `${id}.json`), "utf8");
+    const raw = await readFile(join(devDir(), `${id}.json`), "utf8");
     return JSON.parse(raw) as DevRecord;
   } catch {
     return null;
@@ -314,7 +313,7 @@ export async function updateSitePrivacy(
 export async function findDraftBySlug(slug: string): Promise<Draft | null> {
   if (!hasDatabase) {
     try {
-      const files = await readdir(DEV_DIR);
+      const files = await readdir(devDir());
 
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
@@ -380,7 +379,7 @@ export async function listDraftsForOwner(
 async function slugTaken(slug: string): Promise<boolean> {
   if (!hasDatabase) {
     try {
-      const files = await readdir(DEV_DIR);
+      const files = await readdir(devDir());
       for (const file of files) {
         if (!file.endsWith(".json")) continue;
         const record = await devRead(file.replace(/\.json$/, ""));
@@ -457,7 +456,7 @@ export async function deleteSite(id: string): Promise<boolean> {
   });
 
   if (!hasDatabase) {
-    await rm(join(DEV_DIR, `${id}.json`), { force: true });
+    await rm(join(devDir(), `${id}.json`), { force: true });
   } else {
     await db.site.update({
       where: { id },
@@ -476,7 +475,7 @@ export async function deleteSite(id: string): Promise<boolean> {
 /** Todos os registros do backend de arquivo. Só existe fora de produção. */
 async function devAllRecords(): Promise<DevRecord[]> {
   try {
-    const files = await readdir(DEV_DIR);
+    const files = await readdir(devDir());
     const records = await Promise.all(
       files
         .filter((file) => file.endsWith(".json"))

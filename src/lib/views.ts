@@ -18,8 +18,6 @@ import { listOrdersByEmail, ownerEmailForSite } from "@/lib/orders";
  * emocional do produto e a maior fonte de compartilhamento".
  */
 
-const DEV_FILE = devDir("views.json");
-
 interface DevViews {
   [siteId: string]: {
     total: number;
@@ -37,7 +35,7 @@ function today(): string {
 
 async function devRead(): Promise<DevViews> {
   try {
-    return JSON.parse(await readFile(DEV_FILE, "utf8")) as DevViews;
+    return JSON.parse(await readFile(devDir("views.json"), "utf8")) as DevViews;
   } catch {
     return {};
   }
@@ -69,7 +67,7 @@ export async function recordView(
 
     await mkdir(devDir(), { recursive: true });
     await writeFile(
-      DEV_FILE,
+      devDir("views.json"),
       JSON.stringify({ ...all, [siteId]: updated }, null, 2),
       "utf8",
     );

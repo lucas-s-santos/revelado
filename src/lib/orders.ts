@@ -20,7 +20,6 @@ import type { PlanId } from "@/lib/plans";
  */
 
 const hasDatabase = Boolean(process.env.DATABASE_URL);
-const DEV_DIR = devDir("orders");
 
 export type OrderStatus =
   "PENDING" | "PAID" | "REFUNDED" | "FAILED" | "EXPIRED";
@@ -79,9 +78,9 @@ const toOrder = (record: DevOrder): Order => ({
 });
 
 async function devWrite(record: DevOrder): Promise<void> {
-  await mkdir(DEV_DIR, { recursive: true });
+  await mkdir(devDir("orders"), { recursive: true });
   await writeFile(
-    join(DEV_DIR, `${record.id}.json`),
+    join(devDir("orders"), `${record.id}.json`),
     JSON.stringify(record, null, 2),
     "utf8",
   );
@@ -90,7 +89,7 @@ async function devWrite(record: DevOrder): Promise<void> {
 async function devRead(id: string): Promise<DevOrder | null> {
   try {
     return JSON.parse(
-      await readFile(join(DEV_DIR, `${id}.json`), "utf8"),
+      await readFile(join(devDir("orders"), `${id}.json`), "utf8"),
     ) as DevOrder;
   } catch {
     return null;
@@ -99,7 +98,7 @@ async function devRead(id: string): Promise<DevOrder | null> {
 
 async function devAll(): Promise<DevOrder[]> {
   try {
-    const files = await readdir(DEV_DIR);
+    const files = await readdir(devDir("orders"));
     const records = await Promise.all(
       files
         .filter((file) => file.endsWith(".json"))
