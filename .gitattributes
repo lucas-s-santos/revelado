@@ -1,0 +1,17 @@
+# Quebra de linha normalizada — o repositório guarda LF, sempre.
+#
+# Sem isto, `core.autocrlf=true` no Windows deixa CRLF no disco e o Prettier,
+# que usa `endOfLine: "lf"`, reprova o projeto inteiro no `format:check` do CI —
+# 151 arquivos, nenhum deles realmente fora de forma.
+* text=auto eol=lf
+
+# Binários: nunca converter.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

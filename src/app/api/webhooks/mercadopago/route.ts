@@ -14,6 +14,7 @@ import {
   transitionOrder,
   type Order,
 } from "@/lib/orders";
+import { logDenied } from "@/lib/security-log";
 import { publishSite } from "@/lib/publish";
 
 /**
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
       dataId,
     )
   ) {
+    await logDenied("bad-signature", { rota: "webhook.mercadopago", dataId });
     return NextResponse.json({ error: "assinatura inválida" }, { status: 401 });
   }
 

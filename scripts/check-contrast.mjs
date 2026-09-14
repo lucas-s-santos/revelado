@@ -9,7 +9,10 @@
  */
 import { readFileSync } from "node:fs";
 
-const css = readFileSync(new URL("../src/styles/theme.css", import.meta.url), "utf8");
+const css = readFileSync(
+  new URL("../src/styles/theme.css", import.meta.url),
+  "utf8",
+);
 const DECL = /--([\w-]+):\s*(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})\s*;/g;
 
 /** Tokens de TODOS os blocos com este seletor. O theme.css declara
@@ -63,15 +66,33 @@ const PARES = [
   ["clara", "color-accent", "color-bg", 4.5, "link/eyebrow sobre o fundo"],
   ["clara", "color-accent", "color-surface", 4.5, "link/eyebrow no cartão"],
   ["clara", "color-on-brand", "color-brand", 4.5, "texto do botão primário"],
-  ["clara", "color-ink", "color-hero-wash", 6, "h1 sobre a foto do hero (folga)"],
+  [
+    "clara",
+    "color-ink",
+    "color-hero-wash",
+    6,
+    "h1 sobre a foto do hero (folga)",
+  ],
   ["clara", "color-danger", "color-surface", 4.5, "erro de formulário"],
   ["clara", "color-success", "color-surface", 4.5, "confirmação"],
   ["clara", "color-ink", "color-card-rose", 4.5, "texto no cartão do contador"],
   ["clara", "color-ink", "color-card-lilac", 4.5, "texto no cartão do álbum"],
   ["clara", "color-ink", "color-card-cream", 4.5, "texto no cartão da música"],
-  ["clara", "color-ink-on-deep", "color-card-deep", 4.5, "texto no cartão escuro"],
+  [
+    "clara",
+    "color-ink-on-deep",
+    "color-card-deep",
+    4.5,
+    "texto no cartão escuro",
+  ],
   ["clara", "color-ink-on-deep", "color-deep", 4.5, "corpo na seção vinho"],
-  ["clara", "color-muted-on-deep", "color-deep", 4.5, "secundário na seção vinho"],
+  [
+    "clara",
+    "color-muted-on-deep",
+    "color-deep",
+    4.5,
+    "secundário na seção vinho",
+  ],
   ["clara", "color-brand-on-deep", "color-deep", 4.5, "eyebrow na seção vinho"],
   ["escura", "color-ink", "color-bg", 4.5, "corpo sobre o fundo"],
   ["escura", "color-ink", "color-surface", 4.5, "corpo no cartão"],
@@ -86,7 +107,9 @@ for (const [pele, fgName, bgName, min, label] of PARES) {
   const fg = tokens[fgName];
   const bg = tokens[bgName];
   if (!fg || !bg) {
-    console.log(`  ?  ${pele.padEnd(6)} token ausente: ${!fg ? fgName : bgName}`);
+    console.log(
+      `  ?  ${pele.padEnd(6)} token ausente: ${!fg ? fgName : bgName}`,
+    );
     falhas++;
     continue;
   }
@@ -100,7 +123,9 @@ for (const [pele, fgName, bgName, min, label] of PARES) {
 
 console.log("");
 if (falhas > 0) {
-  console.error(`${falhas} par(es) abaixo do mínimo. Escureça a cor ou troque o fundo.\n`);
+  console.error(
+    `${falhas} par(es) abaixo do mínimo. Escureça a cor ou troque o fundo.\n`,
+  );
   process.exit(1);
 }
 console.log("Todos os pares passam.\n");

@@ -30,7 +30,9 @@ export function StartButton({
 
   return (
     <form action={startDraft}>
-      {template ? <input type="hidden" name="template" value={template} /> : null}
+      {template ? (
+        <input type="hidden" name="template" value={template} />
+      ) : null}
       {magnetic ? <Magnetic>{button}</Magnetic> : button}
     </form>
   );

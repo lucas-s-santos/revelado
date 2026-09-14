@@ -16,6 +16,18 @@ export default defineConfig({
     locale: "pt-BR",
     timezoneId: "America/Sao_Paulo",
     trace: "on-first-retry",
+    /**
+     * Movimento desligado em todo teste.
+     *
+     * Não é só higiene de estabilidade: a auditoria de acessibilidade mede cor
+     * no estado em que a tela está, e com as animações correndo o resultado
+     * mudava entre execuções — a mesma página passava numa rodada e reprovava na
+     * seguinte. Um portão que depende de timing não é portão.
+     *
+     * E o estado sem movimento é justamente o que a regra inviolável 14 promete
+     * a quem pede `prefers-reduced-motion`: é o que mais merece ser auditado.
+     */
+    contextOptions: { reducedMotion: "reduce" },
   },
   projects: [
     { name: "mobile", use: { ...devices["Pixel 7"] } },
@@ -25,6 +37,37 @@ export default defineConfig({
     command: "pnpm build && pnpm start",
     url: baseURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    timeout: 300_000,
+    env: {
+      // O e2e percorre o funil inteiro várias vezes por minuto de um IP só —
+      // o padrão que o limitador existe para barrar. A folga só tem efeito
+      // fora de um host (ver lib/rate-limit.ts); num deploy é ignorada.
+      RATE_LIMIT_TEST_SLACK: "50",
+
+      /**
+       * Pasta própria para os dados do backend de arquivo.
+       *
+       * Sem isto o e2e gravava no mesmo `.drafts/` do desenvolvimento e nunca
+       * limpava: depois de algumas dezenas de rodadas eram 157 rascunhos, e
+       * `findDraftBySlug` lê **todos** a cada acesso a página publicada. A
+       * suíte, que roda em 15s no começo, passou a levar horas.
+       *
+       * Mesma solução dos unitários (`lib/test-dev-store.ts`): cada contexto
+       * com o seu, e o do desenvolvimento fica intacto.
+       */
+      REVELADO_DEV_DIR: ".e2e-drafts",
+
+      /**
+       * Sem banco, de propósito.
+       *
+       * O CI define `DATABASE_URL` para o `prisma generate` funcionar, mas não
+       * sobe Postgres nenhum. Herdando a variável, o servidor do e2e usaria o
+       * Prisma e toda página publicada tentaria falar com um banco que não
+       * existe. Vazio é falso para `hasDatabase()`, então vale o backend de
+       * arquivo — que é o que este e2e exercita.
+       */
+      DATABASE_URL: "",
+      DIRECT_DATABASE_URL: "",
+    },
   },
 });

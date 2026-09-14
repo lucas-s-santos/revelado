@@ -14,7 +14,18 @@ import { join } from "node:path";
  *
  * `REVELADO_DEV_DIR` é o desvio que o `vitest.config.ts` usa para isolar a
  * suíte. Fora dos testes, ninguém define e o padrão vale.
+ *
+ * **Chame esta função no uso, nunca guarde o resultado numa constante de
+ * módulo.** Constante é avaliada no `import`, antes de qualquer `beforeEach`, e
+ * aí o desvio por teste nunca chega a valer: quatro suítes acabavam escrevendo
+ * na mesma pasta e o teste do `site.purge` apagava o rascunho das outras no meio
+ * da execução. O sintoma foi um `expected undefined to be null` que passava
+ * local e reprovava no CI.
  */
 export function devDir(...segments: string[]): string {
-  return join(process.cwd(), process.env.REVELADO_DEV_DIR ?? ".drafts", ...segments);
+  return join(
+    process.cwd(),
+    process.env.REVELADO_DEV_DIR ?? ".drafts",
+    ...segments,
+  );
 }

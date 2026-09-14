@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { EditorShell } from "@/components/editor/editor-shell";
-import { readAnonId } from "@/lib/anon";
+import { isDraftOwner } from "@/lib/anon";
 import { getDraft } from "@/lib/drafts";
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default async function EditorPage({ params }: { params: Params }) {
   if (!draft) notFound();
 
   // Rascunho é privado: só o cookie que criou abre (SPEC 9.4).
-  if (draft.anonId && draft.anonId !== (await readAnonId())) notFound();
+  if (!(await isDraftOwner(draft))) notFound();
 
   return (
     <EditorShell

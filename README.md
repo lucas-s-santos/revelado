@@ -254,6 +254,247 @@ cápsula, motivos, stats — os seis já estão no schema), mais quatro ocasiõe
 estatísticas no painel, SEO programático (`/ocasioes`, `/exemplos`,
 `/mensagens`), admin completo, moderação, cupons e afiliados.
 
+### Segurança — o que está travado e o que você precisa configurar
+
+O funil inteiro é aberto: ninguém faz login antes do editor (SPEC 1). Por isso as
+travas são todas do lado do servidor e estão em três arquivos.
+
+| Trava                      | Onde                           | O que impede                                                                                                                                                                        |
+| -------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Teto de requisições por IP | `lib/rate-limit.ts`            | Derrubar o app pelo `/api/qr` (PDF custa segundos de CPU), queimar cobranças no Mercado Pago, encher o banco de rascunhos, força bruta na senha da página                           |
+| Dono do rascunho           | `lib/anon.ts` → `isDraftOwner` | Abrir o editor, o checkout, o painel ou o `/sucesso` de outra pessoa. **Uma função só** — quando o login chegar, a regra por `userId` entra aqui e todas as telas ganham de uma vez |
+| Link assinado              | `lib/access-token.ts`          | `/sucesso` abre no computador de quem pagou no celular (o link vai no e-mail) sem abrir para quem só adivinhou o id do pedido                                                       |
+| Registro de recusa         | `lib/security-log.ts`          | Ataque acontecer em silêncio. Manda para o Sentry com a tag `security`                                                                                                              |
+| Cabeçalhos                 | `next.config.ts`               | Clickjacking no checkout, sniffing de tipo, vazamento do slug no `referer`                                                                                                          |
+
+**Duas variáveis são obrigatórias em produção:**
+
+- `MERCADOPAGO_WEBHOOK_SECRET` — sem ela o webhook **recusa** toda notificação
+  (`lib/mercadopago.ts`). Antes ele aceitava qualquer POST, o que significava
+  publicar página de graça para quem descobrisse a URL.
+- `AUTH_SECRET` — assina os links de `/sucesso` e os cookies de senha. Sem ela,
+  o app usa um valor de reserva que é público e grita no log.
+
+### Login por magic link (SPEC 2)
+
+Auth.js v5 com adapter do Prisma e provider Resend. Sem senha: o e-mail é a
+chave, e quem comprou já tem conta — ela nasce no checkout (SPEC 1), então
+entrar é **reencontrar**, não cadastrar.
+
+Três coisas que valem a pena saber:
+
+- **login nunca é exigido** (regra inviolável 8). Não há middleware, não há
+  redirecionamento para `/entrar`. A sessão é informação a mais que algumas
+  telas usam; o cookie anônimo continua funcionando sozinho para quem nunca
+  pedir o link;
+- **sessão em banco, não JWT.** A SPEC 9.4 fala em direito de exclusão e em
+  tirar acesso — com sessão em tabela isso é apagar uma linha;
+- **`isDraftOwner` é o único lugar que decide dono.** Foi centralizada no
+  primeiro commit desta leva justamente para este momento: a regra por `userId`
+  entrou lá e todas as telas ganharam de uma vez. O compilador apontou os nove
+  pontos de chamada sozinho.
+
+Liga com `DATABASE_URL` + `AUTH_SECRET` + `RESEND_API_KEY`. Faltando qualquer um,
+`/entrar` explica que não está disponível e o resto do app segue inteiro.
+
+No caminho apareceu outro divergente dev/produção: `listDraftsByAnon` filtrava
+`status: "DRAFT"` só no Postgres, então **em produção o painel nunca mostraria
+uma página publicada** — justamente a que a pessoa vai lá gerenciar. Em
+desenvolvimento funcionava. Virou `listDraftsForOwner`, sem filtro de status e
+somando os dois donos possíveis.
+
+### Fechando o bucket do R2 (SPEC 9.4)
+
+Hoje as fotos são lidas do host público da Cloudflare. As chaves são cuid + uuid,
+não adivinháveis, mas **uma URL que vaze vale para sempre** — inclusive depois de
+a página expirar, ganhar senha ou ser apagada. Proteger o HTML e deixar a imagem
+aberta protege pouco: o endereço da imagem está dentro do HTML.
+
+O caminho privado já existe e está desligado por padrão. Para ligar:
+
+1. feche o acesso público do bucket no painel da Cloudflare;
+2. `R2_PRIVATE=true` nas variáveis de ambiente.
+
+A partir daí toda leitura passa por `/api/media/[...key]`, que confere quem está
+pedindo (`lib/media-access.ts`) e redireciona para uma URL assinada de 2h. A
+regra é uma frase: **a foto vale o que a página dela vale.**
+
+| Estado da página     | Visitante  | Quem digitou a senha | Dono |
+| -------------------- | ---------- | -------------------- | ---- |
+| Publicada, aberta    | vê         | vê                   | vê   |
+| Publicada, com senha | **não vê** | vê                   | vê   |
+| Expirada             | **não vê** | **não vê**           | vê   |
+| Ainda rascunho       | **não vê** | **não vê**           | vê   |
+
+Custo: uma ida ao servidor por imagem, em troca de a foto obedecer à página. O
+redirect é cacheado no navegador de quem pediu (`private`, nunca em
+intermediário — a resposta depende de quem está pedindo).
+
+Os dois lados precisam virar juntos: só a variável deixa as fotos sem carregar,
+só o bucket deixa as fotos abertas. A tabela acima está travada em
+`media-access.test.ts`; o caminho assinado não tem teste automatizado porque
+exige credencial real do R2.
+
+### Escolha do template (SPEC 8.3)
+
+`/criar/[occasion]` existe agora, estática para as oito ocasiões. Sete templates
+por ocasião (seis no memorial), e o preview é **real**: o mesmo `BlockRenderer`
+dentro do `PhoneFrame`, com o conteúdo exato que o rascunho vai nascer. Sem pasta
+de `.webp` — mais um lugar para o template e a imagem divergirem.
+
+Um template aqui é **só um tema**: tipografia e efeito ambiental. Ele não troca
+os blocos, porque trocar de template no editor apagaria o que a pessoa escreveu.
+
+Ao implementar a tela apareceu que **`theme.effect` não fazia nada**. O campo
+estava no schema, no zod, no seed e na página publicada desde a Fase 3, e nenhuma
+linha de CSS o lia — escolher "neve" ou "confete" não mudava nada em lugar
+nenhum. Agora existe, em CSS puro (nenhum JS por frame, SPEC 6.4), em `.blocks` e
+não no `<main>` da página publicada, para o preview do editor mostrar o mesmo que
+o presente entregue. `prefers-reduced-motion` para a animação e deixa a textura.
+
+**Divergência anotada da SPEC 8.2:** lá o rascunho nasce ao clicar na ocasião;
+aqui nasce ao clicar no template, uma tela depois. Criar no primeiro clique
+deixaria uma linha de banco para cada visitante que chega na escolha de template
+e desiste — e é exatamente ali que se desiste.
+
+### Trabalhos agendados (SPEC 9.2)
+
+Três varreduras periódicas, em `lib/jobs.ts`, disparadas por cron da Vercel
+(`vercel.json`) através de `/api/cron/[job]`:
+
+| Trabalho          | Quando       | O que faz                                                                                                                                                                            |
+| ----------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `order.abandoned` | a cada 15min | Quem gerou o Pix e não pagou há mais de 30min recebe o link de volta. **O template existia desde a Fase 5 e nunca tinha sido enviado uma vez sequer** — faltava exatamente o disparo |
+| `site.expiring`   | 09:00 (BRT)  | Avisa 15 dias antes de a página sair do ar, com link para renovar                                                                                                                    |
+| `site.purge`      | 01:30 (BRT)  | Apaga o que expirou há mais de 30 dias, **inclusive do R2**                                                                                                                          |
+
+O SPEC pede Inngest. Estes três são varreduras periódicas sem fan-out, sem retry
+por evento e sem passo encadeado — o que um cron resolve. As funções não sabem
+quem as chamou, então migram inteiras quando a fila entrar por causa do
+`media.process`.
+
+Três regras valem para os três, e estão travadas em `jobs.test.ts`: **um aviso
+sai uma vez** (cada trabalho marca o que fez — cron erra para os dois lados),
+**um registro com problema não derruba a leva**, e **o lote é limitado** a 100
+por execução.
+
+`site.purge` é a única operação destrutiva do sistema. A carência de 30 dias é o
+que a torna segura: expirar só tira do ar, com CTA de renovação. Quem renovar no
+dia 29 encontra tudo no lugar.
+
+**`CRON_SECRET` é obrigatório em produção** — sem ele a rota recusa tudo, porque
+ela dispara e-mails em massa e a purga.
+
+### Renovação (SPEC 8.7)
+
+O job `site.expiring` manda um e-mail dizendo "renove sua página", e a página
+expirada mostra o mesmo CTA. **Os dois levavam a uma tela sem botão de renovar** —
+tráfego dirigido para um beco sem saída, criado junto com o job.
+
+Agora `/painel/[siteId]` tem o botão e o checkout aceita página já publicada. A
+regra que manda é a conta do prazo, em `nextExpiry`:
+
+**renovar cedo soma, não substitui.** O aviso sai quinze dias antes; se renovar
+antes custasse esses quinze dias, o e-mail estaria pedindo para a pessoa se
+prejudicar por ser precavida. A contagem parte do que for mais tarde — o prazo
+atual, se ainda valer, ou hoje. Página já expirada recomeça de hoje: o tempo
+fora do ar não era tempo de serviço.
+
+Três armadilhas que apareceram no caminho e estão travadas em `renovacao.test.ts`:
+
+1. **`createOrder` punha o site em `PENDING_PAYMENT`.** Numa renovação isso
+   tiraria do ar uma página que está funcionando durante os trinta minutos do
+   Pix — o presente sairia do ar justamente porque a pessoa decidiu pagar para
+   ele continuar.
+2. **A marca de "já avisei" precisa ser zerada.** Sem isso, uma página renovada
+   carregaria a marca do ciclo anterior para sempre e nunca mais seria avisada:
+   o cliente descobriria o próximo vencimento pela página fora do ar.
+3. **O CTA da página expirada apontava para `/painel`**, a lista. Agora aponta
+   para a própria página — quem abre um link vencido quer renovar **aquela**, e
+   o dono pode estar num aparelho onde a lista vem vazia.
+
+### Acessibilidade: de aceite nunca medido a portão
+
+O aceite da Fase 2 pedia "≥ 95 em acessibilidade" desde sempre e **nunca tinha
+sido medido**. Agora `e2e/acessibilidade.spec.ts` roda o axe (WCAG 2.1 A/AA) nas
+sete telas do funil, nos dois navegadores, e reprova o build igual ao orçamento
+de bundle. As sete passam limpas.
+
+O que a primeira rodada encontrou:
+
+| Onde                                          | O quê                                                                                                                                                          |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Todo cabeçalho e o rodapé da página publicada | **Não havia regra base para `<a>`**, então o nome "Revelado" saía na cor padrão de link do Chrome — um azul-lavanda que não é da marca, reprovado no contraste |
+| Cartão do QR na landing                       | A dica "aponte a câmera" estava escrita em `@layer components` e **nunca aplicou**: texto claro sobre cartão claro, 2,6:1                                      |
+| `StickyActs`                                  | Atos inativos parados em 30% de opacidade — 1,6:1, e é estado de repouso, não transição                                                                        |
+| Carrossel da galeria                          | Rola por scroll-snap e **não recebia foco**: quem usa teclado não alcançava da segunda foto em diante. Na tela que é o produto entregue                        |
+| `/criar/[occasion]`                           | Bug meu, novo: o preview tinha links dentro de um `aria-hidden` e interativos dentro de `<button>`. Resolvido com `inert`                                      |
+| `.hero__note`                                 | `--color-muted` a 75% dá 4,1:1 em texto pequeno                                                                                                                |
+
+Duas lições que ficaram no código:
+
+1. **A ordem das camadas do Tailwind v4 é `components` antes de `utilities`**, então
+   uma regra de componente não vence uma classe utilitária por mais específica que
+   seja. Foi o que fez a dica do QR não aplicar — o desenho "parecia" certo no
+   arquivo e não chegava na tela.
+2. **O teste roda com `prefers-reduced-motion`** (`playwright.config.ts`). Não é
+   só higiene: com animação correndo, o axe media a cor no estado em que pegou a
+   tela e a mesma página passava numa rodada e reprovava na seguinte. E o estado
+   sem movimento é justamente o que a regra inviolável 14 promete a quem pede.
+
+O que o axe **não** cobre e continua sendo trabalho humano: percorrer o funil só
+com teclado, e conferir se o texto alternativo diz alguma coisa.
+
+### Dois defeitos que só o e2e encontrou
+
+Ambos na página publicada — a tela que é o produto entregue — e ambos invisíveis
+para os testes unitários e para qualquer conferência manual rápida.
+
+**1. Página com senha devolvia 500 em produção.** `/p/[slug]` declarava
+`revalidate = 3600` e `generateStaticParams`, o que faz o Next tratar a rota
+como geração estática. Ler cookie ali **não** "cai para dinâmico" como o
+comentário do arquivo afirmava — estoura `DYNAMIC_SERVER_USAGE`. Em `pnpm dev`
+funcionava, que é o pior tipo de bug.
+
+**2. Página com prazo quebrava a partir do segundo acesso.** A leitura passa por
+`unstable_cache`, que **serializa** o que guarda: na volta do cache, `expiresAt`
+não era mais `Date`, era a string ISO dele, e `isExpired` chamava `.getTime()`
+nela. O primeiro acesso funcionava (valor fresco) e o segundo dava 500. Valia
+para todo plano com `durationDays` — ou seja, dois dos três. Travado agora em
+`sites.test.ts`, que faz a data passar por `JSON.parse(JSON.stringify(...))`
+igual ao cache faz.
+
+### A página publicada deixou de ser estática — e por quê
+
+O e2e do funil encontrou um defeito que nenhum teste unitário pegaria: **toda
+página com senha devolvia 500 em produção**, em vez de mostrar o portão. Em
+`pnpm dev` funcionava, o que é o pior tipo de bug.
+
+A causa: `/p/[slug]` declarava `revalidate = 3600` e `generateStaticParams`, o
+que faz o Next tratar a rota como geração estática. Ler cookie ali **não** "cai
+para dinâmico" como o comentário do arquivo afirmava — estoura
+`DYNAMIC_SERVER_USAGE`.
+
+A rota agora é dinâmica. O que muda na prática:
+
+|                              | antes               | agora                               |
+| ---------------------------- | ------------------- | ----------------------------------- |
+| Página com senha             | **500**             | portão (307 → `/senha`)             |
+| Consulta ao banco por visita | não (cache por tag) | não (mesmo cache)                   |
+| Render no servidor           | não                 | ~15ms (medido; o estático faz ~4ms) |
+| Cache de CDN na frente       | sim                 | **não**                             |
+
+Os ~15ms não ameaçam o LCP < 1,5s da SPEC 10 — em 4G quem manda é a rede. O que
+se perde é o cache de borda, e com pico sazonal de 50x isso vira invocação de
+função por visita.
+
+**Como recuperar os dois**, quando valer a pena: o portão passa a morar só em
+`/p/[slug]/senha`. A página publicada volta a ser estática e, quando tem senha,
+redireciona para lá sem ler cookie nenhum (redirect estático é permitido); o
+portão, que já é `force-dynamic`, confere o cookie e renderiza o conteúdo com o
+mesmo `BlockRenderer`. Custo: quem destrava fica com `/senha` na barra de
+endereço. É uma decisão de produto, não técnica.
+
 ### Pendências conhecidas
 
 Cada uma está anotada também no lugar certo do código:
@@ -261,21 +502,25 @@ Cada uma está anotada também no lugar certo do código:
 - **Cartão de crédito** não existe: só Pix. O SPEC pede os dois; o Pix é 70% do
   volume esperado (seção 14) e o cartão precisa do Checkout Transparente, que é
   um trabalho próprio.
-- **Filas Inngest** não estão montadas. `site.publish` roda inline dentro do
-  webhook; `order.abandoned`, `site.expiring` e `site.purge` (SPEC 9.2) ainda não
-  existem — o template do e-mail de abandono já está pronto em `lib/email.ts`.
-- **Login por magic link** não existe. O `/painel` lista pelo mesmo cookie
-  anônimo que segura os rascunhos, então trocar de aparelho perde o acesso — e
-  é o mesmo cookie que autoriza trocar a senha em `/painel/[siteId]`.
-- **Renovar, trocar de plano e excluir** ainda não estão em `/painel/[siteId]`:
-  os três dependem de uma tela de cobrança para página já publicada, que é
-  assunto próprio. A página expirada já tem o CTA de renovação apontando para o
-  painel.
-- **Sem limite de tentativas na senha da página.** O slug tem sufixo aleatório
-  (SPEC 9.4), então não há lista de páginas para varrer, e o `scrypt` já é lento
-  de propósito. Se a senha virar barreira séria, entra um contador por IP.
-- `/criar/[occasion]` (escolha de template, SPEC 8.3) não existe — o editor entra
-  direto com o preset da ocasião.
+- **`media.process` não existe.** As fotos vão para o R2 do jeito que o navegador
+  comprimiu (WebP, 1600px, teto de 245KB em `use-uploads.ts`), sem as variantes
+  400/800/1600 nem blurhash. É o trabalho que vai justificar uma fila de verdade:
+  é disparado por evento e precisa de retry, ao contrário dos três periódicos.
+- **`site.publish` roda inline dentro do webhook**, não numa fila.
+- **A tabela `Media` não é escrita.** O `SiteContent` guarda só o `mediaId` e a
+  URL é derivada dele, então nada quebra — mas não existe inventário do que está
+  no bucket. `deleteSiteMedia` contorna isso varrendo pelo prefixo `sites/<id>/`.
+- **O bucket do R2 ainda está público para leitura**, mas a virada está pronta:
+  ver "Fechando o bucket" abaixo.
+- **O fluxo completo do magic link não foi testado de ponta a ponta**: precisa de
+  `DATABASE_URL` + `RESEND_API_KEY` de verdade. O que foi conferido rodando é o
+  caminho desligado (a rota do Auth.js devolve 404 limpo, `/entrar` explica) e
+  que nada do funil quebrou.
+- **Trocar de plano** ainda não está em `/painel/[siteId]`. **Renovar e excluir
+  já existem.**
+- **Reembolso não tira a página do ar.** O pedido vira `REFUNDED` e o site
+  continua publicado; o e2e trava esse comportamento para ele não mudar sem
+  querer. Se a regra de negócio for despublicar, o lugar é `transitionOrder`.
 - Modo avançado do editor é Fase 8 no próprio SPEC.
 
 `docs/MOTION-REFS.md` continua vazio — as Fases 1 e 2 seguiram a seção 6.3 do SPEC

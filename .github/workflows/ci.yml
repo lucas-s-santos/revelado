@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
 
 concurrency:
@@ -52,6 +52,21 @@ jobs:
       - name: Orçamento de bundle
         run: pnpm budget
 
+      # Aceite da Fase 5 (SPEC 13): pago, pendente, expirado e reembolsado.
+      # Roda contra o build que acabou de sair, sem conta no Mercado Pago — o
+      # simulador dispara o webhook de verdade.
+      - name: Navegadores do Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Roda o funil e a auditoria de acessibilidade (WCAG 2.1 A/AA) — o aceite
+      # da Fase 2 pedia "≥ 95 em acessibilidade" e nunca tinha sido medido.
+      - name: e2e do funil e acessibilidade
+        run: pnpm test:e2e
+        env:
+          # Um IP só percorrendo o funil inteiro várias vezes por minuto é
+          # exatamente o que o limitador barra. A folga é ignorada em deploy.
+          RATE_LIMIT_TEST_SLACK: "50"
+
       - name: Bundle analyzer
         run: pnpm analyze
         env:
@@ -62,5 +77,13 @@ jobs:
         with:
           name: bundle-analysis
           path: .next/analyze
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report
           if-no-files-found: ignore
           retention-days: 7

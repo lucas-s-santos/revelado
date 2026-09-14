@@ -26,7 +26,11 @@ export const DEFAULT_SKIN: SkinId = "clara";
 
 export const SKINS: readonly { id: SkinId; name: string; hint: string }[] = [
   { id: "clara", name: "Papel", hint: "creme e quente, como um álbum" },
-  { id: "escura", name: "Câmara escura", hint: "noir, para as fotos brilharem" },
+  {
+    id: "escura",
+    name: "Câmara escura",
+    hint: "noir, para as fotos brilharem",
+  },
 ] as const;
 
 export const PALETTE_IDS = [

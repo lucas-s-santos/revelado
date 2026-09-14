@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ensureAnonId } from "@/lib/anon";
 import { defaultContent, DEFAULT_TEMPLATE } from "@/lib/blocks/defaults";
 import { createDraft } from "@/lib/drafts";
+import { limitOr429 } from "@/lib/rate-limit";
 import { TEMPLATE_IDS } from "@/lib/templates";
 
 /**
@@ -19,6 +20,14 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Rascunho é gratuito e sem login: o teto é o que impede encher o banco de
+  // linhas vazias (SPEC 9.4).
+  const limited = await limitOr429(
+    "drafts",
+    "Muitas páginas criadas seguidas. Espere um minuto para começar outra.",
+  );
+  if (limited) return limited;
+
   // Corpo vazio é o caminho normal agora — só é erro se vier algo inválido.
   let body: unknown = {};
   try {
@@ -48,8 +57,5 @@ export async function POST(request: Request) {
     anonId,
   });
 
-  return NextResponse.json(
-    { id: draft.id, slug: draft.slug },
-    { status: 201 },
-  );
+  return NextResponse.json({ id: draft.id, slug: draft.slug }, { status: 201 });
 }

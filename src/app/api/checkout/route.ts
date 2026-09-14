@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { readAnonId } from "@/lib/anon";
+import { isDraftOwner } from "@/lib/anon";
 import { validateForPublish } from "@/lib/blocks/schema";
 import { applyCoupon } from "@/lib/coupons";
 import { getDraft } from "@/lib/drafts";
@@ -13,6 +13,8 @@ import {
   PLAN_IDS,
   type PlanId,
 } from "@/lib/plans";
+import { limitOr429 } from "@/lib/rate-limit";
+import { logDenied } from "@/lib/security-log";
 
 /**
  * Cria o pedido e a cobrança — SPEC 9.1.
@@ -36,6 +38,13 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Cada chamada abre uma cobrança de verdade no provedor (SPEC 9.4).
+  const limited = await limitOr429(
+    "checkout",
+    "Muitas tentativas de pagamento seguidas. Espere um minuto.",
+  );
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await request.json();
@@ -54,8 +63,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const { draftId, planId, bumpForever, email, coupon, method } =
-    parsed.data;
+  const { draftId, planId, bumpForever, email, coupon, method } = parsed.data;
 
   const draft = await getDraft(draftId);
   if (!draft) {
@@ -65,16 +73,14 @@ export async function POST(request: Request) {
     );
   }
 
-  if (draft.anonId && draft.anonId !== (await readAnonId())) {
+  if (!(await isDraftOwner(draft))) {
+    await logDenied("owner-mismatch", { rota: "checkout", draftId });
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }
 
-  if (draft.status === "PUBLISHED") {
-    return NextResponse.json(
-      { error: "Esta página já está publicada." },
-      { status: 409 },
-    );
-  }
+  // Página já no ar **não** é erro: é renovação (SPEC 8.7). O que muda é o que
+  // o webhook faz ao confirmar — estica o prazo em vez de estrear (ver
+  // `nextExpiry` em lib/publish.ts). Aqui o fluxo é o mesmo.
 
   // Portão da publicação (SPEC 7.2): não cobrar por uma página que sairia vazia.
   const issues = validateForPublish(draft.content);

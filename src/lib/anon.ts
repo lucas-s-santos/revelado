@@ -40,3 +40,56 @@ export async function ensureAnonId(): Promise<string> {
 
   return anonId;
 }
+
+/**
+ * Esta pessoa é dona deste rascunho? — SPEC 9.4.
+ *
+ * Uma função só, usada por toda tela e toda rota que abre um rascunho: editor,
+ * checkout, painel, sucesso, autosave e assinatura de upload. Antes a regra
+ * estava copiada em cinco lugares, e todas as cópias tinham a mesma brecha —
+ * rascunho **sem** `anonId` era liberado para qualquer um.
+ *
+ * São dois donos possíveis, e é de propósito (SPEC 1: "a criação acontece sem
+ * login, a conta nasce no checkout"):
+ *
+ *  - **a conta**, quando existe. É o que faz as páginas aparecerem no
+ *    computador depois de terem sido montadas no celular;
+ *  - **o cookie anônimo**, que é o único dono antes do checkout. Continua
+ *    valendo depois, para quem nunca pediu o link de acesso.
+ *
+ * Sem nenhum dos dois identificável, ninguém entra.
+ */
+export async function isDraftOwner(draft: {
+  anonId: string | null;
+  userId: string | null;
+}): Promise<boolean> {
+  // Sem `userId` no rascunho não há conta para comparar: evita acordar o
+  // Auth.js no caminho mais comum, que é o do visitante sem login.
+  if (draft.userId) {
+    const userId = await loggedUserId();
+    if (userId && draft.userId === userId) return true;
+  }
+
+  if (!draft.anonId) return false;
+  return (await readAnonId()) === draft.anonId;
+}
+
+/**
+ * O id de quem está logado, buscado por import tardio.
+ *
+ * Estático, o `@/auth` arrastaria o Auth.js inteiro — e com ele `next/server` —
+ * para o grafo de todo módulo que toca `lib/anon`: as rotas, o limitador de
+ * requisições e os testes. Sob o vitest isso quebra na resolução, e nas rotas é
+ * peso que nem sempre se usa.
+ *
+ * Rascunho sem `userId` nem precisa perguntar: não há conta para comparar.
+ */
+async function loggedUserId(): Promise<string | null> {
+  try {
+    const { currentUserId } = await import("@/auth");
+    return await currentUserId();
+  } catch {
+    // Ambiente sem Auth.js disponível: ninguém logado, o cookie decide.
+    return null;
+  }
+}

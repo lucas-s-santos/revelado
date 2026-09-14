@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { isDraftOwner } from "@/lib/anon";
 import { getDraft } from "@/lib/drafts";
 import { getOrder } from "@/lib/orders";
+import { logDenied } from "@/lib/security-log";
 
 /**
  * Estado do pedido — usado pelo polling de 3s da tela de Pix (SPEC 8.5).
@@ -24,6 +26,12 @@ export async function GET(_request: Request, { params }: { params: Params }) {
   }
 
   const draft = await getDraft(order.siteId);
+
+  // O polling da tela de Pix é do comprador, não do mundo (SPEC 9.4).
+  if (draft && !(await isDraftOwner(draft))) {
+    await logDenied("owner-mismatch", { rota: "orders.GET", orderId: id });
+    return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
+  }
 
   return NextResponse.json({
     id: order.id,

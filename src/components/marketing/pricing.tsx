@@ -156,8 +156,8 @@ export function Pricing() {
             data-numeric
             className="text-sm text-[rgb(var(--color-ink-muted))]"
           >
-            no Pix · ou {installment.count}x de{" "}
-            {formatBRL(installment.cents)} sem juros
+            no Pix · ou {installment.count}x de {formatBRL(installment.cents)}{" "}
+            sem juros
           </p>
         ) : null}
 

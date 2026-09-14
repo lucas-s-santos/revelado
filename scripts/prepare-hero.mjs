@@ -252,7 +252,10 @@ for (const variant of VARIANTS) {
     await sharp(developed).png().toFile(`.drafts/proof-${variant.name}.png`);
   }
 
-  const tiny = await sharp(developed).resize(16).webp({ quality: 28 }).toBuffer();
+  const tiny = await sharp(developed)
+    .resize(16)
+    .webp({ quality: 28 })
+    .toBuffer();
   console.log(
     `\n${variant.name} blurDataURL (${tiny.length} B):\ndata:image/webp;base64,${tiny.toString("base64")}`,
   );

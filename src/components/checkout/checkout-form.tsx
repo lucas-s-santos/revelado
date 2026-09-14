@@ -17,7 +17,7 @@ import {
   PLANS,
   type PlanId,
 } from "@/lib/plans";
-import { cn, formatBRL } from "@/lib/utils";
+import { cn, formatBRL, formatDate } from "@/lib/utils";
 
 /**
  * Checkout — SPEC 8.5.
@@ -38,6 +38,10 @@ interface CheckoutFormProps {
   subtitle: string | null;
   photoCount: number;
   issues: PublishIssue[];
+  /** a página já está no ar: isto estica o prazo, não estreia (SPEC 8.7) */
+  renewal?: boolean;
+  /** prazo atual, em ISO — só faz sentido numa renovação */
+  expiresAt?: string | null;
 }
 
 type Method = "pix" | "card";
@@ -58,6 +62,8 @@ export function CheckoutForm({
   subtitle,
   photoCount,
   issues,
+  renewal = false,
+  expiresAt = null,
 }: CheckoutFormProps) {
   const router = useRouter();
 
@@ -164,8 +170,20 @@ export function CheckoutForm({
 
       <div className="checkout__grid">
         <section className="checkout__summary">
-          <p className="eyebrow">sua página</p>
+          <p className="eyebrow">{renewal ? "renovar" : "sua página"}</p>
           <h1 className="checkout__title">{title}</h1>
+
+          {renewal ? (
+            // O argumento de venda inteiro da renovação está nesta frase: o
+            // endereço não muda, então o QR já impresso continua servindo.
+            <p className="checkout__renewal">
+              {expiresAt
+                ? `Esta página fica no ar até ${formatDate(new Date(expiresAt))}. `
+                : ""}
+              Renovando, o prazo soma a partir do que ainda falta — o endereço
+              continua o mesmo e o QR Code que você imprimiu não muda.
+            </p>
+          ) : null}
           {subtitle ? <p className="checkout__sub">{subtitle}</p> : null}
 
           <dl className="checkout__facts">

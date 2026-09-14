@@ -15,12 +15,8 @@ import {
  */
 describe("promo", () => {
   it("fixa o Dia dos Namorados em 12 de junho", () => {
-    expect(formatCelebrationDate(valentinesDay(2026).date)).toBe(
-      "12 de junho",
-    );
-    expect(formatCelebrationDate(valentinesDay(2027).date)).toBe(
-      "12 de junho",
-    );
+    expect(formatCelebrationDate(valentinesDay(2026).date)).toBe("12 de junho");
+    expect(formatCelebrationDate(valentinesDay(2027).date)).toBe("12 de junho");
   });
 
   it("aponta o deste ano quando ele ainda não chegou", () => {

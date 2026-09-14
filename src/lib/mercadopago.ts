@@ -1,5 +1,7 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 
+import { HOSTED } from "@/lib/env";
+
 /**
  * Mercado Pago — SPEC 2, 8.5 e 9.1.
  *
@@ -251,9 +253,10 @@ export async function fetchPaymentStatus(
 /**
  * Assinatura do webhook (header `x-signature`).
  *
- * Sem segredo configurado, aceita — é o modo local. Com segredo, **exige**:
- * webhook de pagamento sem verificação é porta aberta para alguém publicar
- * página de graça.
+ * Com segredo, **exige**. Sem segredo, só aceita fora de produção — é o modo
+ * local, que existe para rodar o funil sem conta no Mercado Pago. Em produção,
+ * a ausência do segredo recusa a notificação: webhook de pagamento sem
+ * verificação é porta aberta para alguém publicar página de graça.
  */
 export function verifySignature(
   signatureHeader: string | null,
@@ -261,7 +264,24 @@ export function verifySignature(
   dataId: string,
 ): boolean {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-  if (!secret) return true;
+
+  if (!secret) {
+    // Hospedado, webhook de pagamento sem segredo é porta aberta: quem
+    // descobrir a URL publica página de graça. Recusa em vez de confiar.
+    // A pergunta é "estou hospedado?" e não "NODE_ENV é production?" de
+    // propósito: `pnpm start` local roda como production, e é assim que o e2e
+    // percorre pago/pendente/expirado/reembolsado pelo simulador. Decidir por
+    // NODE_ENV desligaria justamente o teste que prova que esta trava funciona.
+    if (HOSTED) {
+      console.error(
+        "[webhook] MERCADOPAGO_WEBHOOK_SECRET ausente em produção — notificação recusada.",
+      );
+      return false;
+    }
+
+    return true; // modo local, sem conta no provedor
+  }
+
   if (!signatureHeader) return false;
 
   const parts = Object.fromEntries(

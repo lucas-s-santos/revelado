@@ -1,6 +1,8 @@
 import { createHash, randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
+import { appSecret } from "@/lib/access-token";
+
 /**
  * Senha opcional da página publicada — SPEC 8.8 e 9.4.
  *
@@ -44,7 +46,7 @@ export const unlockCookie = (slug: string) => `revelado_unlock_${slug}`;
  */
 export function unlockToken(passwordHash: string): string {
   return createHash("sha256")
-    .update(`${passwordHash}:${process.env.AUTH_SECRET ?? "revelado"}`)
+    .update(`${passwordHash}:${appSecret()}`)
     .digest("hex")
     .slice(0, 32);
 }

@@ -13,14 +13,68 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  phone     String?
-  role      Role     @default(USER)
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String?
+  phone String?
+  role  Role    @default(USER)
+
+  // Auth.js (SPEC 2: magic link, sem senha). `emailVerified` é o campo que o
+  // adapter preenche quando o link do e-mail é aberto — é o que prova a posse
+  // do endereço, e é por isso que não existe senha aqui.
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+
   sites     Site[]
   orders    Order[]
   createdAt DateTime @default(now())
+}
+
+/// Auth.js — provedor externo (Google, Apple). Vazia hoje: só há magic link.
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+}
+
+/// Auth.js — sessão em banco, não JWT: revogar acesso é apagar a linha.
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Auth.js — o token que viaja dentro do magic link. Some ao ser usado.
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
 }
 
 enum Role {
@@ -43,6 +97,8 @@ model Site {
   expiresAt     DateTime? // null = vitalício
   viewsCount    Int        @default(0)
   firstViewedAt DateTime?
+  // Aviso de 15 dias antes de expirar (SPEC 9.2), uma vez só.
+  expiringNotifiedAt DateTime?
   deletedAt     DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -56,6 +112,7 @@ model Site {
   @@index([userId])
   @@index([anonId])
   @@index([status, expiresAt])
+  @@index([expiresAt, expiringNotifiedAt])
 }
 
 enum SiteStatus {
@@ -109,18 +166,24 @@ model Plan {
 }
 
 model Order {
-  id          String      @id @default(cuid())
-  userId      String
-  siteId      String
-  planId      String
-  bumpForever Boolean     @default(false)
-  amountCents Int
-  couponId    String?
-  status      OrderStatus @default(PENDING)
-  provider    String      @default("mercadopago")
-  providerRef String?     @unique
-  paidAt      DateTime?
-  createdAt   DateTime    @default(now())
+  id                  String      @id @default(cuid())
+  userId              String
+  siteId              String
+  planId              String
+  bumpForever         Boolean     @default(false)
+  amountCents         Int
+  couponId            String?
+  status              OrderStatus @default(PENDING)
+  provider            String      @default("mercadopago")
+  providerRef         String?     @unique
+  // Copia-e-cola do Pix. Sem isto, recarregar a tela de pagamento perde o
+  // código e a pessoa fica sem como pagar (SPEC 8.5).
+  pixCode             String?
+  pixExpiresAt        DateTime?
+  // Carrinho abandonado (SPEC 9.2): marca o envio para o aviso sair uma vez só.
+  abandonedNotifiedAt DateTime?
+  paidAt              DateTime?
+  createdAt           DateTime    @default(now())
 
   user   User    @relation(fields: [userId], references: [id])
   site   Site    @relation(fields: [siteId], references: [id])
@@ -129,6 +192,8 @@ model Order {
 
   @@index([status, createdAt])
   @@index([siteId])
+  @@index([pixExpiresAt])
+  @@index([status, abandonedNotifiedAt])
 }
 
 enum OrderStatus {

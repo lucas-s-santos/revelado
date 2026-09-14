@@ -12,10 +12,10 @@ O produto passa a espelhar, seção por seção, um concorrente direto de
 páginas-presente — a estrutura de funil, a ordem das seções da landing e o
 formato do editor. Duas coisas **não** vieram junto, por decisão explícita:
 
-| O concorrente faz | Nós continuamos | Por quê |
-|---|---|---|
-| Landings por relação (`/amizade`, `/pai`) | Sem ramificação por relação | É o modelo de ocasiões removido na v2 do SPEC |
-| "Passo 1: crie sua conta" | Sem cadastro antes do editor | Regra 8 — fricção antes do preview derruba conversão |
+| O concorrente faz                         | Nós continuamos              | Por quê                                              |
+| ----------------------------------------- | ---------------------------- | ---------------------------------------------------- |
+| Landings por relação (`/amizade`, `/pai`) | Sem ramificação por relação  | É o modelo de ocasiões removido na v2 do SPEC        |
+| "Passo 1: crie sua conta"                 | Sem cadastro antes do editor | Regra 8 — fricção antes do preview derruba conversão |
 
 **O que não copiamos, e não é negociável:** nome, logo, mascote e textos
 literais do concorrente são material autoral deles. Estrutura e funil se
@@ -86,20 +86,20 @@ um `aria-hidden` de um `<picture>`, que não aceita ARIA.
 
 ## 4. O que falta — fases
 
-| Fase | Escopo | Estado |
-|---|---|---|
-| A | Pele: tokens + régua de contraste | ✅ completa |
-| B | Landing seção por seção | 🟡 parcial — faltam Revelation (envelope), BlocksGrid nos 4 tons, Testimonials, Pricing em 2 planos, FinalCta |
-| C | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | ⬜ não começada |
-| D | Formatos novos: envelope que abre, carta interativa, quiz do casal | ⬜ não começada |
-| E | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova | ⬜ não começada |
+| Fase | Escopo                                                                                     | Estado                                                                                                        |
+| ---- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| A    | Pele: tokens + régua de contraste                                                          | ✅ completa                                                                                                   |
+| B    | Landing seção por seção                                                                    | 🟡 parcial — faltam Revelation (envelope), BlocksGrid nos 4 tons, Testimonials, Pricing em 2 planos, FinalCta |
+| C    | Editor: 9 passos, barra de %, preview fixo, 12 temas com trava VIP, 4 formatos de presente | ⬜ não começada                                                                                               |
+| D    | Formatos novos: envelope que abre, carta interativa, quiz do casal                         | ⬜ não começada                                                                                               |
+| E    | Planos reduzidos a 2 · CLAUDE.md e SPEC atualizados para a identidade nova                 | ⬜ não começada                                                                                               |
 
 ### O mascote (decisão pendente)
 
 O vagalume/bonequinho próprio resolve o ponto da marca: mesma função do
 mascote deles, sem copiar o personagem. Três ressalvas antes de entrar:
 
-- **Registro emocional.** O mascote do concorrente funciona porque *é* o
+- **Registro emocional.** O mascote do concorrente funciona porque _é_ o
   produto — um coração entregando uma carta. Um monstrinho de chifres é
   fofo mas não carrega "acender uma lembrança". Dar um objeto a ele
   (envelope, luz) resolve.

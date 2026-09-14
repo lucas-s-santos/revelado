@@ -1,12 +1,11 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 import { devDir } from "@/lib/dev-store";
-import { join } from "node:path";
 
 import { db } from "@/lib/db";
 import { sendFirstViewEmail } from "@/lib/email";
 import { findDraftBySlug } from "@/lib/drafts";
-import { listOrdersByEmail } from "@/lib/orders";
+import { listOrdersByEmail, ownerEmailForSite } from "@/lib/orders";
 
 /**
  * Contagem de visitas — SPEC 7.1 e 8.8.
@@ -18,8 +17,6 @@ import { listOrdersByEmail } from "@/lib/orders";
  * A primeira visita dispara a notificação que a SPEC 8.7 chama de "maior gatilho
  * emocional do produto e a maior fonte de compartilhamento".
  */
-
-const DEV_FILE = devDir("views.json");
 
 interface DevViews {
   [siteId: string]: {
@@ -38,7 +35,7 @@ function today(): string {
 
 async function devRead(): Promise<DevViews> {
   try {
-    return JSON.parse(await readFile(DEV_FILE, "utf8")) as DevViews;
+    return JSON.parse(await readFile(devDir("views.json"), "utf8")) as DevViews;
   } catch {
     return {};
   }
@@ -70,7 +67,7 @@ export async function recordView(
 
     await mkdir(devDir(), { recursive: true });
     await writeFile(
-      DEV_FILE,
+      devDir("views.json"),
       JSON.stringify({ ...all, [siteId]: updated }, null, 2),
       "utf8",
     );
@@ -117,44 +114,16 @@ async function notifyFirstView(slug: string): Promise<void> {
     if (!draft) return;
 
     // Sem login ainda: o dono é quem pagou por esta página.
-    const email = await ownerEmailFor(draft.id);
+    const email = await ownerEmailForSite(draft.id);
     if (!email) return;
 
     await sendFirstViewEmail({ to: email, slug });
   } catch (error) {
-    console.error(`[views:${slug}] notificação de primeira visita falhou`, error);
+    console.error(
+      `[views:${slug}] notificação de primeira visita falhou`,
+      error,
+    );
   }
-}
-
-async function ownerEmailFor(siteId: string): Promise<string | null> {
-  if (process.env.DATABASE_URL) {
-    const order = await db.order.findFirst({
-      where: { siteId, status: "PAID" },
-      include: { user: { select: { email: true } } },
-    });
-    return order?.user.email ?? null;
-  }
-
-  // Modo local: varre os pedidos em disco procurando o desta página.
-  const { readdir } = await import("node:fs/promises");
-  const dir = devDir("orders");
-
-  try {
-    const files = await readdir(dir);
-    for (const file of files) {
-      if (!file.endsWith(".json")) continue;
-      const order = JSON.parse(await readFile(join(dir, file), "utf8")) as {
-        siteId: string;
-        status: string;
-        email: string;
-      };
-      if (order.siteId === siteId && order.status === "PAID") return order.email;
-    }
-  } catch {
-    return null;
-  }
-
-  return null;
 }
 
 /** Total de visitas, para o painel (SPEC 8.7). */

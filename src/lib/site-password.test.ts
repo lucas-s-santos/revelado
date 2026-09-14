@@ -1,9 +1,6 @@
-import { rm } from "node:fs/promises";
-import { join } from "node:path";
-
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
-import { defaultContent } from "@/lib/blocks/defaults";
+import { defaultContent, DEFAULT_TEMPLATE } from "@/lib/blocks/defaults";
 import { createDraft, updateSitePrivacy } from "@/lib/drafts";
 import {
   hashPassword,
@@ -12,6 +9,7 @@ import {
   verifyPassword,
 } from "@/lib/site-password";
 import { sitePasswordHash } from "@/lib/sites";
+import { testDevStore } from "@/lib/test-dev-store";
 
 /**
  * Senha da página publicada — SPEC 8.8 e 9.4.
@@ -21,17 +19,15 @@ import { sitePasswordHash } from "@/lib/sites";
  * cookies antigos** e que o hash nunca vira previsível.
  */
 
-const DEV_DIR = join(process.cwd(), ".drafts");
+/**
+ * Pasta própria: estes testes gravam no backend de arquivo, e o vitest roda
+ * arquivos em paralelo. Ver `lib/test-dev-store.ts`.
+ */
+const store = testDevStore();
+beforeEach(store.arm);
+afterAll(store.clean);
 
 describe("senha da página", () => {
-  beforeEach(() => {
-    delete process.env.DATABASE_URL;
-  });
-
-  afterAll(async () => {
-    await rm(DEV_DIR, { recursive: true, force: true });
-  });
-
   it("aceita a senha certa e recusa a errada", async () => {
     const stored = await hashPassword("nosso-lugar");
 
@@ -73,8 +69,7 @@ describe("senha da página", () => {
 
   it("define, troca e remove a senha de um rascunho", async () => {
     const draft = await createDraft({
-      occasionId: "namorados",
-      content: defaultContent("namorados"),
+      content: defaultContent(DEFAULT_TEMPLATE),
       anonId: "teste-senha",
     });
 
@@ -95,7 +90,6 @@ describe("senha da página", () => {
 
   it("mexer na indexação não apaga a senha por tabela", async () => {
     const draft = await createDraft({
-      occasionId: "aniversario",
       content: defaultContent("aniversario"),
       anonId: "teste-senha",
     });

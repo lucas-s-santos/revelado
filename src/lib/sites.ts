@@ -4,7 +4,7 @@ import { migrate } from "@/lib/blocks/migrate";
 import { DEMO_SLUG, demoContent } from "@/lib/blocks/fixtures";
 import type { SiteContent } from "@/lib/blocks/schema";
 import { siteTag } from "@/lib/cache";
-import { db, notDeleted } from "@/lib/db";
+import { db, hasDatabase, notDeleted } from "@/lib/db";
 import { findDraftBySlug } from "@/lib/drafts";
 
 /**
@@ -27,7 +27,6 @@ export interface PublishedSite {
 }
 
 /** O banco está configurado? Sem Neon, o slug de exemplo ainda funciona. */
-const hasDatabase = Boolean(process.env.DATABASE_URL);
 
 /**
  * Leitura cacheada por tag — SPEC 8.8.
@@ -36,27 +35,67 @@ const hasDatabase = Boolean(process.env.DATABASE_URL);
  * e não o do site inteiro. Com pico sazonal de 50x, invalidar tudo junto seria o
  * mesmo que não ter cache.
  *
- * Sem banco, o cache fica de fora: em desenvolvimento o arquivo muda a cada
- * salvamento e cache aqui só atrapalharia.
+ * **Os dois backends passam por aqui, e isso não é detalhe.** Antes o modo de
+ * arquivo pulava o cache, o que parecia inofensivo — sem banco o arquivo muda a
+ * cada salvamento. Só que quem associa a rota `/p/[slug]` à tag é justamente
+ * esta leitura: sem ela, o `revalidate = 3600` da página continuava valendo e
+ * `revalidateTag` não tinha o que derrubar. Resultado: **pôr senha numa página
+ * já no ar não fazia efeito** até a hora do ISR virar. O e2e do funil pegou.
+ *
+ * Toda mutação que muda o que a página publicada mostra chama `revalidateSite`
+ * — publicar, trocar senha, indexação e exclusão — então cachear aqui é seguro
+ * nos dois modos.
  */
 export async function getPublishedSite(
   slug: string,
 ): Promise<PublishedSite | null> {
-  if (!hasDatabase) return readPublishedSite(slug);
-
   const cached = unstable_cache(
     () => readPublishedSite(slug),
     ["published-site", slug],
     { tags: [siteTag(slug)], revalidate: 3600 },
   );
 
-  return cached();
+  try {
+    return hydrate(await cached());
+  } catch (error) {
+    // Mesma situação do `revalidateSite`: a camada de cache do Next só existe
+    // dentro de um request. Fora dele — teste unitário, script de manutenção —
+    // ler direto é a resposta certa. Só esta falha específica cai aqui; erro de
+    // leitura de verdade continua subindo.
+    if (isCacheUnavailable(error)) return readPublishedSite(slug);
+    throw error;
+  }
 }
 
-async function readPublishedSite(
-  slug: string,
-): Promise<PublishedSite | null> {
-  if (!hasDatabase) {
+/**
+ * Devolve os tipos que o cache comeu.
+ *
+ * `unstable_cache` **serializa** o que guarda, então na volta do cache um `Date`
+ * virou string. Sem isto, `isExpired` chama `.getTime()` numa string e a página
+ * publicada devolve 500 — e só a partir do **segundo** acesso, que é o pior jeito
+ * possível de falhar: passa no teste manual, quebra com o público. Valia para
+ * todo plano com prazo (`durationDays`), ou seja, quase todos.
+ *
+ * Achado pelo e2e do funil, que abre a mesma página duas vezes.
+ */
+function hydrate(site: PublishedSite | null): PublishedSite | null {
+  if (!site) return null;
+
+  const expiresAt = site.expiresAt as Date | string | null;
+  if (expiresAt === null || expiresAt instanceof Date) return site;
+
+  return { ...site, expiresAt: new Date(expiresAt) };
+}
+
+/** O invariante que o Next lança quando não há request por perto. */
+function isCacheUnavailable(error: unknown): boolean {
+  return (
+    error instanceof Error && error.message.includes("incrementalCache missing")
+  );
+}
+
+async function readPublishedSite(slug: string): Promise<PublishedSite | null> {
+  if (!hasDatabase()) {
     if (slug === DEMO_SLUG) return demoSite();
 
     // Modo local: a página publicada mora no mesmo arquivo do rascunho.
@@ -120,8 +159,23 @@ function demoSite(): PublishedSite {
   };
 }
 
+/**
+ * Já passou do prazo?
+ *
+ * Aceita `Date` **e** a string ISO que sobra de uma ida ao cache. O `hydrate`
+ * acima já devolve o tipo certo, mas esta função é chamada na tela que é o
+ * produto entregue: pagar o dobro do cuidado aqui custa duas linhas e evita um
+ * 500 na página de presente de alguém. Data ilegível conta como "no ar" — na
+ * dúvida, a página fica de pé.
+ */
 export function isExpired(site: PublishedSite, at = new Date()): boolean {
-  return site.expiresAt !== null && site.expiresAt.getTime() <= at.getTime();
+  const expiresAt = site.expiresAt as Date | string | null;
+  if (expiresAt === null) return false;
+
+  const prazo =
+    expiresAt instanceof Date ? expiresAt.getTime() : Date.parse(expiresAt);
+
+  return Number.isFinite(prazo) && prazo <= at.getTime();
 }
 
 /**

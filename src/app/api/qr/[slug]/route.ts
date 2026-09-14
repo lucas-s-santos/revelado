@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { qrCardPdf, qrPng, qrSvg } from "@/lib/qr";
+import { limitOr429 } from "@/lib/rate-limit";
 import { getPublishedSite } from "@/lib/sites";
 
 /**
@@ -16,6 +17,14 @@ type Params = Promise<{ slug: string }>;
 const CACHE = "public, max-age=31536000, immutable";
 
 export async function GET(request: Request, { params }: { params: Params }) {
+  // Gerar o PDF custa segundos de CPU e a rota é aberta: sem teto, um laço de
+  // dez linhas derruba o app no dia de pico (SPEC 9.4).
+  const limited = await limitOr429(
+    "qr",
+    "Muitos downloads seguidos. Espere um minuto e baixe de novo.",
+  );
+  if (limited) return limited;
+
   const { slug } = await params;
   const format = new URL(request.url).searchParams.get("formato") ?? "png";
 

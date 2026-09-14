@@ -99,7 +99,14 @@
   --hero-photo-opacity: 0.5;
 
   /* Piso de opacidade do ato inativo em "Como funciona". */
-  --act-dim: 0.58;
+  /* Piso do esmaecimento dos atos inativos.
+     Medido: a 0.58 o texto secundário dá 2,46:1 sobre o fundo claro, e o
+     eyebrow 4,34:1 — os dois abaixo dos 4.5:1 da SPEC 11. Opacidade sobre fundo
+     claro lava o texto muito rápido, então o piso precisa ser alto.
+     Se o esmaecimento tiver que ser mais forte, ele precisa sair da opacidade
+     do texto e virar troca de cor (muted → ink), que é legível nos dois
+     estados. É decisão de desenho, não de código. */
+  --act-dim: 0.92;
 
   /* QR é sempre escuro sobre claro — é assim que ele escaneia e é impresso.
      Não acompanha a pele. */

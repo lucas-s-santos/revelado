@@ -91,9 +91,10 @@ describe("parcelamento", () => {
     // e o cliente jamais paga a mais por causa de arredondamento.
     for (let cents = 100; cents <= 20_000; cents += 37) {
       const { count, cents: each } = bestInstallment(cents);
-      expect(each * count, `${cents} vira ${count}x de ${each}`).toBeLessThanOrEqual(
-        cents,
-      );
+      expect(
+        each * count,
+        `${cents} vira ${count}x de ${each}`,
+      ).toBeLessThanOrEqual(cents);
     }
   });
 });

@@ -25,6 +25,19 @@
     text-rendering: optimizeLegibility;
   }
 
+  /* Link herda a cor do texto em volta.
+     Sem esta regra o navegador aplica a cor padrão dele — no Chrome em tema
+     escuro, um azul-lavanda `rgb(158,158,255)`. Era o que estava pintando o
+     nome "Revelado" no cabeçalho de todas as telas e o "feito com Revelado" do
+     rodapé da página publicada: cor que não é da marca, e contraste reprovado.
+     Ninguém tinha visto porque a regra inviolável 5 fala em não hardcodar cor, e
+     o problema aqui era o contrário — cor nenhuma.
+     Todo link que deve se destacar já tem classe própria (`btn-*`,
+     `link-quiet`), então herdar é o padrão certo. */
+  a {
+    color: inherit;
+  }
+
   /* SPEC 4.2 — display com parcimônia, tracking negativo em tamanho grande */
   h1,
   h2 {
@@ -88,6 +101,25 @@
     color: rgb(var(--color-ink-muted));
   }
 
+  /* As duas exceções de `.eyebrow` moram aqui, e não junto dos componentes
+     delas, por causa da ordem de camadas: o Tailwind v4 declara `utilities`
+     depois de `components`, então uma regra de componente **não** vence
+     `.eyebrow` por mais específica que seja.
+
+     Isso não era teoria: a dica do cartão do QR estava escrita em `components`
+     e nunca aplicou — o cartão é claro, o texto saía em muted lavanda a 2,6:1, e
+     ninguém tinha percebido porque o desenho "parecia" certo no arquivo. */
+  .sticky-acts__act .eyebrow {
+    /* Dentro do ato o texto já é apagado pela opacidade do contêiner; muted por
+       cima disso dá 2,4:1 e a SPEC 11 pede 4.5:1. */
+    color: rgb(var(--color-paper));
+  }
+
+  .hero-phone__qr .eyebrow {
+    /* Cartão claro: o texto precisa ser escuro. A 0.7 de alpha dá 7,4:1. */
+    color: rgb(var(--color-noir) / 0.7);
+  }
+
   /* SPEC 4.2 — itálico do display em gradiente accent → magenta */
   .display-italic {
     font-family: var(--font-display);
@@ -144,8 +176,16 @@
   /* SPEC 4.3 — texturas de fundo. Nunca as três na mesma dobra. */
   .bg-grid {
     background-image:
-      linear-gradient(to right, rgb(var(--color-ink) / 0.06) 1px, transparent 1px),
-      linear-gradient(to bottom, rgb(var(--color-ink) / 0.06) 1px, transparent 1px);
+      linear-gradient(
+        to right,
+        rgb(var(--color-ink) / 0.06) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        rgb(var(--color-ink) / 0.06) 1px,
+        transparent 1px
+      );
     background-size: 62px 62px;
     -webkit-mask-image: radial-gradient(
       ellipse at center,
@@ -305,6 +345,13 @@
   }
 
   /* Cada ato acende quando --p cruza a faixa dele. Sem JS, sem classe. */
+  /* O ato inativo é mais apagado que o ativo, mas continua legível.
+     O piso era 0.3, o que deixava os atos 2 e 3 parados em 1,6:1 de contraste
+     até alguém rolar até eles — e isso é estado de repouso, não transição, então
+     a SPEC 11 ("mínimo 4.5:1 no texto de corpo") vale igual. A 0.5 sobre o noir,
+     texto em `--color-paper` dá 4,8:1; em `--color-muted` daria 2,4:1, e é por
+     isso que o texto secundário aqui vira paper em vez de muted: quem já apaga o
+     ato é a opacidade, não precisa apagar duas vezes. */
   .sticky-acts__act {
     opacity: calc(
       var(--act-dim, 0.3) + (1 - var(--act-dim, 0.3)) *
@@ -589,9 +636,15 @@
     color: rgb(var(--color-ink-muted));
   }
 
+  /* Sem o alpha de 0.75: muted cheio sobre o noir dá 6,6:1, e a 75% cai para
+     4,1:1 — abaixo dos 4.5:1 que a SPEC 11 pede para texto de corpo. A 0,8rem
+     isto é texto pequeno, então não vale o limiar frouxo de texto grande. */
+  /* Sem o alpha de 0.75: `--color-ink-muted` cheio sobre o fundo dá 5,9:1, e a
+     75% cai para 3,4:1. A 0,8rem isto é texto pequeno, então vale o limiar de
+     4.5:1 e não o de texto grande (SPEC 11). */
   .hero__note {
     font-size: 0.8rem;
-    color: rgb(var(--color-ink-muted) / 0.75);
+    color: rgb(var(--color-ink-muted));
   }
 
   /* --- Foto do hero ----------------------------------------------------- */
@@ -666,12 +719,7 @@
         #000 34%,
         #000 100%
       );
-      mask-image: linear-gradient(
-        100deg,
-        transparent 0%,
-        #000 34%,
-        #000 100%
-      );
+      mask-image: linear-gradient(100deg, transparent 0%, #000 34%, #000 100%);
     }
   }
 
@@ -761,9 +809,15 @@
     margin-right: 0.35rem;
   }
 
+  /* O ciano é token da pele escura ("estados vivos" sobre o noir): sobre o
+     fundo rosa claro do mockup dá 1,64:1 e o relógio some.
+     O rosa da marca também não serve aqui — ele foi validado contra branco puro
+     (4,56:1), mas o fundo real é `--color-bg` (#FFF5F8), levemente rosado, e a
+     conta cai para 4,26:1. A 14,4px isto é texto pequeno e precisa de 4.5:1.
+     A tinta cheia passa com folga e o relógio continua legível, que é o ponto. */
   .hero-phone__clock {
     font-size: 0.9rem;
-    color: rgb(var(--color-cyan));
+    color: rgb(var(--color-ink));
   }
 
   .hero-phone__letter {
@@ -965,9 +1019,13 @@
     line-height: 1.2;
   }
 
+  /* Sobre o rosa de preenchimento não há folga: mesmo o branco quase puro dá
+     4,56:1, e a 11,2px qualquer perda reprova — a opacidade de 0.85 levava para
+     3,6:1 e o `--color-ink-on-deep` para 4,13:1. Fica o token que a barra já usa
+     para o texto dela, sem opacidade nenhuma. */
   .reaction__chat-who small {
-    font-size: 0.7rem;
-    opacity: 0.85;
+    font-size: 0.72rem;
+    color: rgb(var(--color-on-brand));
   }
 
   .reaction__messages {
@@ -1354,6 +1412,141 @@
     --block-body-font: var(--font-sans);
   }
 
+  /* --- efeito ambiental (SPEC 7.2, theme.effect) -----------------------
+     O campo existia no schema, no seed, no zod e na página publicada desde a
+     Fase 3, e nenhuma linha de CSS o lia: escolher "neve" ou "confete" não
+     mudava nada em lugar nenhum. Fica aqui, no `.blocks`, e não no `<main>` da
+     página publicada, porque é o que faz o preview do editor mostrar o mesmo
+     que o presente entregue (regra inviolável 2).
+
+     Tudo em CSS puro: nenhum JS por frame (SPEC 6.4). São camadas de
+     `background-image` deslocadas por `background-position`, que o navegador
+     compõe sem tocar no layout.
+
+     As opacidades são baixas de propósito. Na primeira tentativa os corações
+     saíram grandes e chapados, disputando espaço com o contador — pior que não
+     ter efeito nenhum. O teto aqui é "textura", não "partícula": se der para
+     contar os corações, está forte demais (CLAUDE.md, identidade visual). */
+  .blocks {
+    position: relative;
+  }
+
+  .blocks[data-effect]:not([data-effect="none"])::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    /* Decorativo: `::before` já é invisível para leitor de tela (SPEC 11). */
+  }
+
+  .blocks > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Neve: três camadas de pontos em velocidades diferentes dão profundidade
+     sem precisar de partícula de verdade. */
+  .blocks[data-effect="snow"]::before {
+    background-image:
+      radial-gradient(
+        2px 2px at 20% 10%,
+        rgb(var(--color-paper) / 0.5),
+        transparent
+      ),
+      radial-gradient(
+        2px 2px at 70% 30%,
+        rgb(var(--color-paper) / 0.35),
+        transparent
+      ),
+      radial-gradient(
+        1px 1px at 45% 60%,
+        rgb(var(--color-paper) / 0.45),
+        transparent
+      );
+    background-size:
+      180px 180px,
+      240px 240px,
+      140px 140px;
+    animation: ambient-fall 26s linear infinite;
+  }
+
+  /* Estrelas: não caem, piscam. É o efeito do memorial, e movimento seria a
+     escolha errada ali. */
+  .blocks[data-effect="stars"]::before {
+    background-image:
+      radial-gradient(
+        1.5px 1.5px at 15% 20%,
+        rgb(var(--color-paper) / 0.6),
+        transparent
+      ),
+      radial-gradient(
+        1.5px 1.5px at 80% 15%,
+        rgb(var(--color-accent) / 0.5),
+        transparent
+      ),
+      radial-gradient(
+        1px 1px at 55% 45%,
+        rgb(var(--color-paper) / 0.5),
+        transparent
+      ),
+      radial-gradient(
+        1px 1px at 30% 75%,
+        rgb(var(--color-paper) / 0.4),
+        transparent
+      );
+    background-size: 260px 260px;
+    animation: ambient-twinkle 7s ease-in-out infinite;
+  }
+
+  /* Corações e confete usam SVG embutido: gradiente não desenha forma. Data URI
+     e não arquivo, para não custar uma requisição na página que precisa abrir
+     instantaneamente (SPEC 8.8). */
+  .blocks[data-effect="hearts"]::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cg fill='%23E0508F'%3E%3Cpath d='M40 44c-1.6-2-4.4-1.6-5.2.8-.8 2 1.2 4 5.2 6.8 4-2.8 6-4.8 5.2-6.8-.8-2.4-3.6-2.8-5.2-.8z' fill-opacity='.16'/%3E%3Cpath d='M186 112c-1.2-1.5-3.3-1.2-3.9.6-.6 1.5.9 3 3.9 5.1 3-2.1 4.5-3.6 3.9-5.1-.6-1.8-2.7-2.1-3.9-.6z' fill-opacity='.12'/%3E%3Cpath d='M104 196c-1.2-1.5-3.3-1.2-3.9.6-.6 1.5.9 3 3.9 5.1 3-2.1 4.5-3.6 3.9-5.1-.6-1.8-2.7-2.1-3.9-.6z' fill-opacity='.1'/%3E%3C/g%3E%3C/svg%3E");
+    background-size: 260px 260px;
+    animation: ambient-fall 34s linear infinite;
+  }
+
+  .blocks[data-effect="confetti"]::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Crect x='30' y='38' width='5' height='2' rx='1' fill='%23F2B457' fill-opacity='.26' transform='rotate(24 30 38)'/%3E%3Crect x='158' y='82' width='4' height='2' rx='1' fill='%23E0508F' fill-opacity='.22' transform='rotate(-38 158 82)'/%3E%3Crect x='92' y='164' width='5' height='2' rx='1' fill='%2358D6D0' fill-opacity='.2' transform='rotate(62 92 164)'/%3E%3Crect x='202' y='196' width='4' height='2' rx='1' fill='%23F2B457' fill-opacity='.18' transform='rotate(-12 202 196)'/%3E%3C/svg%3E");
+    background-size: 240px 240px;
+    animation: ambient-fall 22s linear infinite;
+  }
+
+  @keyframes ambient-fall {
+    from {
+      background-position:
+        0 0,
+        0 0,
+        0 0;
+    }
+    to {
+      background-position:
+        0 720px,
+        0 960px,
+        0 560px;
+    }
+  }
+
+  @keyframes ambient-twinkle {
+    0%,
+    100% {
+      opacity: 0.55;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  /* Regra inviolável 14: `prefers-reduced-motion` desliga tudo. O efeito não
+     some — vira uma textura parada, que é decoração sem movimento. */
+  @media (prefers-reduced-motion: reduce) {
+    .blocks[data-effect]:not([data-effect="none"])::before {
+      animation: none;
+    }
+  }
+
   /* --- hero ------------------------------------------------------------ */
   .block-hero {
     position: relative;
@@ -1481,6 +1674,12 @@
     margin: 0;
     padding: 0 1.25rem;
     list-style: none;
+  }
+
+  /* Foco visível no carrossel: ele agora recebe teclado (SPEC 11). */
+  .block-gallery__list:focus-visible {
+    outline: 2px solid rgb(var(--color-accent));
+    outline-offset: 3px;
   }
 
   /* Carrossel sem JavaScript: scroll-snap do CSS. */
@@ -2837,6 +3036,80 @@
 
   .detail__foot {
     margin-top: 1.5rem;
+  }
+
+  /* Aviso da renovação no checkout (SPEC 8.7). */
+  .checkout__renewal {
+    margin-top: 0.75rem;
+    max-width: 46ch;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: rgb(var(--color-muted));
+  }
+
+  /* Cartão de renovação no painel. */
+  .detail__renew-prazo {
+    font-family: var(--font-mono);
+    font-size: 0.92rem;
+    color: rgb(var(--color-paper));
+  }
+
+  /* --- barra do painel com sessão (SPEC 2 e 8.7) ----------------------- */
+  .panel__bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .panel__hint {
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: rgb(var(--color-muted));
+  }
+
+  .link-quiet {
+    color: rgb(var(--color-accent));
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .link-quiet:focus-visible {
+    outline: 2px solid rgb(var(--color-accent));
+    outline-offset: 3px;
+  }
+
+  /* --- exclusão (SPEC 8.7 e 9.4) ---------------------------------------
+     Sóbrio como o resto do painel. O vermelho aparece só na borda e no botão:
+     apagar a própria página é uma decisão, não um susto. */
+  .detail__card--danger {
+    border-color: rgb(var(--color-danger) / 0.35);
+  }
+
+  .detail__card--danger .detail__card-title {
+    color: rgb(var(--color-danger));
+  }
+
+  .btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 1.1rem;
+    border-radius: var(--radius-pill, 999px);
+    font-size: 0.9rem;
+    color: rgb(var(--color-danger));
+    background: rgb(var(--color-danger) / 0.1);
+    border: 1px solid rgb(var(--color-danger) / 0.4);
+    transition: background 160ms ease;
+  }
+
+  .btn-danger:hover {
+    background: rgb(var(--color-danger) / 0.18);
+  }
+
+  .btn-danger:focus-visible {
+    outline: 2px solid rgb(var(--color-danger));
+    outline-offset: 3px;
   }
 
   /* --- portão da senha (SPEC 8.8) -------------------------------------- */

@@ -111,7 +111,12 @@ export const copy = {
       demoLabel: "conversa ilustrativa",
       messages: [
         { id: "m1", from: "eu", text: "fiz uma coisa pra você" },
-        { id: "m2", from: "eu", text: "abre com calma", link: "revelado.com.br/nos" },
+        {
+          id: "m2",
+          from: "eu",
+          text: "abre com calma",
+          link: "revelado.com.br/nos",
+        },
         { id: "m3", from: "ela", text: "que isso… eu não esperava" },
       ],
     },

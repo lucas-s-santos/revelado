@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Logo } from "@/components/chrome/logo";
+import { AUTH_ENABLED, currentUserId, signOut } from "@/auth";
 import { readAnonId } from "@/lib/anon";
-import { listDraftsByAnon } from "@/lib/drafts";
+import { listDraftsForOwner } from "@/lib/drafts";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -23,18 +24,51 @@ export const dynamic = "force-dynamic";
  * configurados; enquanto isso, o painel lista pelo mesmo cookie anônimo que
  * segura os rascunhos. Está anotado no README.
  */
+async function sair() {
+  "use server";
+  await signOut({ redirectTo: "/painel" });
+}
+
 export default async function PanelPage() {
-  const anonId = await readAnonId();
-  const drafts = anonId ? await listDraftsByAnon(anonId) : [];
+  const [anonId, userId] = await Promise.all([readAnonId(), currentUserId()]);
+  const drafts = await listDraftsForOwner({ anonId, userId });
 
   return (
     <main className="panel">
       <header className="panel__bar">
         <Logo />
-        <Link href="/criar" className="btn-primary">
-          Nova página
-        </Link>
+        <div className="panel__bar-actions">
+          {AUTH_ENABLED ? (
+            userId ? (
+              <form action={sair}>
+                <button type="submit" className="btn-quiet">
+                  Sair
+                </button>
+              </form>
+            ) : (
+              <Link href="/entrar" className="btn-quiet">
+                Entrar
+              </Link>
+            )
+          ) : null}
+
+          <Link href="/criar" className="btn-primary">
+            Nova página
+          </Link>
+        </div>
       </header>
+
+      {AUTH_ENABLED && !userId ? (
+        // Regra inviolável 8: login nunca é exigido. Aqui ele é oferecido, e a
+        // frase diz para que serve — trocar de aparelho sem perder o que é seu.
+        <p className="panel__hint">
+          Estas são as páginas deste aparelho.{" "}
+          <Link href="/entrar" className="link-quiet">
+            Entre com seu e-mail
+          </Link>{" "}
+          para ver também as que você montou em outro.
+        </p>
+      ) : null}
 
       <h1 className="panel__title">Minhas páginas</h1>
 
@@ -83,10 +117,7 @@ export default async function PanelPage() {
                       <Link href={`/p/${draft.slug}`} className="btn-quiet">
                         Ver
                       </Link>
-                      <Link
-                        href={`/painel/${draft.id}`}
-                        className="btn-quiet"
-                      >
+                      <Link href={`/painel/${draft.id}`} className="btn-quiet">
                         Gerenciar
                       </Link>
                     </>

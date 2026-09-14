@@ -1,7 +1,3 @@
-import { rm } from "node:fs/promises";
-
-import { devDir } from "@/lib/dev-store";
-
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 
 import { defaultContent } from "@/lib/blocks/defaults";
@@ -16,6 +12,7 @@ import {
 } from "@/lib/orders";
 import { publishSite } from "@/lib/publish";
 import { getPublishedSite } from "@/lib/sites";
+import { testDevStore } from "@/lib/test-dev-store";
 
 /**
  * Aceite da Fase 5 (SPEC 13): "e2e cobrindo **pago, pendente, expirado e
@@ -28,8 +25,6 @@ import { getPublishedSite } from "@/lib/sites";
  *  2. **a mesma notificação chegando de novo não faz nada** — o Mercado Pago
  *     reenvia webhook, e reenviar não pode publicar duas vezes.
  */
-
-const DEV_DIR = devDir();
 
 async function novaCompra() {
   const draft = await createDraft({
@@ -63,15 +58,15 @@ async function receberWebhook(
   return { changed, published };
 }
 
+/**
+ * Pasta própria: estes testes gravam no backend de arquivo, e o vitest roda
+ * arquivos em paralelo. Ver `lib/test-dev-store.ts`.
+ */
+const store = testDevStore();
+beforeEach(store.arm);
+afterAll(store.clean);
+
 describe("fluxo de pagamento", () => {
-  beforeEach(() => {
-    delete process.env.DATABASE_URL;
-  });
-
-  afterAll(async () => {
-    await rm(DEV_DIR, { recursive: true, force: true });
-  });
-
   it("pago: publica a página e marca o pedido", async () => {
     const { draft, order } = await novaCompra();
 

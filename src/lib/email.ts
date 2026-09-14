@@ -11,6 +11,8 @@
  * este arquivo.
  */
 
+import { successUrl } from "@/lib/access-token";
+
 const RESEND_CONFIGURED = Boolean(process.env.RESEND_API_KEY);
 const FROM = process.env.EMAIL_FROM ?? "Revelado <ola@revelado.com.br>";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -68,7 +70,9 @@ export async function sendPublishedEmail(input: {
   orderId: string;
 }): Promise<void> {
   const pageUrl = `${SITE_URL}/p/${input.slug}`;
-  const successUrl = `${SITE_URL}/sucesso/${input.orderId}`;
+  // Link assinado: funciona no computador de quem pagou no celular, sem abrir a
+  // tela para quem só adivinhou o id do pedido (SPEC 9.4).
+  const successLink = successUrl(SITE_URL, input.orderId);
 
   await send({
     to: input.to,
@@ -78,10 +82,10 @@ export async function sendPublishedEmail(input: {
       `<p style="line-height:1.6;color:#F6EFE6">Está pronta. Este é o link para presentear:</p>
        <p style="margin:16px 0"><a href="${pageUrl}" style="color:#F2B457">${pageUrl}</a></p>
        <p style="line-height:1.6;color:#9B90AA">Na página de sucesso você baixa o QR Code em PNG, SVG e o cartão A6 pronto para imprimir.</p>
-       <p style="margin:24px 0">${button(successUrl, "Baixar meu QR Code")}</p>
+       <p style="margin:24px 0">${button(successLink, "Baixar meu QR Code")}</p>
        <p style="line-height:1.6;color:#9B90AA;font-size:13px">Guarde este e-mail: é por ele que você edita a página depois.</p>`,
     ),
-    text: `Sua página está no ar!\n\nLink: ${pageUrl}\nQR Code e cartão para imprimir: ${successUrl}\n\nGuarde este e-mail: é por ele que você edita a página depois.`,
+    text: `Sua página está no ar!\n\nLink: ${pageUrl}\nQR Code e cartão para imprimir: ${successLink}\n\nGuarde este e-mail: é por ele que você edita a página depois.`,
   });
 }
 
@@ -101,6 +105,98 @@ export async function sendAbandonedEmail(input: {
        <p style="margin:24px 0">${button(backUrl, "Continuar minha página")}</p>`,
     ),
     text: `Sua página ficou pela metade — está tudo salvo.\n\nContinue em: ${backUrl}`,
+  });
+}
+
+/**
+ * "Sua página vai sair do ar" — SPEC 9.2 (`site.expiring`), 15 dias antes.
+ *
+ * O tom importa: não é cobrança, é aviso. A página é um presente que alguém
+ * deu, e a pessoa precisa poder decidir com calma — por isso o prazo aparece
+ * por extenso e o botão leva ao painel, não a um checkout.
+ */
+export async function sendExpiringEmail(input: {
+  to: string;
+  slug: string;
+  siteId: string;
+  expiresAt: Date;
+}): Promise<void> {
+  const quando = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Sao_Paulo",
+  }).format(input.expiresAt);
+
+  const painelUrl = `${SITE_URL}/painel/${input.siteId}`;
+  const pageUrl = `${SITE_URL}/p/${input.slug}`;
+
+  await send({
+    to: input.to,
+    subject: "Sua página sai do ar em 15 dias",
+    html: layout(
+      "Sua página sai do ar em 15 dias",
+      `<p style="line-height:1.6;color:#F6EFE6">A página <a href="${pageUrl}" style="color:#F2B457">${pageUrl}</a> fica no ar até <strong>${quando}</strong>.</p>
+       <p style="line-height:1.6;color:#9B90AA">Renovando, o endereço continua o mesmo — o QR Code que você imprimiu não muda e nada precisa ser reimpresso.</p>
+       <p style="margin:24px 0">${button(painelUrl, "Renovar minha página")}</p>
+       <p style="line-height:1.6;color:#9B90AA;font-size:13px">Se preferir deixar sair do ar, não precisa fazer nada. As fotos ficam guardadas por mais 30 dias.</p>`,
+    ),
+    text: `Sua página ${pageUrl} fica no ar até ${quando}.
+
+Renovando, o endereço continua o mesmo e o QR Code impresso segue valendo: ${painelUrl}
+
+Se preferir deixar sair do ar, não precisa fazer nada.`,
+  });
+}
+
+/**
+ * "Renovada" — SPEC 8.7.
+ *
+ * O que a pessoa quer saber é uma coisa só: até quando agora. O endereço não
+ * mudou e o QR impresso continua valendo, e dizer isso de novo é o que tira a
+ * dúvida de quem já distribuiu cartão.
+ */
+export async function sendRenewedEmail(input: {
+  to: string;
+  slug: string;
+  siteId: string;
+  expiresAt: Date | null;
+}): Promise<void> {
+  const pageUrl = `${SITE_URL}/p/${input.slug}`;
+  const painelUrl = `${SITE_URL}/painel/${input.siteId}`;
+
+  const prazo = input.expiresAt
+    ? `no ar até <strong>${new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        timeZone: "America/Sao_Paulo",
+      }).format(input.expiresAt)}</strong>`
+    : "no ar <strong>para sempre</strong>";
+
+  const prazoTexto = input.expiresAt
+    ? `no ar até ${new Intl.DateTimeFormat("pt-BR", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        timeZone: "America/Sao_Paulo",
+      }).format(input.expiresAt)}`
+    : "no ar para sempre";
+
+  await send({
+    to: input.to,
+    subject: "Sua página continua no ar",
+    html: layout(
+      "Renovado",
+      `<p style="line-height:1.6;color:#F6EFE6">A página <a href="${pageUrl}" style="color:#F2B457">${pageUrl}</a> está ${prazo}.</p>
+       <p style="line-height:1.6;color:#9B90AA">O endereço não mudou: o QR Code que você imprimiu continua valendo, e nada precisa ser reimpresso.</p>
+       <p style="margin:24px 0">${button(painelUrl, "Ver minha página")}</p>`,
+    ),
+    text: `A página ${pageUrl} está ${prazoTexto}.
+
+O endereço não mudou — o QR Code impresso continua valendo.
+
+Painel: ${painelUrl}`,
   });
 }
 

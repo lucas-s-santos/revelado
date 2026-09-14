@@ -10,6 +10,8 @@
  * Em produção isso não acontece: `assertR2Configured` derruba o deploy.
  */
 
+import { HOSTED } from "@/lib/env";
+
 export const R2_CONFIGURED = Boolean(
   process.env.R2_ACCOUNT_ID &&
   process.env.R2_ACCESS_KEY_ID &&
@@ -22,10 +24,14 @@ export const R2_CONFIGURED = Boolean(
  *
  * Não dá para decidir isso por `NODE_ENV`: `pnpm start` na sua máquina roda em
  * `production` e é indistinguível de um deploy. O que separa de verdade é onde
- * o processo está — na Vercel, o disco é efêmero e gravar nele significaria
- * perder as fotos no próximo deploy, então lá o modo local nunca liga.
+ * o processo está — num servidor hospedado o disco é efêmero, e gravar nele
+ * significaria perder as fotos no próximo deploy.
+ *
+ * Quem responde "estou hospedado?" é `lib/env.ts`. Antes isto olhava só para a
+ * Vercel, o que deixava a rota de gravação em disco aberta em qualquer outro
+ * lugar (Railway, Fly, Render, Cloud Run, um VPS em container).
  */
-export const LOCAL_MEDIA_ENABLED = !R2_CONFIGURED && !process.env.VERCEL;
+export const LOCAL_MEDIA_ENABLED = !R2_CONFIGURED && !HOSTED;
 
 /** Tipos aceitos no upload (SPEC 9.1: valida mime, tamanho e cota). */
 export const ACCEPTED_MIME = [
@@ -89,18 +95,126 @@ export async function signUploadUrl(
   );
 }
 
-/** URL pública de leitura da mídia. */
+/**
+ * O bucket é privado? — SPEC 9.4 ("storage privado com URL assinada").
+ *
+ * Desligado por padrão, e não por preguiça: virar a chave exige fechar o bucket
+ * na Cloudflare **junto**, senão as fotos param de carregar. Com a variável
+ * ligada, toda leitura passa por `/api/media`, que confere quem está pedindo e
+ * redireciona para uma URL assinada de vida curta.
+ *
+ * Custo: uma ida ao servidor por imagem, em troca de a foto valer exatamente o
+ * que a página dela vale — some quando a página expira, exige senha quando a
+ * página exige, e não sobrevive à exclusão.
+ */
+export const R2_PRIVATE = process.env.R2_PRIVATE === "true";
+
+/** URL de leitura da mídia. */
 export function publicUrlFor(key: string): string {
-  if (!R2_CONFIGURED) return `/api/media/${key}`;
+  if (!R2_CONFIGURED || R2_PRIVATE) return `/api/media/${key}`;
 
   const host = process.env.NEXT_PUBLIC_R2_PUBLIC_HOST;
   return host ? `https://${host}/${key}` : `/api/media/${key}`;
 }
 
 export function assertR2Configured(): void {
-  if (!R2_CONFIGURED && process.env.VERCEL) {
+  if (!R2_CONFIGURED && HOSTED) {
     throw new Error(
       "R2 não configurado em produção. Preencha R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY e R2_BUCKET.",
     );
   }
+}
+
+/**
+ * Cliente S3 do R2. Só é montado quando há credencial, e cada chamada monta o
+ * seu — o `@aws-sdk` não entra no bundle de quem nunca assina nada.
+ */
+async function r2Client() {
+  const { S3Client } = await import("@aws-sdk/client-s3");
+
+  return new S3Client({
+    region: "auto",
+    endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+      accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+    },
+  });
+}
+
+/**
+ * URL assinada de **leitura** — SPEC 9.4 ("storage privado com URL assinada").
+ *
+ * Existe para quando o bucket for fechado. Hoje a leitura passa pelo host
+ * público (`publicUrlFor`), o que exige o bucket aberto: as chaves não são
+ * adivinháveis, mas uma URL que vaze vale para sempre, inclusive depois da
+ * página expirar.
+ *
+ * O prazo tem que ser **maior** que o `revalidate` da página publicada (1h),
+ * senão o HTML em cache serve links já vencidos. Por isso o padrão é 2h.
+ */
+export async function signReadUrl(
+  key: string,
+  expiresInSeconds = 7200,
+): Promise<string> {
+  const { GetObjectCommand } = await import("@aws-sdk/client-s3");
+  const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
+
+  return getSignedUrl(
+    await r2Client(),
+    new GetObjectCommand({ Bucket: process.env.R2_BUCKET, Key: key }),
+    { expiresIn: expiresInSeconds },
+  );
+}
+
+/**
+ * Apaga todas as mídias de um site — SPEC 9.4: "direito de exclusão apagando
+ * também o R2".
+ *
+ * Sem isto, apagar a página deixava as fotos no bucket para sempre: o banco
+ * usava soft delete e nada tocava no storage. As chaves são prefixadas pelo id
+ * do site (ver `mediaKey`) exatamente para esta varredura ser possível.
+ *
+ * Devolve quantos objetos saíram, para o log de exclusão ter número.
+ */
+export async function deleteSiteMedia(siteId: string): Promise<number> {
+  if (!R2_CONFIGURED) return 0;
+
+  const { ListObjectsV2Command, DeleteObjectsCommand } =
+    await import("@aws-sdk/client-s3");
+
+  const client = await r2Client();
+  const prefix = `sites/${siteId}/`;
+  let removed = 0;
+  let token: string | undefined;
+
+  // Lista em páginas: um site do plano maior tem 60 fotos, mas o contrato do S3
+  // é de 1000 por página e depender disso é como deixar a conta pela metade.
+  do {
+    const listed = await client.send(
+      new ListObjectsV2Command({
+        Bucket: process.env.R2_BUCKET,
+        Prefix: prefix,
+        ...(token ? { ContinuationToken: token } : {}),
+      }),
+    );
+
+    const keys = (listed.Contents ?? []).flatMap((object) =>
+      object.Key ? [{ Key: object.Key }] : [],
+    );
+
+    if (keys.length > 0) {
+      await client.send(
+        new DeleteObjectsCommand({
+          Bucket: process.env.R2_BUCKET,
+          Delete: { Objects: keys },
+        }),
+      );
+      removed += keys.length;
+    }
+
+    token = listed.IsTruncated ? listed.NextContinuationToken : undefined;
+  } while (token);
+
+  return removed;
 }

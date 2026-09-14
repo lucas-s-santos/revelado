@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { readAnonId } from "@/lib/anon";
+import { isDraftOwner } from "@/lib/anon";
 import { getDraft, saveDraftContent } from "@/lib/drafts";
+import { logDenied } from "@/lib/security-log";
 
 /**
  * Autosave do rascunho — SPEC 9.1.
@@ -12,13 +13,6 @@ import { getDraft, saveDraftContent } from "@/lib/drafts";
  */
 
 type Params = Promise<{ id: string }>;
-
-/** Só o dono do cookie mexe no rascunho (SPEC 9.4). */
-async function assertOwner(draftAnonId: string | null): Promise<boolean> {
-  if (!draftAnonId) return true; // rascunho já migrado para uma conta
-  const anonId = await readAnonId();
-  return anonId === draftAnonId;
-}
 
 export async function GET(_request: Request, { params }: { params: Params }) {
   const { id } = await params;
@@ -31,7 +25,8 @@ export async function GET(_request: Request, { params }: { params: Params }) {
     );
   }
 
-  if (!(await assertOwner(draft.anonId))) {
+  if (!(await isDraftOwner(draft))) {
+    await logDenied("owner-mismatch", { rota: "drafts.GET", draftId: id });
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }
 
@@ -65,7 +60,8 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     );
   }
 
-  if (!(await assertOwner(existing.anonId))) {
+  if (!(await isDraftOwner(existing))) {
+    await logDenied("owner-mismatch", { rota: "drafts.PATCH", draftId: id });
     return NextResponse.json({ error: "Sem acesso." }, { status: 403 });
   }
 
