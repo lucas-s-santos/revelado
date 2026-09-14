@@ -4,7 +4,7 @@ import { migrate } from "@/lib/blocks/migrate";
 import { DEMO_SLUG, demoContent } from "@/lib/blocks/fixtures";
 import type { SiteContent } from "@/lib/blocks/schema";
 import { siteTag } from "@/lib/cache";
-import { db, notDeleted } from "@/lib/db";
+import { db, hasDatabase, notDeleted } from "@/lib/db";
 import { findDraftBySlug } from "@/lib/drafts";
 
 /**
@@ -27,7 +27,6 @@ export interface PublishedSite {
 }
 
 /** O banco está configurado? Sem Neon, o slug de exemplo ainda funciona. */
-const hasDatabase = Boolean(process.env.DATABASE_URL);
 
 /**
  * Leitura cacheada por tag — SPEC 8.8.
@@ -96,7 +95,7 @@ function isCacheUnavailable(error: unknown): boolean {
 }
 
 async function readPublishedSite(slug: string): Promise<PublishedSite | null> {
-  if (!hasDatabase) {
+  if (!hasDatabase()) {
     if (slug === DEMO_SLUG) return demoSite();
 
     // Modo local: a página publicada mora no mesmo arquivo do rascunho.
