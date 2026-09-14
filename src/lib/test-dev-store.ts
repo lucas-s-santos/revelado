@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 /**
  * Pasta própria do backend de arquivo para uma suíte de teste.
@@ -21,11 +19,12 @@ import { join } from "node:path";
  * — que varre tudo que expirou — apagava as páginas de quem estivesse rodando ao
  * lado. Passavam sozinhos e falhavam juntos.
  *
- * Vai para o `tmpdir` do sistema em vez do diretório do projeto: nada a limpar
- * se um processo morrer no meio.
+ * O caminho é **relativo**: `devDir()` faz `join(process.cwd(), …)`, e um
+ * caminho absoluto ali vira concatenação sem sentido. Fica dentro de
+ * `.drafts-test/`, que já é ignorado pelo git.
  */
 export function testDevStore() {
-  const dir = join(tmpdir(), `revelado-teste-${randomUUID()}`);
+  const dir = `.drafts-test/${randomUUID()}`;
 
   return {
     dir,
@@ -35,7 +34,9 @@ export function testDevStore() {
       process.env.REVELADO_DEV_DIR = dir;
     },
     async clean() {
-      delete process.env.REVELADO_DEV_DIR;
+      // Volta para a pasta da suíte, e não apaga a variável: sem ela, qualquer
+      // escrita tardia cairia no `.drafts` de desenvolvimento de verdade.
+      process.env.REVELADO_DEV_DIR = ".drafts-test";
       await rm(dir, { recursive: true, force: true });
     },
   };

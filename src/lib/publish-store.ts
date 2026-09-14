@@ -14,15 +14,13 @@ import { join } from "node:path";
  * cuida do modo local.
  */
 
-const DEV_DIR = devDir();
-
 export async function markDraftPublished(
   draftId: string,
   expiresAt: Date | null,
 ): Promise<void> {
   if (process.env.DATABASE_URL) return;
 
-  const path = join(DEV_DIR, `${draftId}.json`);
+  const path = join(devDir(), `${draftId}.json`);
 
   try {
     const record = JSON.parse(await readFile(path, "utf8")) as Record<
